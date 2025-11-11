@@ -11,10 +11,10 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: contribution_chart
+    name: github-profile-3d-contrib
     steps:
       - uses: actions/checkout@v5
-      - uses: chasenunez/contribution_chart@latest
+      - uses: yoshi389111/github-profile-3d-contrib@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USERNAME: ${{ github.repository_owner }}
