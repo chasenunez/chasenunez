@@ -11,7 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: generate-github-profile-3d-contrib
+    name: contribution_chart
     steps:
       - uses: actions/checkout@v5
       - uses: chasenunez/contribution_chart@latest
