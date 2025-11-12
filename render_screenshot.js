@@ -1,7 +1,7 @@
-// render_screenshot.js
-const puppeteer = require('puppeteer');
-const fs = require('fs');
-const path = require('path');
+// render_screenshot.js (ESM)
+import puppeteer from 'puppeteer';
+import fs from 'fs';
+import path from 'path';
 
 (async () => {
   try {
@@ -12,25 +12,25 @@ const path = require('path');
     });
     const page = await browser.newPage();
     await page.setViewport({ width: 1400, height: 900 });
+
     await page.goto(htmlPath, { waitUntil: 'networkidle0' });
 
-    // Wait for the chart's svg element to exist
-    await page.waitForSelector('#chart svg', { timeout: 10000 });
+    // Wait for chart svg to appear - allow generous timeout
+    await page.waitForSelector('#chart svg', { timeout: 15000 });
 
-    // select the svg element and get its bounding box
+    // extra small wait to let D3 finish layout
+    await page.waitForTimeout(500);
+
     const svgHandle = await page.$('#chart svg');
     if (!svgHandle) {
       console.error('SVG element not found');
-    } else {
-      const bbox = await svgHandle.boundingBox();
-      console.log('SVG bounding box:', bbox);
+      await browser.close();
+      process.exit(2);
     }
 
-
-    // screenshot the bounding box of the svg
     const boundingBox = await svgHandle.boundingBox();
-    if (!boundingBox) {
-      // as a fallback, screenshot full page
+    if (!boundingBox || boundingBox.width < 10 || boundingBox.height < 10) {
+      console.log('SVG bbox suspicious, capturing full page as fallback');
       await page.screenshot({ path: outPath, fullPage: true });
     } else {
       await page.screenshot({
@@ -43,6 +43,7 @@ const path = require('path');
         }
       });
     }
+
     console.log('Wrote screenshot:', outPath);
     await browser.close();
     process.exit(0);
@@ -51,6 +52,3 @@ const path = require('path');
     process.exit(1);
   }
 })();
-await page.goto(htmlPath, { waitUntil: 'networkidle0' });
-// wait extra time for D3 to render
-await page.waitForTimeout(2000);  // <-- add 2 seconds
