@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GitHub Repos Sunburst — chasenunez</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; padding: 0; display:flex; flex-direction:column; align-items:center;}
+  #chart { width: 100%; max-width: 1100px; height: 800px; }
+  .crumb { margin-top: 8px; font-size: 14px; color: #444; }
+</style>
+</head>
+<body>
+<h2>Repos &amp; languages — interactive sunburst</h2>
+<div id="chart"></div>
+<div class="crumb" id="label">Click a wedge to zoom/filter by repo. Click center to reset.</div>
+
+<!-- load d3 -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+const width = 1100, height = 800, radius = Math.min(width, height) / 2;
+
+const svg = d3.select("#chart")
+  .append("svg")
+  .attr("viewBox", [-width/2, -height/2, width, height])
+  .style("max-width","100%");
+
+const partition = data => {
+  const root = d3.hierarchy(data)
+      .sum(d => d.size || 0)
+      .sort((a, b) => b.value - a.value);
+  return d3.partition().size([2 * Math.PI, root.height + 1])(root);
+};
+
+const arc = d3.arc()
+  .startAngle(d => d.x0)
+  .endAngle(d => d.x1)
+  .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.005))
+  .padRadius(radius * 1.5)
+  .innerRadius(d => d.y0 * radius / (d.depth+1))
+  .outerRadius(d => Math.max(d.y0 * radius / (d.depth+1), d.y1 * radius / (d.depth+1)));
+
+function colorFor(name) {
+  // deterministic color via hash
+  let h = 0;
+  for (let i=0;i<name.length;i++) h = (h<<5)-h + name.charCodeAt(i);
+  const hue = Math.abs(h) % 360;
+  return `hsl(${hue} 60% 55%)`;
+}
+
+d3.json("flare.json").then(data => {
+  const root = partition(data);
+  root.each(d => d.current = d);
+
+  const g = svg.append("g");
+
+  const path = g.append("g")
+    .selectAll("path")
+    .data(root.descendants().slice(1))
+    .join("path")
+      .attr("fill", d => colorFor((d.data && d.data.name) || d.data))
+      .attr("fill-opacity", d => 1)
+      .attr("d", d => arc(d.current))
+      .style("cursor", "pointer")
+      .on("click", clicked);
+
+  path.append("title").text(d => `${d.ancestors().map(d => d.data.name).reverse().join(" / ")}\n${d.value}`);
+
+  const label = g.append("g")
+    .attr("pointer-events", "none")
+    .attr("text-anchor", "middle")
+    .selectAll("text")
+    .data(root.descendants().slice(1))
+    .join("text")
+      .attr("dy", "0.35em")
+      .attr("transform", d => {
+        const x = (d.x0 + d.x1) / 2 * 180 / Math.PI;
+        const y = (d.y0 + d.y1) / 2 * radius / (d.depth+1);
+        return `rotate(${x - 90}) translate(${y},0) rotate(${x < 180 ? 0 : 180})`;
+      })
+      .text(d => d.depth === 1 ? d.data.name : (d.depth===2 ? d.data.name : "") )
+      .style("font-size", "12px");
+
+  function clicked(p) {
+    // if click center (root) -> reset
+    if (!p) return;
+    const rootd = p;
+    updateLabel(rootd);
+    root.each(d => d.target = {
+      x0: Math.max(0, Math.min(2 * Math.PI, (d.x0 - rootd.x0) * (2*Math.PI) / (rootd.x1 - rootd.x0))),
+      x1: Math.max(0, Math.min(2 * Math.PI, (d.x1 - rootd.x0) * (2*Math.PI) / (rootd.x1 - rootd.x0))),
+      y0: Math.max(0, d.y0 - rootd.depth),
+      y1: Math.max(0, d.y1 - rootd.depth)
+    });
+
+    const t = g.transition().duration(750);
+
+    path.transition(t)
+        .tween("data", d => {
+          const i = d3.interpolate(d.current, d.target);
+          return t => d.current = i(t);
+        })
+        .attrTween("d", d => () => arc(d.current));
+  }
+
+  // initial label
+  updateLabel(root);
+
+  // clicking center: reset
+  svg.on("click", () => {
+    clicked(root);
+  });
+
+  function updateLabel(node) {
+    const el = document.getElementById("label");
+    if (!node || node === root) {
+      el.textContent = "Click a wedge to zoom/filter by repo. Click center to reset.";
+    } else {
+      const path = node.ancestors().reverse().map(d => d.data.name).slice(1).join(" / ");
+      el.textContent = `Selected: ${path} — ${node.value} bytes`;
+    }
+  }
+});
+</script>
+</body>
+</html>
