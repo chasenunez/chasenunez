@@ -1,29 +1,46 @@
 // render_screenshot.js
-// Usage: node render_screenshot.js
-// This opens docs/sunburst.html with headless Chromium and screenshots the plotly div.
-
 const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
 
 (async () => {
   try {
-    const htmlPath = `file://${process.cwd()}/docs/sunburst.html`;
-    const outPath = `${process.cwd()}/docs/sunburst_screenshot.png`;
+    const htmlPath = `file://${process.cwd()}/docs/index.html`;
+    const outPath = path.join(process.cwd(), 'docs', 'sunburst_screenshot.png');
     const browser = await puppeteer.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     const page = await browser.newPage();
     await page.setViewport({ width: 1400, height: 900 });
-    // load the generated HTML; wait for network idle and the plot div
     await page.goto(htmlPath, { waitUntil: 'networkidle0' });
-    await page.waitForSelector('.plotly-graph-div', { timeout: 8000 });
-    const el = await page.$('.plotly-graph-div');
-    if (!el) {
-      console.error('ERROR: plotly element not found');
+
+    // Wait for the chart's svg element to exist
+    await page.waitForSelector('#chart svg', { timeout: 10000 });
+
+    // select the svg element and get its bounding box
+    const svgHandle = await page.$('#chart svg');
+    if (!svgHandle) {
+      console.error('SVG element not found');
       await browser.close();
       process.exit(2);
     }
-    // screenshot the plot div (not whole page)
-    await el.screenshot({ path: outPath });
+
+    // screenshot the bounding box of the svg
+    const boundingBox = await svgHandle.boundingBox();
+    if (!boundingBox) {
+      // as a fallback, screenshot full page
+      await page.screenshot({ path: outPath, fullPage: true });
+    } else {
+      await page.screenshot({
+        path: outPath,
+        clip: {
+          x: Math.floor(boundingBox.x),
+          y: Math.floor(boundingBox.y),
+          width: Math.ceil(boundingBox.width),
+          height: Math.ceil(boundingBox.height)
+        }
+      });
+    }
     console.log('Wrote screenshot:', outPath);
     await browser.close();
     process.exit(0);

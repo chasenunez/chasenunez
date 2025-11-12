@@ -1,72 +1,96 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>GitHub Repos Sunburst — chasenunez</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 0; padding: 0; display:flex; flex-direction:column; align-items:center;}
+  body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 20px; display:flex; flex-direction:column; align-items:center; background:white; color:#222; }
   #chart { width: 100%; max-width: 1100px; height: 800px; }
-  .crumb { margin-top: 8px; font-size: 14px; color: #444; }
+  svg { width: 100%; height: 100%; }
+  .center-label { font-size: 14px; text-anchor: middle; fill: #222; }
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(0,0,0,0.75);
+    color: white;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  button { margin: 8px; }
 </style>
 </head>
 <body>
 <h2>Repos &amp; languages — interactive sunburst</h2>
+<div>
+  <button id="resetBtn">Reset</button>
+</div>
 <div id="chart"></div>
-<div class="crumb" id="label">Click a wedge to zoom/filter by repo. Click center to reset.</div>
+<div id="label" style="margin-top:8px">Click a wedge to zoom / click center to reset.</div>
+<div id="tooltip" class="tooltip" style="display:none"></div>
 
-<!-- load d3 -->
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
 const width = 1100, height = 800, radius = Math.min(width, height) / 2;
+const chart = d3.select("#chart");
+const svg = chart.append("svg")
+  .attr("viewBox", [-width/2, -height/2, width, height]);
 
-const svg = d3.select("#chart")
-  .append("svg")
-  .attr("viewBox", [-width/2, -height/2, width, height])
-  .style("max-width","100%");
+const g = svg.append("g");
 
-const partition = data => {
+const partition = (data) => {
   const root = d3.hierarchy(data)
-      .sum(d => d.size || 0)
-      .sort((a, b) => b.value - a.value);
-  return d3.partition().size([2 * Math.PI, root.height + 1])(root);
+    .sum(d => d.size || 0)
+    .sort((a, b) => b.value - a.value);
+  return d3.partition()
+    .size([2 * Math.PI, root.height + 1])
+    (root);
 };
 
 const arc = d3.arc()
   .startAngle(d => d.x0)
   .endAngle(d => d.x1)
-  .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.005))
+  .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.01))
   .padRadius(radius * 1.5)
-  .innerRadius(d => d.y0 * radius / (d.depth+1))
-  .outerRadius(d => Math.max(d.y0 * radius / (d.depth+1), d.y1 * radius / (d.depth+1)));
+  .innerRadius(d => d.y0 * (radius / (d.depth+1)))
+  .outerRadius(d => Math.max(d.y0 * (radius / (d.depth+1)), d.y1 * (radius / (d.depth+1))));
 
 function colorFor(name) {
-  // deterministic color via hash
+  // deterministic color
   let h = 0;
   for (let i=0;i<name.length;i++) h = (h<<5)-h + name.charCodeAt(i);
   const hue = Math.abs(h) % 360;
   return `hsl(${hue} 60% 55%)`;
 }
 
+const tooltip = d3.select("#tooltip");
+
 d3.json("flare.json").then(data => {
   const root = partition(data);
   root.each(d => d.current = d);
 
-  const g = svg.append("g");
-
-  const path = g.append("g")
+  const slice = g.append("g")
     .selectAll("path")
     .data(root.descendants().slice(1))
     .join("path")
-      .attr("fill", d => colorFor((d.data && d.data.name) || d.data))
-      .attr("fill-opacity", d => 1)
+      .attr("fill", d => colorFor(d.data.name || d.data))
+      .attr("fill-opacity", 1)
       .attr("d", d => arc(d.current))
       .style("cursor", "pointer")
-      .on("click", clicked);
+      .on("click", clicked)
+      .on("mouseover", (event,d) => {
+         tooltip.style("display", "block")
+           .html(`<strong>${d.data.name}</strong><br/>${d.value} bytes`);
+      })
+      .on("mousemove", (event) => {
+         tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY + 10) + "px");
+      })
+      .on("mouseout", () => tooltip.style("display","none"));
 
-  path.append("title").text(d => `${d.ancestors().map(d => d.data.name).reverse().join(" / ")}\n${d.value}`);
+  slice.append("title").text(d => `${d.ancestors().map(d => d.data.name).reverse().join(" / ")}\n${d.value}`);
 
-  const label = g.append("g")
+  const labelGroup = g.append("g")
     .attr("pointer-events", "none")
     .attr("text-anchor", "middle")
     .selectAll("text")
@@ -78,14 +102,12 @@ d3.json("flare.json").then(data => {
         const y = (d.y0 + d.y1) / 2 * radius / (d.depth+1);
         return `rotate(${x - 90}) translate(${y},0) rotate(${x < 180 ? 0 : 180})`;
       })
-      .text(d => d.depth === 1 ? d.data.name : (d.depth===2 ? d.data.name : "") )
+      .text(d => d.depth === 1 ? d.data.name : (d.depth === 2 ? d.data.name : ""))
       .style("font-size", "12px");
 
   function clicked(p) {
-    // if click center (root) -> reset
     if (!p) return;
     const rootd = p;
-    updateLabel(rootd);
     root.each(d => d.target = {
       x0: Math.max(0, Math.min(2 * Math.PI, (d.x0 - rootd.x0) * (2*Math.PI) / (rootd.x1 - rootd.x0))),
       x1: Math.max(0, Math.min(2 * Math.PI, (d.x1 - rootd.x0) * (2*Math.PI) / (rootd.x1 - rootd.x0))),
@@ -95,7 +117,7 @@ d3.json("flare.json").then(data => {
 
     const t = g.transition().duration(750);
 
-    path.transition(t)
+    slice.transition(t)
         .tween("data", d => {
           const i = d3.interpolate(d.current, d.target);
           return t => d.current = i(t);
@@ -103,23 +125,15 @@ d3.json("flare.json").then(data => {
         .attrTween("d", d => () => arc(d.current));
   }
 
-  // initial label
-  updateLabel(root);
-
-  // clicking center: reset
-  svg.on("click", () => {
-    clicked(root);
+  d3.select("#resetBtn").on("click", () => clicked(root));
+  svg.on("click", (event) => {
+    // prevent immediate reset if clicking on a wedge (handled by wedge click)
+    if (event.target.tagName === 'svg' || event.target.tagName === 'DIV') clicked(root);
   });
-
-  function updateLabel(node) {
-    const el = document.getElementById("label");
-    if (!node || node === root) {
-      el.textContent = "Click a wedge to zoom/filter by repo. Click center to reset.";
-    } else {
-      const path = node.ancestors().reverse().map(d => d.data.name).slice(1).join(" / ");
-      el.textContent = `Selected: ${path} — ${node.value} bytes`;
-    }
-  }
+})
+.catch(err => {
+  console.error("Failed to load flare.json:", err);
+  d3.select("#label").text("Failed to load data.");
 });
 </script>
 </body>
