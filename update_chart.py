@@ -337,7 +337,7 @@ def write_index_with_inline_json(hierarchy, lang_items, commits_list, path):
         "commits": commits_list
     }
     json_text = json.dumps(payload, indent=2)
-    html_text = INDEX_HTML_TEMPLATE.format(user=GH_USER, json_data=json_text)
+    html_text = INDEX_HTML_TEMPLATE.replace("{json_data}", json_text).replace("{user}", GH_USER)
     path.write_text(html_text, encoding="utf-8")
     print(f"Wrote {path}")
 
