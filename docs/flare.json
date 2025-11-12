@@ -1,0 +1,169 @@
+{
+  "name": "root",
+  "children": [
+    {
+      "name": "byos_django",
+      "children": [
+        {
+          "name": "Python",
+          "size": 33966
+        },
+        {
+          "name": "HTML",
+          "size": 4385
+        },
+        {
+          "name": "Dockerfile",
+          "size": 474
+        }
+      ]
+    },
+    {
+      "name": "chasenunez",
+      "children": [
+        {
+          "name": "Python",
+          "size": 6483
+        }
+      ]
+    },
+    {
+      "name": "contribution_chart",
+      "children": [
+        {
+          "name": "TypeScript",
+          "size": 180801
+        },
+        {
+          "name": "JavaScript",
+          "size": 570
+        }
+      ]
+    },
+    {
+      "name": "data_HUD",
+      "children": [
+        {
+          "name": "JavaScript",
+          "size": 11753
+        },
+        {
+          "name": "HTML",
+          "size": 3773
+        },
+        {
+          "name": "CSS",
+          "size": 1543
+        }
+      ]
+    },
+    {
+      "name": "envidat_entrails",
+      "children": [
+        {
+          "name": "HTML",
+          "size": 19439431
+        },
+        {
+          "name": "Python",
+          "size": 28258
+        }
+      ]
+    },
+    {
+      "name": "etani_shordul",
+      "children": [
+        {
+          "name": "Python",
+          "size": 1405
+        }
+      ]
+    },
+    {
+      "name": "logue",
+      "children": [
+        {
+          "name": "Python",
+          "size": 28643
+        }
+      ]
+    },
+    {
+      "name": "recursive_shrink",
+      "children": [
+        {
+          "name": "Shell",
+          "size": 2036
+        }
+      ]
+    },
+    {
+      "name": "solar_nav",
+      "children": [
+        {
+          "name": "Python",
+          "size": 6409
+        }
+      ]
+    },
+    {
+      "name": "sunburst_nav",
+      "children": [
+        {
+          "name": "HTML",
+          "size": 9941
+        },
+        {
+          "name": "CSS",
+          "size": 313
+        }
+      ]
+    },
+    {
+      "name": "trmnlp",
+      "children": [
+        {
+          "name": "JavaScript",
+          "size": 41714
+        },
+        {
+          "name": "Ruby",
+          "size": 41108
+        },
+        {
+          "name": "HTML",
+          "size": 2789
+        },
+        {
+          "name": "CSS",
+          "size": 1111
+        },
+        {
+          "name": "Shell",
+          "size": 864
+        },
+        {
+          "name": "Dockerfile",
+          "size": 725
+        },
+        {
+          "name": "Liquid",
+          "size": 49
+        }
+      ]
+    },
+    {
+      "name": "tui_log",
+      "children": [
+        {
+          "name": "Rust",
+          "size": 346478
+        },
+        {
+          "name": "Makefile",
+          "size": 1490
+        }
+      ]
+    }
+  ]
+}
