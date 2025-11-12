@@ -9,15 +9,7 @@
   #chart { width: 100%; max-width: 1100px; height: 800px; }
   svg { width: 100%; height: 100%; }
   .center-label { font-size: 14px; text-anchor: middle; fill: #222; }
-  .tooltip {
-    position: absolute;
-    pointer-events: none;
-    background: rgba(0,0,0,0.75);
-    color: white;
-    padding: 6px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-  }
+  .tooltip { position: absolute; pointer-events: none; background: rgba(0,0,0,0.75); color: white; padding: 6px 8px; border-radius: 4px; font-size: 12px; }
   button { margin: 8px; }
 </style>
 </head>
@@ -29,44 +21,329 @@
 <div id="chart"></div>
 <div id="label" style="margin-top:8px">Click a wedge to zoom / click center to reset.</div>
 <div id="tooltip" class="tooltip" style="display:none"></div>
-
+<!-- inlined data -->
+<script id="flare-data" type="application/json">
+{
+  "name": "root",
+  "children": [
+    {
+      "name": "Private",
+      "children": [
+        {
+          "name": "R",
+          "size": 114370
+        },
+        {
+          "name": "HTML",
+          "size": 9253425
+        },
+        {
+          "name": "TeX",
+          "size": 285515
+        },
+        {
+          "name": "Python",
+          "size": 375905
+        },
+        {
+          "name": "Rust",
+          "size": 346478
+        },
+        {
+          "name": "Makefile",
+          "size": 1490
+        },
+        {
+          "name": "JavaScript",
+          "size": 78987
+        },
+        {
+          "name": "CSS",
+          "size": 75820
+        },
+        {
+          "name": "SCSS",
+          "size": 58439
+        },
+        {
+          "name": "Shell",
+          "size": 2768
+        },
+        {
+          "name": "Jupyter Notebook",
+          "size": 78593988
+        },
+        {
+          "name": "Smalltalk",
+          "size": 98772
+        },
+        {
+          "name": "C#",
+          "size": 19771
+        },
+        {
+          "name": "C++",
+          "size": 68
+        },
+        {
+          "name": "PHP",
+          "size": 53
+        },
+        {
+          "name": "C",
+          "size": 46
+        }
+      ]
+    },
+    {
+      "name": "chasenunez",
+      "children": [
+        {
+          "name": "Python",
+          "size": 65940367
+        },
+        {
+          "name": "C",
+          "size": 408938
+        },
+        {
+          "name": "Cython",
+          "size": 103945
+        },
+        {
+          "name": "C++",
+          "size": 85980
+        },
+        {
+          "name": "Fortran",
+          "size": 36224
+        },
+        {
+          "name": "PowerShell",
+          "size": 8834
+        },
+        {
+          "name": "JavaScript",
+          "size": 8662
+        },
+        {
+          "name": "Smarty",
+          "size": 8486
+        },
+        {
+          "name": "Meson",
+          "size": 4220
+        },
+        {
+          "name": "Shell",
+          "size": 2874
+        }
+      ]
+    },
+    {
+      "name": "envidat_entrails",
+      "children": [
+        {
+          "name": "HTML",
+          "size": 19439431
+        },
+        {
+          "name": "Python",
+          "size": 28258
+        }
+      ]
+    },
+    {
+      "name": "tui_log",
+      "children": [
+        {
+          "name": "Rust",
+          "size": 346478
+        },
+        {
+          "name": "Makefile",
+          "size": 1490
+        }
+      ]
+    },
+    {
+      "name": "contribution_chart",
+      "children": [
+        {
+          "name": "TypeScript",
+          "size": 180801
+        },
+        {
+          "name": "JavaScript",
+          "size": 570
+        }
+      ]
+    },
+    {
+      "name": "trmnlp",
+      "children": [
+        {
+          "name": "JavaScript",
+          "size": 41714
+        },
+        {
+          "name": "Ruby",
+          "size": 41108
+        },
+        {
+          "name": "HTML",
+          "size": 2789
+        },
+        {
+          "name": "CSS",
+          "size": 1111
+        },
+        {
+          "name": "Shell",
+          "size": 864
+        },
+        {
+          "name": "Dockerfile",
+          "size": 725
+        },
+        {
+          "name": "Liquid",
+          "size": 49
+        }
+      ]
+    },
+    {
+      "name": "byos_django",
+      "children": [
+        {
+          "name": "Python",
+          "size": 33966
+        },
+        {
+          "name": "HTML",
+          "size": 4385
+        },
+        {
+          "name": "Dockerfile",
+          "size": 474
+        }
+      ]
+    },
+    {
+      "name": "logue",
+      "children": [
+        {
+          "name": "Python",
+          "size": 28643
+        }
+      ]
+    },
+    {
+      "name": "data_HUD",
+      "children": [
+        {
+          "name": "JavaScript",
+          "size": 11753
+        },
+        {
+          "name": "HTML",
+          "size": 3773
+        },
+        {
+          "name": "CSS",
+          "size": 1543
+        }
+      ]
+    },
+    {
+      "name": "sunburst_nav",
+      "children": [
+        {
+          "name": "HTML",
+          "size": 9941
+        },
+        {
+          "name": "CSS",
+          "size": 313
+        }
+      ]
+    },
+    {
+      "name": "solar_nav",
+      "children": [
+        {
+          "name": "Python",
+          "size": 6409
+        }
+      ]
+    },
+    {
+      "name": "recursive_shrink",
+      "children": [
+        {
+          "name": "Shell",
+          "size": 2036
+        }
+      ]
+    },
+    {
+      "name": "etani_shordul",
+      "children": [
+        {
+          "name": "Python",
+          "size": 1405
+        }
+      ]
+    }
+  ]
+}
+</script>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
-const width = 1100, height = 800, radius = Math.min(width, height) / 2;
-const chart = d3.select("#chart");
-const svg = chart.append("svg")
-  .attr("viewBox", [-width/2, -height/2, width, height]);
+(function () {
+  const raw = document.getElementById('flare-data').textContent;
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to parse inlined JSON', e);
+    document.getElementById('label').textContent = 'Failed to load data.';
+    return;
+  }
 
-const g = svg.append("g");
+  const width = 1100, height = 800, radius = Math.min(width, height) / 2;
+  const chart = d3.select("#chart");
+  const svg = chart.append("svg")
+    .attr("viewBox", [-width/2, -height/2, width, height]);
 
-const partition = (data) => {
-  const root = d3.hierarchy(data)
-    .sum(d => d.size || 0)
-    .sort((a, b) => b.value - a.value);
-  return d3.partition()
-    .size([2 * Math.PI, root.height + 1])
-    (root);
-};
+  const g = svg.append("g");
 
-const arc = d3.arc()
-  .startAngle(d => d.x0)
-  .endAngle(d => d.x1)
-  .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.01))
-  .padRadius(radius * 1.5)
-  .innerRadius(d => d.y0 * (radius / (d.depth+1)))
-  .outerRadius(d => Math.max(d.y0 * (radius / (d.depth+1)), d.y1 * (radius / (d.depth+1))));
+  const partition = (data) => {
+    const root = d3.hierarchy(data)
+      .sum(d => d.size || 0)
+      .sort((a, b) => b.value - a.value);
+    return d3.partition()
+      .size([2 * Math.PI, root.height + 1])
+      (root);
+  };
 
-function colorFor(name) {
-  // deterministic color
-  let h = 0;
-  for (let i=0;i<name.length;i++) h = (h<<5)-h + name.charCodeAt(i);
-  const hue = Math.abs(h) % 360;
-  return `hsl(${hue} 60% 55%)`;
-}
+  const arc = d3.arc()
+    .startAngle(d => d.x0)
+    .endAngle(d => d.x1)
+    .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.01))
+    .padRadius(radius * 1.5)
+    .innerRadius(d => d.y0 * (radius / (d.depth+1)))
+    .outerRadius(d => Math.max(d.y0 * (radius / (d.depth+1)), d.y1 * (radius / (d.depth+1))));
 
-const tooltip = d3.select("#tooltip");
+  function colorFor(name) {
+    let h = 0;
+    for (let i=0;i<name.length;i++) h = (h<<5)-h + name.charCodeAt(i);
+    const hue = Math.abs(h) % 360;
+    return `hsl(${hue} 60% 55%)`;
+  }
 
-d3.json("flare.json").then(data => {
+  const tooltip = d3.select("#tooltip");
+
   const root = partition(data);
   root.each(d => d.current = d);
 
@@ -127,14 +404,9 @@ d3.json("flare.json").then(data => {
 
   d3.select("#resetBtn").on("click", () => clicked(root));
   svg.on("click", (event) => {
-    // prevent immediate reset if clicking on a wedge (handled by wedge click)
     if (event.target.tagName === 'svg' || event.target.tagName === 'DIV') clicked(root);
   });
-})
-.catch(err => {
-  console.error("Failed to load flare.json:", err);
-  d3.select("#label").text("Failed to load data.");
-});
+})();
 </script>
 </body>
 </html>

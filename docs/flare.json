@@ -75,7 +75,7 @@
       "children": [
         {
           "name": "Python",
-          "size": 65935319
+          "size": 65940367
         },
         {
           "name": "C",
@@ -98,12 +98,12 @@
           "size": 8834
         },
         {
-          "name": "Smarty",
-          "size": 8486
+          "name": "JavaScript",
+          "size": 8662
         },
         {
-          "name": "JavaScript",
-          "size": 5507
+          "name": "Smarty",
+          "size": 8486
         },
         {
           "name": "Meson",
