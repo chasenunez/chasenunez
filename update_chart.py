@@ -105,34 +105,81 @@ def save_json(data, path):
     print(f"Wrote {path}")
 
 def build_plotly_sunburst(data, out_png):
+    """
+    Robustly build a sunburst and write PNG, SVG, and an interactive HTML fallback.
+    Also write a debug file with file sizes so CI logs show whether files are present.
+    """
+    import os
     # Convert hierarchical JSON into a dataframe of labels/parents/values
     labels = []
     parents = []
     values = []
     # root
-    labels.append(data["name"])
+    root_name = data.get("name", "root")
+    labels.append(root_name)
     parents.append("")
     values.append(0)
 
     for repo in data.get("children", []):
-        labels.append(repo["name"])
-        parents.append(data["name"])
+        repo_name = repo.get("name", "unknown")
+        labels.append(repo_name)
+        parents.append(root_name)
         # value = sum of children sizes
         s = 0
         for child in repo.get("children", []):
             s += child.get("size", 0)
-        values.append(s if s>0 else 1)
+        values.append(s if s > 0 else 1)
         for child in repo.get("children", []):
-            labels.append(child["name"])
-            parents.append(repo["name"])
-            values.append(child.get("size", 0) or 1)
+            labels.append(child.get("name", "lang"))
+            parents.append(repo_name)
+            # ensure every leaf has at least 1 so the renderer shows it
+            values.append(max(1, int(child.get("size", 0))))
 
     df = pd.DataFrame({"labels": labels, "parents": parents, "values": values})
+
+    # Create figure and make layout explicit (white background, margins)
     fig = px.sunburst(df, names="labels", parents="parents", values="values", branchvalues="total")
     fig.update_traces(maxdepth=3)
-    # write PNG via kaleido
-    fig.write_image(str(out_png), width=1400, height=900, scale=1)
-    print(f"Wrote {out_png}")
+    fig.update_layout(
+        margin=dict(t=20, l=20, r=20, b=20),
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+        uniformtext=dict(minsize=10, mode="hide")
+    )
+
+    # Force use of kaleido engine for static export
+    png_path = Path(out_png)
+    svg_path = png_path.with_suffix(".svg")
+    html_path = png_path.with_suffix(".html")
+
+    try:
+        # write SVG first (often more reliable than PNG)
+        fig.write_image(str(svg_path), width=1400, height=900, engine="kaleido")
+        # then write PNG explicitly via kaleido
+        fig.write_image(str(png_path), width=1400, height=900, scale=1, engine="kaleido")
+        # create a standalone interactive HTML fallback (self-contained)
+        fig.write_html(str(html_path), include_plotlyjs="cdn", full_html=True)
+    except Exception as e:
+        print("WARN: plotly write_image/write_html raised exception:", e, file=sys.stderr)
+
+    # Write debug info about generated files (size in bytes)
+    debug_lines = []
+    for p in [svg_path, png_path, html_path]:
+        if p.exists():
+            try:
+                sz = p.stat().st_size
+                debug_lines.append(f"{p.name}: {sz} bytes")
+            except Exception as ee:
+                debug_lines.append(f"{p.name}: exists but size-check failed: {ee}")
+        else:
+            debug_lines.append(f"{p.name}: NOT CREATED")
+
+    dbg_path = OUT_DIR / "sunburst_debug.txt"
+    dbg_path.write_text("\n".join(debug_lines))
+    print("Wrote debug info:", dbg_path)
+    for line in debug_lines:
+        print(line)
+
 
 def update_readme(png_path, pages_url=None):
     readme_path = Path("README.md")
