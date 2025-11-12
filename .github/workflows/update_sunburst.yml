@@ -38,6 +38,27 @@ jobs:
         run: |
           python update_chart.py
 
+      - name: Render interactive HTML -> screenshot (puppeteer)
+        run: |
+          # Install Node (if not already present) and npm dependencies
+          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+          sudo apt-get install -y nodejs build-essential
+          # install puppeteer locally (it will download Chromium)
+          npm init -y
+          npm i puppeteer --no-audit --no-fund
+          # run the renderer
+          node render_screenshot.js
+          # move produced screenshot to the canonical name used in README
+          if [ -f docs/sunburst_screenshot.png ]; then
+            mv docs/sunburst_screenshot.png docs/sunburst.png
+            echo "Screenshot saved and moved to docs/sunburst.png"
+            ls -l docs | sed -n '1,200p'
+          else
+            echo "No screenshot produced"
+            ls -l docs | sed -n '1,200p'
+            exit 1
+          fi
+          
       - name: Commit generated files
         env:
           PUSH_TOKEN: ${{ secrets.GH_PAT }}
