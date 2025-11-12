@@ -50,12 +50,11 @@ jobs:
 
       - name: Install puppeteer and render screenshot
         run: |
-          # init npm and install puppeteer
           npm init -y
           npm i puppeteer --no-audit --no-fund
-          # run renderer
-          node render_screenshot.js
-          # move screenshot to canonical name
+          # run the ESM renderer
+          node render_screenshot.mjs
+          # move produced screenshot to canonical name used in README
           if [ -f docs/sunburst_screenshot.png ]; then
             mv docs/sunburst_screenshot.png docs/sunburst.png
           fi
