@@ -21,9 +21,11 @@ const path = require('path');
     const svgHandle = await page.$('#chart svg');
     if (!svgHandle) {
       console.error('SVG element not found');
-      await browser.close();
-      process.exit(2);
+    } else {
+      const bbox = await svgHandle.boundingBox();
+      console.log('SVG bounding box:', bbox);
     }
+
 
     // screenshot the bounding box of the svg
     const boundingBox = await svgHandle.boundingBox();
@@ -49,3 +51,6 @@ const path = require('path');
     process.exit(1);
   }
 })();
+await page.goto(htmlPath, { waitUntil: 'networkidle0' });
+// wait extra time for D3 to render
+await page.waitForTimeout(2000);  // <-- add 2 seconds
