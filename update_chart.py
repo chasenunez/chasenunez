@@ -106,79 +106,118 @@ def save_json(data, path):
 
 def build_plotly_sunburst(data, out_png):
     """
-    Robustly build a sunburst and write PNG, SVG, and an interactive HTML fallback.
-    Also write a debug file with file sizes so CI logs show whether files are present.
+    Build a sunburst using plotly.graph_objects with explicit ids to avoid
+    duplicate-label ambiguity. Writes PNG, SVG, and HTML fallbacks, and prints diagnostics.
     """
     import os
-    # Convert hierarchical JSON into a dataframe of labels/parents/values
+    import plotly.graph_objects as go
+
+    # Helper: flatten hierarchy into lists of ids/labels/parents/values
     labels = []
     parents = []
+    ids = []
     values = []
-    # root
+
+    def safe_id(prefix, name):
+        # create a deterministic unique id (replace spaces/slashes)
+        base = f"{prefix}::{name}"
+        return base.replace(" ", "_").replace("/", "_").replace("\\", "_")
+
     root_name = data.get("name", "root")
+    root_id = safe_id("node", root_name)
     labels.append(root_name)
-    parents.append("")
-    values.append(0)
+    parents.append("")    # root has no parent
+    ids.append(root_id)
+    values.append(0)      # root value unused when branchvalues='total'
 
+    # iterate repos (children of root)
     for repo in data.get("children", []):
-        repo_name = repo.get("name", "unknown")
+        repo_name = repo.get("name", "repo")
+        repo_id = safe_id("repo", repo_name)
         labels.append(repo_name)
-        parents.append(root_name)
-        # value = sum of children sizes
-        s = 0
+        parents.append(root_id)
+        ids.append(repo_id)
+        # compute repo total as sum of its children
+        repo_total = 0
         for child in repo.get("children", []):
-            s += child.get("size", 0)
-        values.append(s if s > 0 else 1)
+            repo_total += int(child.get("size", 0) or 0)
+        # ensure repo has at least 1 so it's visible
+        values.append(max(1, repo_total))
+
+        # languages (children)
         for child in repo.get("children", []):
-            labels.append(child.get("name", "lang"))
-            parents.append(repo_name)
-            # ensure every leaf has at least 1 so the renderer shows it
-            values.append(max(1, int(child.get("size", 0))))
+            lang_name = child.get("name", "lang")
+            lang_id = safe_id(repo_name, lang_name)
+            labels.append(lang_name)
+            parents.append(repo_id)
+            ids.append(lang_id)
+            # ensure every leaf has at least 1 byte so it's visible to renderer
+            values.append(max(1, int(child.get("size", 0) or 0)))
 
-    df = pd.DataFrame({"labels": labels, "parents": parents, "values": values})
+    # Basic diagnostics
+    print("Sunburst arrays length:", len(labels), "labels,", len(ids), "ids,", len(values), "values")
+    # show first few entries
+    for i in range(min(8, len(labels))):
+        print(f"  {i}: id={ids[i]} label={labels[i]} parent={parents[i]} val={values[i]}")
 
-    # Create figure and make layout explicit (white background, margins)
-    fig = px.sunburst(df, names="labels", parents="parents", values="values", branchvalues="total")
-    fig.update_traces(maxdepth=3)
-    fig.update_layout(
-        margin=dict(t=20, l=20, r=20, b=20),
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-        uniformtext=dict(minsize=10, mode="hide")
+    # Build the graph_objects Sunburst explicitly
+    fig = go.Figure(
+        go.Sunburst(
+            ids=ids,
+            labels=labels,
+            parents=parents,
+            values=values,
+            branchvalues="total",
+            maxdepth=3,
+            hovertemplate="<b>%{label}</b><br>value=%{value}<extra></extra>"
+        )
     )
 
-    # Force use of kaleido engine for static export
+    # layout
+    fig.update_layout(
+        margin=dict(t=10, l=10, r=10, b=10),
+        paper_bgcolor="white",
+        plot_bgcolor="white"
+    )
+
+    # write outputs (SVG, PNG, HTML)
     png_path = Path(out_png)
     svg_path = png_path.with_suffix(".svg")
     html_path = png_path.with_suffix(".html")
 
     try:
-        # write SVG first (often more reliable than PNG)
-        fig.write_image(str(svg_path), width=1400, height=900, engine="kaleido")
-        # then write PNG explicitly via kaleido
-        fig.write_image(str(png_path), width=1400, height=900, scale=1, engine="kaleido")
-        # create a standalone interactive HTML fallback (self-contained)
-        fig.write_html(str(html_path), include_plotlyjs="cdn", full_html=True)
+        # SVG first (vector)
+        fig.write_image(str(svg_path), width=1400, height=900)  # uses kaleido
+        print("Wrote SVG:", svg_path, "size:", svg_path.stat().st_size if svg_path.exists() else "MISSING")
     except Exception as e:
-        print("WARN: plotly write_image/write_html raised exception:", e, file=sys.stderr)
+        print("SVG write exception:", e, file=sys.stderr)
 
-    # Write debug info about generated files (size in bytes)
+    try:
+        # PNG
+        fig.write_image(str(png_path), width=1400, height=900)
+        print("Wrote PNG:", png_path, "size:", png_path.stat().st_size if png_path.exists() else "MISSING")
+    except Exception as e:
+        print("PNG write exception:", e, file=sys.stderr)
+
+    try:
+        # HTML fallback (self-contained interactive)
+        fig.write_html(str(html_path), include_plotlyjs="cdn", full_html=True)
+        print("Wrote HTML:", html_path, "size:", html_path.stat().st_size if html_path.exists() else "MISSING")
+    except Exception as e:
+        print("HTML write exception:", e, file=sys.stderr)
+
+    # Always write a small debug file summarising sizes
     debug_lines = []
     for p in [svg_path, png_path, html_path]:
         if p.exists():
-            try:
-                sz = p.stat().st_size
-                debug_lines.append(f"{p.name}: {sz} bytes")
-            except Exception as ee:
-                debug_lines.append(f"{p.name}: exists but size-check failed: {ee}")
+            debug_lines.append(f"{p.name}: {p.stat().st_size} bytes")
         else:
             debug_lines.append(f"{p.name}: NOT CREATED")
-
     dbg_path = OUT_DIR / "sunburst_debug.txt"
     dbg_path.write_text("\n".join(debug_lines))
-    print("Wrote debug info:", dbg_path)
-    for line in debug_lines:
-        print(line)
+    print("Debug file:", dbg_path)
+    for l in debug_lines:
+        print(l)
 
 
 def update_readme(png_path, pages_url=None):
