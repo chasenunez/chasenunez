@@ -1,8 +1,3 @@
-## My repositories — sunburst (data last updated automatically)
+HEADERARABIS![Sunburst](docs/sunburst_screenshot.png)
 
-Interactive version: [Open sunburst](https://chasenunez.github.io/chasenunez/)
-
-![Sunburst](docs/sunburst.png)
-
-
-This file is updated automatically by GitHub Actions.
+ALPINA
