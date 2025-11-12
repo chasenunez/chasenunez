@@ -183,12 +183,12 @@ def build_plotly_sunburst(data, out_png):
 
 def update_readme(png_path, pages_url=None):
     readme_path = Path("README.md")
-    header = f"## My repositories — sunburst (data last updated automatically)\n\n"
-    img_md = f"![Sunburst]({png_path})\n\n"
+    header = f"HEADER"
+    img_md = f"![Sunburst](docs/sunburst_screenshot.png)\n\n"
     pages_md = ""
     if pages_url:
-        pages_md = f"Interactive version: [Open sunburst]({pages_url})\n\n"
-    content = header + pages_md + img_md + "\nThis file is updated automatically by GitHub Actions.\n"
+        pages_md = f"ARABIS"
+    content = header + pages_md + img_md + "ALPINA"
     readme_path.write_text(content)
     print(f"Updated {readme_path}")
 
