@@ -239,7 +239,7 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
 def write_index_with_inline_json(hierarchy, path):
     # embed the JSON safely
     json_text = json.dumps(hierarchy, indent=2)
-    html_text = INDEX_HTML_TEMPLATE.format(user=GH_USER, json_data=html.escape(json_text))
+    html_text = INDEX_HTML_TEMPLATE.format(user=GH_USER, json_data=json_text)
     path.write_text(html_text, encoding="utf-8")
     print(f"Wrote {path}")
 
