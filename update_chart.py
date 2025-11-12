@@ -164,33 +164,36 @@ def save_json(data, path):
         json.dump(data, f, indent=2)
     print(f"Wrote {path}")
 
-INDEX_HTML_TEMPLATE = """<!doctype html>
+INDEX_HTML_TEMPLATE = """
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>GitHub Repos Sunburst — {user}</title>
 <style>
-  body {{ font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 12px; background: transparent; color:#222; }}
-  #container {{ width: 1400px; max-width: 100%; margin: 0 auto; display: flex; gap: 20px; align-items: flex-start; }}
-  #left, #right {{ flex: 1 1 0; min-width: 320px; }}
-  #left {{ flex: 2 1 0; }}
-  svg {{ width: 100%; height: 800px; display: block; }}
-  .tooltip {{ position: absolute; pointer-events: none; background: rgba(0,0,0,0.75); color: white; padding: 6px 8px; border-radius: 4px; font-size: 12px; }}
-  .label-small {{ font-size: 12px; color: #444; }}
-  button {{ margin: 8px; }}
+  body { font-family: Inter, Arial, Helvetica, sans-serif; margin: 0; padding: 12px; background: transparent; color:#222; }
+  #container { width: 1400px; max-width: 100%; margin: 0 auto; display: flex; gap: 18px; align-items: flex-start; }
+  #left { flex: 2 1 0; min-width: 360px; }
+  #right { flex: 1 1 0; min-width: 300px; }
+  svg { width: 100%; height: 800px; display: block; }
+  .tooltip { position: absolute; pointer-events: none; background: rgba(0,0,0,0.75); color: white; padding: 6px 8px; border-radius: 4px; font-size: 12px; }
+  .stats { font-size: 13px; color: #444; margin-bottom: 8px; }
+  .label-small { font-size: 12px; color: #666; margin-top: 6px; }
+  .nodata { font-size: 16px; color: #666; padding: 40px; text-align: center; }
 </style>
 </head>
 <body>
-<h2>Repos &amp; languages — interactive visual (left: languages; right: commits)</h2>
+<h2>Repos &amp; languages — visual</h2>
 <div id="container">
   <div id="left">
+    <div class="stats" id="stats">Loading...</div>
     <div id="chart"></div>
     <div id="label" class="label-small">Click a wedge to zoom / click center to reset.</div>
   </div>
   <div id="right">
     <div id="barchart"></div>
-    <div id="barlabel" class="label-small">Repository commit counts (top by commits)</div>
+    <div id="barlabel" class="label-small">Repository commit counts (top repos)</div>
   </div>
 </div>
 
@@ -201,132 +204,155 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
 
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
-(function () {{
-  // parse inlined JSON
+(function () {
   const raw = document.getElementById('flare-data').textContent;
-  let data;
-  try {{
-    data = JSON.parse(raw);
-  }} catch (e) {{
+  let payload;
+  try {
+    payload = JSON.parse(raw);
+  } catch (e) {
     console.error('Failed to parse inlined JSON', e);
+    document.getElementById('stats').textContent = 'Failed to load data.';
     document.getElementById('label').textContent = 'Failed to load data.';
     return;
-  }}
+  }
 
-  // prepare aggregated language data (if available) or compute from children
-  let languages = data.language_totals || (function() {{
-    const m = {{}};
-    (data.children||[]).forEach(repo => {{
-      (repo.children||[]).forEach(lang => {{
-        m[lang.name] = (m[lang.name] || 0) + (lang.size || 0);
-      }});
-    }});
-    return Object.entries(m).map(([k,v]) => ({{name:k, size:v}})).sort((a,b)=>b.size-a.size);
-  }})();
+  // Ensure data shapes
+  const children = payload.children || [];
+  let languages = payload.language_totals || [];
+  const commits = payload.commits || [];
 
-  const commits = data.commits || (data.commits_list || []);
+  // If no language_totals provided, compute from children
+  if (!languages || languages.length === 0) {
+    const agg = {};
+    (children || []).forEach(repo => {
+      (repo.children || []).forEach(lang => {
+        agg[lang.name] = (agg[lang.name] || 0) + (lang.size || 0);
+      });
+    });
+    languages = Object.entries(agg).map(([k,v]) => ({name:k, size:v}));
+    languages.sort((a,b)=>b.size-a.size);
+  }
 
-  // LEFT: sunburst (languages)
-  const leftWidth = 900, leftHeight = 800, leftRadius = Math.min(leftWidth, leftHeight)/2;
-  const leftSvg = d3.select("#chart").append("svg")
-    .attr("viewBox", [-leftWidth/2, -leftHeight/2, leftWidth, leftHeight]);
+  const totalLangBytes = languages.reduce((s,d)=>s+(d.size||0),0);
+  const totalRepos = children.length;
+  const totalCommits = commits.reduce((s,c)=>s+(c.commits||0),0);
 
-  // build a tiny hierarchy: root -> languages
-  const langRoot = d3.hierarchy({name:'root', children: languages})
-    .sum(d => d.size || 0);
+  // Show stats top so user sees numbers even if chart empty
+  document.getElementById('stats').textContent = `Repos: ${totalRepos} · Languages: ${languages.length} · Language bytes: ${totalLangBytes.toLocaleString()} · Commits total: ${totalCommits.toLocaleString()}`;
 
-  const partition = d3.partition().size([2*Math.PI, langRoot.height + 1]);
-  partition(langRoot);
+  // If there's no useful data at all, show message
+  if ((!languages || languages.length===0) && (!commits || commits.length===0)) {
+    document.getElementById('chart').innerHTML = '<div class="nodata">No language or commit data available.</div>';
+    return;
+  }
 
-  // color scale using d3 scheme
-  const color = d3.scaleOrdinal(d3.schemeTableau10);
+  // Group small languages into "Other" for readability
+  const TOP_N = 12;
+  let langs = languages.slice(0, TOP_N);
+  if (languages.length > TOP_N) {
+    const otherSum = languages.slice(TOP_N).reduce((s,d)=>s+(d.size||0),0);
+    if (otherSum > 0) langs.push({name: 'Other', size: otherSum});
+  }
+
+  // LEFT: Sunburst — languages proportion
+  const leftW = 900, leftH = 800, leftR = Math.min(leftW,leftH)/2;
+  const leftSvg = d3.select('#chart').append('svg').attr('viewBox', [-leftW/2, -leftH/2, leftW, leftH]);
+
+  const rootData = { name: 'root', children: langs.map(d=>({name:d.name, size:d.size})) };
+  const root = d3.hierarchy(rootData).sum(d => d.size || 0);
+
+  d3.partition().size([2*Math.PI, root.height + 1])(root);
+
+  // create color scale (tableau + fallback)
+  const baseColors = d3.schemeTableau10.slice();
+  const color = d3.scaleOrdinal().domain(langs.map(d=>d.name)).range(baseColors.concat(d3.range(20).map(i => d3.interpolateRainbow(i/20))));
 
   const arc = d3.arc()
-    .startAngle(d => d.x0)
-    .endAngle(d => d.x1)
-    .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.01))
-    .padRadius(leftRadius * 1.5)
-    .innerRadius(d => d.y0 * (leftRadius / (d.depth+1)))
-    .outerRadius(d => Math.max(d.y0 * (leftRadius / (d.depth+1)), d.y1 * (leftRadius / (d.depth+1))));
+    .startAngle(d=>d.x0)
+    .endAngle(d=>d.x1)
+    .padAngle(d=>Math.min((d.x1-d.x0)/2, 0.01))
+    .padRadius(leftR*1.5)
+    .innerRadius(d=>d.y0*(leftR/(d.depth+1)))
+    .outerRadius(d=>Math.max(d.y0*(leftR/(d.depth+1)), d.y1*(leftR/(d.depth+1))));
 
-  const g = leftSvg.append("g");
+  const g = leftSvg.append('g');
 
-  const slices = g.selectAll("path")
-    .data(langRoot.descendants().slice(1))
-    .join("path")
-      .attr("d", d => arc(d))
-      .attr("fill", d => color(d.data.name))
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 1)
-      .style("cursor", "pointer");
+  const nodes = root.descendants().slice(1);
+  if (nodes.length === 0) {
+    leftSvg.append('text').attr('text-anchor','middle').attr('y',0).text('No language data to display');
+  } else {
+    const slices = g.selectAll('path').data(nodes).join('path')
+      .attr('d', d=>arc(d))
+      .attr('fill', d => color(d.data.name))
+      .attr('stroke', '#fff')
+      .attr('stroke-width', 1)
+      .style('cursor','pointer')
+      .on('mouseover', (event,d) => {
+        const t = document.getElementById('label');
+        t.textContent = `${d.data.name} — ${d.value.toLocaleString()} bytes`;
+      })
+      .on('mouseout', () => {
+        document.getElementById('label').textContent = 'Click a wedge to zoom / click center to reset.';
+      })
+      .on('click', clicked);
 
-  slices.append("title").text(d => `${d.data.name}\\n${d.value}`);
+    slices.append('title').text(d => `${d.data.name}\n${d.value}`);
 
-  // add labels only for top-level languages
-  const labels = g.append("g")
-    .attr("pointer-events", "none")
-    .attr("text-anchor", "middle")
-    .selectAll("text")
-    .data(langRoot.children || [])
-    .join("text")
-      .attr("dy", "0.35em")
-      .attr("transform", d => {{
+    // labels on top-level only
+    const labelG = g.append('g').attr('pointer-events','none').attr('text-anchor','middle');
+    labelG.selectAll('text').data(root.children || []).join('text')
+      .attr('dy','0.35em')
+      .attr('transform', d => {
         const x = (d.x0 + d.x1)/2 * 180 / Math.PI;
-        const y = (d.y0 + d.y1)/2 * leftRadius / (d.depth+1);
+        const y = (d.y0 + d.y1)/2 * leftR/(d.depth+1);
         return `rotate(${x - 90}) translate(${y},0) rotate(${x < 180 ? 0 : 180})`;
-      }})
+      })
       .text(d => d.data.name)
-      .style("font-size", "12px");
+      .style('font-size','12px');
 
-  // RIGHT: bar chart of commits
-  const rightWidth = 500, rightHeight = 800;
-  const rightSvg = d3.select("#barchart").append("svg")
-    .attr("viewBox", [0, 0, rightWidth, rightHeight]);
+    function clicked(p) {
+      const rootd = p;
+      root.each(d=>d.target = {
+        x0: Math.max(0, Math.min(2*Math.PI, (d.x0 - rootd.x0) * (2*Math.PI)/(rootd.x1-rootd.x0))),
+        x1: Math.max(0, Math.min(2*Math.PI, (d.x1 - rootd.x0) * (2*Math.PI)/(rootd.x1-rootd.x0))),
+        y0: Math.max(0, d.y0 - rootd.depth),
+        y1: Math.max(0, d.y1 - rootd.depth)
+      });
+      const t = g.transition().duration(750);
+      slices.transition(t)
+        .tween('data', d => {
+          const i = d3.interpolate(d.current, d.target);
+          return t => d.current = i(t);
+        })
+        .attrTween('d', d => () => arc(d.current));
+    }
+  }
 
-  const commitsToShow = (commits || []).slice(0, 20); // top 20
-  const margin = {top: 20, right: 10, bottom: 20, left: 140};
-  const innerW = rightWidth - margin.left - margin.right;
-  const innerH = rightHeight - margin.top - margin.bottom;
+  // RIGHT: commits bar chart (top 20)
+  const rightW = 450, rightH = 800, margin = {top:20,right:10,bottom:20,left:140};
+  const innerW = rightW - margin.left - margin.right, innerH = rightH - margin.top - margin.bottom;
+  const rightSvg = d3.select('#barchart').append('svg').attr('viewBox', [0,0,rightW,rightH]);
+  const barG = rightSvg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
-  const x = d3.scaleLinear().range([0, innerW]);
-  const y = d3.scaleBand().range([0, innerH]).padding(0.1);
+  const commitsToShow = (commits || []).slice(0,20);
+  if (!commitsToShow.length) {
+    barG.append('text').attr('x', innerW/2).attr('y', innerH/2).attr('text-anchor','middle').text('No commit data');
+  } else {
+    const x = d3.scaleLinear().range([0,innerW]).domain([0, d3.max(commitsToShow, d=>d.commits)||1]);
+    const y = d3.scaleBand().range([0,innerH]).padding(0.12).domain(commitsToShow.map(d=>d.name));
+    barG.selectAll('rect').data(commitsToShow).join('rect')
+      .attr('y', d=>y(d.name)).attr('height', y.bandwidth()).attr('x',0).attr('width', d=>x(d.commits)).attr('fill','#4C78A8');
+    barG.selectAll('text.label').data(commitsToShow).join('text')
+      .attr('class','label').attr('x', -8).attr('y', d=>y(d.name)+y.bandwidth()/2).attr('dy','0.35em').attr('text-anchor','end').text(d=>d.name).style('font-size','12px');
+    const xAxis = d3.axisBottom(x).ticks(4).tickFormat(d3.format('~s'));
+    barG.append('g').attr('transform', `translate(0,${innerH})`).call(xAxis);
+  }
 
-  x.domain([0, d3.max(commitsToShow, d => d.commits || 0) || 1]);
-  y.domain(commitsToShow.map(d => d.name));
-
-  const barG = rightSvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-
-  barG.selectAll("rect")
-    .data(commitsToShow)
-    .join("rect")
-      .attr("y", d => y(d.name))
-      .attr("height", y.bandwidth())
-      .attr("x", 0)
-      .attr("width", d => x(d.commits || 0))
-      .attr("fill", "#4C78A8");
-
-  barG.selectAll("text.label")
-    .data(commitsToShow)
-    .join("text")
-      .attr("class", "label")
-      .attr("x", -8)
-      .attr("y", d => y(d.name) + y.bandwidth()/2)
-      .attr("dy", "0.35em")
-      .attr("text-anchor", "end")
-      .text(d => d.name)
-      .style("font-size", "12px");
-
-  // x axis (counts) at bottom
-  const xAxis = d3.axisBottom(x).ticks(4).tickFormat(d3.format("~s"));
-  barG.append("g")
-    .attr("transform", `translate(0,${innerH})`)
-    .call(xAxis);
-
-  // Done
-}})();
+})();
 </script>
 </body>
 </html>
+
 """
 
 def write_index_with_inline_json(hierarchy, lang_items, commits_list, path):
