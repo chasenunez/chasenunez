@@ -23,7 +23,43 @@
       "children": [
         {
           "name": "Python",
-          "size": 8218
+          "size": 65939176
+        },
+        {
+          "name": "C",
+          "size": 408938
+        },
+        {
+          "name": "Cython",
+          "size": 103945
+        },
+        {
+          "name": "C++",
+          "size": 85980
+        },
+        {
+          "name": "Fortran",
+          "size": 36224
+        },
+        {
+          "name": "PowerShell",
+          "size": 8834
+        },
+        {
+          "name": "Smarty",
+          "size": 8486
+        },
+        {
+          "name": "JavaScript",
+          "size": 5115
+        },
+        {
+          "name": "Meson",
+          "size": 4220
+        },
+        {
+          "name": "Shell",
+          "size": 2874
         }
       ]
     },
