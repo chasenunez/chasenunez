@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
 update_chart.py
-Fetch GitHub repo languages for user chasenunez, produce docs/flare.json,
-and write docs/index.html with the JSON inlined so the page loads without fetch.
+Fetch GitHub repo languages and commit counts for user chasenunez,
+create docs/flare.json and docs/index.html (inline JSON).
 """
 
 import os
 import sys
 import time
 import json
+import re
 from pathlib import Path
 import requests
-import html
 
 GH_USER = os.environ.get("GH_USER", "chasenunez")
 GH_TOKEN = os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN")
@@ -65,16 +65,69 @@ def get_repo_languages(owner, repo):
         return {}
     return r.json()
 
-def build_hierarchy(repos):
+def estimate_commit_count(owner, repo):
+    """
+    Try to estimate commit count for a repo.
+    Strategy:
+      1) GET /repos/{owner}/{repo}/commits?per_page=1 and read Link header rel="last" page number -> number of commits
+      2) fallback: GET /repos/{owner}/{repo}/stats/contributors and sum 'total' contributions (may return 202)
+      3) final fallback: 0
+    """
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if GH_TOKEN:
+        headers["Authorization"] = f"token {GH_TOKEN}"
+    commits_url = f"{API_BASE}/repos/{owner}/{repo}/commits"
+    try:
+        r = requests.get(commits_url, params={"per_page": 1}, headers=headers, timeout=30)
+    except Exception as e:
+        print("Commit request exception:", e, file=sys.stderr)
+        return 0
+
+    if r.status_code == 200:
+        link = r.headers.get("Link", "")
+        if link:
+            # Look for last page number
+            m = re.search(r'[?&]page=(\d+)>; rel="last"', link)
+            if m:
+                try:
+                    return int(m.group(1))
+                except:
+                    pass
+        # no Link header: commits <= 1
+        try:
+            data = r.json()
+            return len(data)
+        except:
+            return 0
+    # If API returns 409 or others, try stats contributors endpoint
+    stats_url = f"{API_BASE}/repos/{owner}/{repo}/stats/contributors"
+    try:
+        s = requests.get(stats_url, headers=headers, timeout=30)
+        if s.status_code == 200:
+            contribs = s.json()
+            total = sum(c.get("total", 0) for c in contribs)
+            return total
+        else:
+            # If 202 (processing) or other, we cannot get a reliable number
+            return 0
+    except Exception as e:
+        print("Contributors stats exception:", e, file=sys.stderr)
+        return 0
+
+def build_hierarchy_and_metrics(repos):
     root = {"name": "root", "children": []}
+    language_totals = {}
+    commits_list = []
     private_bucket = {}
+
     for r in repos:
         name = r["name"]
-        is_private = r.get("private", False)
         owner = r["owner"]["login"]
-        langs = get_repo_languages(owner, name)
+        is_private = r.get("private", False)
+        langs = get_repo_languages(owner, name) or {}
+        # accumulate language totals
         if is_private:
-            for lang, b in (langs or {}).items():
+            for lang, b in langs.items():
                 private_bucket[lang] = private_bucket.get(lang, 0) + b
         else:
             children = []
@@ -83,12 +136,28 @@ def build_hierarchy(repos):
             else:
                 for lang, b in langs.items():
                     children.append({"name": lang, "size": int(b)})
+                    language_totals[lang] = language_totals.get(lang, 0) + int(b)
             root["children"].append({"name": name, "children": children})
+
+        # estimate commits (do for both public and private if accessible)
+        commits = estimate_commit_count(owner, name)
+        commits_list.append({"name": name, "commits": int(commits)})
+
+    # include private bucket as one repo
     if private_bucket:
         children = [{"name": lang, "size": int(b)} for lang, b in private_bucket.items()]
+        for lang, b in private_bucket.items():
+            language_totals[lang] = language_totals.get(lang, 0) + int(b)
         root["children"].append({"name": "Private", "children": children})
-    root["children"].sort(key=lambda repo: sum(child.get("size",0) for child in repo.get("children",[])), reverse=True)
-    return root
+
+    # prepare sorted language totals
+    lang_items = [{"name": k, "size": v} for k, v in language_totals.items()]
+    lang_items.sort(key=lambda x: x["size"], reverse=True)
+
+    # prepare commits sorted
+    commits_list.sort(key=lambda x: x["commits"], reverse=True)
+
+    return root, lang_items, commits_list
 
 def save_json(data, path):
     with open(path, "w", encoding="utf-8") as f:
@@ -102,29 +171,38 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>GitHub Repos Sunburst — {user}</title>
 <style>
-  body {{ font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 20px; display:flex; flex-direction:column; align-items:center; background:white; color:#222; }}
-  #chart {{ width: 100%; max-width: 1100px; height: 800px; }}
-  svg {{ width: 100%; height: 100%; }}
-  .center-label {{ font-size: 14px; text-anchor: middle; fill: #222; }}
+  body {{ font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 12px; background: transparent; color:#222; }}
+  #container {{ width: 1400px; max-width: 100%; margin: 0 auto; display: flex; gap: 20px; align-items: flex-start; }}
+  #left, #right {{ flex: 1 1 0; min-width: 320px; }}
+  #left {{ flex: 2 1 0; }}
+  svg {{ width: 100%; height: 800px; display: block; }}
   .tooltip {{ position: absolute; pointer-events: none; background: rgba(0,0,0,0.75); color: white; padding: 6px 8px; border-radius: 4px; font-size: 12px; }}
+  .label-small {{ font-size: 12px; color: #444; }}
   button {{ margin: 8px; }}
 </style>
 </head>
 <body>
-<h2>Repos &amp; languages — interactive sunburst</h2>
-<div>
-  <button id="resetBtn">Reset</button>
+<h2>Repos &amp; languages — interactive visual (left: languages; right: commits)</h2>
+<div id="container">
+  <div id="left">
+    <div id="chart"></div>
+    <div id="label" class="label-small">Click a wedge to zoom / click center to reset.</div>
+  </div>
+  <div id="right">
+    <div id="barchart"></div>
+    <div id="barlabel" class="label-small">Repository commit counts (top by commits)</div>
+  </div>
 </div>
-<div id="chart"></div>
-<div id="label" style="margin-top:8px">Click a wedge to zoom / click center to reset.</div>
-<div id="tooltip" class="tooltip" style="display:none"></div>
+
 <!-- inlined data -->
 <script id="flare-data" type="application/json">
 {json_data}
 </script>
+
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
 (function () {{
+  // parse inlined JSON
   const raw = document.getElementById('flare-data').textContent;
   let data;
   try {{
@@ -135,110 +213,130 @@ INDEX_HTML_TEMPLATE = """<!doctype html>
     return;
   }}
 
-  const width = 1100, height = 800, radius = Math.min(width, height) / 2;
-  const chart = d3.select("#chart");
-  const svg = chart.append("svg")
-    .attr("viewBox", [-width/2, -height/2, width, height]);
+  // prepare aggregated language data (if available) or compute from children
+  let languages = data.language_totals || (function() {{
+    const m = {{}};
+    (data.children||[]).forEach(repo => {{
+      (repo.children||[]).forEach(lang => {{
+        m[lang.name] = (m[lang.name] || 0) + (lang.size || 0);
+      }});
+    }});
+    return Object.entries(m).map(([k,v]) => ({{name:k, size:v}})).sort((a,b)=>b.size-a.size);
+  }})();
 
-  const g = svg.append("g");
+  const commits = data.commits || (data.commits_list || []);
 
-  const partition = (data) => {{
-    const root = d3.hierarchy(data)
-      .sum(d => d.size || 0)
-      .sort((a, b) => b.value - a.value);
-    return d3.partition()
-      .size([2 * Math.PI, root.height + 1])
-      (root);
-  }};
+  // LEFT: sunburst (languages)
+  const leftWidth = 900, leftHeight = 800, leftRadius = Math.min(leftWidth, leftHeight)/2;
+  const leftSvg = d3.select("#chart").append("svg")
+    .attr("viewBox", [-leftWidth/2, -leftHeight/2, leftWidth, leftHeight]);
+
+  // build a tiny hierarchy: root -> languages
+  const langRoot = d3.hierarchy({name:'root', children: languages})
+    .sum(d => d.size || 0);
+
+  const partition = d3.partition().size([2*Math.PI, langRoot.height + 1]);
+  partition(langRoot);
+
+  // color scale using d3 scheme
+  const color = d3.scaleOrdinal(d3.schemeTableau10);
 
   const arc = d3.arc()
     .startAngle(d => d.x0)
     .endAngle(d => d.x1)
     .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.01))
-    .padRadius(radius * 1.5)
-    .innerRadius(d => d.y0 * (radius / (d.depth+1)))
-    .outerRadius(d => Math.max(d.y0 * (radius / (d.depth+1)), d.y1 * (radius / (d.depth+1))));
+    .padRadius(leftRadius * 1.5)
+    .innerRadius(d => d.y0 * (leftRadius / (d.depth+1)))
+    .outerRadius(d => Math.max(d.y0 * (leftRadius / (d.depth+1)), d.y1 * (leftRadius / (d.depth+1))));
 
-  function colorFor(name) {{
-    let h = 0;
-    for (let i=0;i<name.length;i++) h = (h<<5)-h + name.charCodeAt(i);
-    const hue = Math.abs(h) % 360;
-    return `hsl(${{hue}} 60% 55%)`;
-  }}
+  const g = leftSvg.append("g");
 
-  const tooltip = d3.select("#tooltip");
-
-  const root = partition(data);
-  root.each(d => d.current = d);
-
-  const slice = g.append("g")
-    .selectAll("path")
-    .data(root.descendants().slice(1))
+  const slices = g.selectAll("path")
+    .data(langRoot.descendants().slice(1))
     .join("path")
-      .attr("fill", d => colorFor(d.data.name || d.data))
-      .attr("fill-opacity", 1)
-      .attr("d", d => arc(d.current))
-      .style("cursor", "pointer")
-      .on("click", clicked)
-      .on("mouseover", (event,d) => {{
-         tooltip.style("display", "block")
-           .html(`<strong>${{d.data.name}}</strong><br/>${{d.value}} bytes`);
-      }})
-      .on("mousemove", (event) => {{
-         tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY + 10) + "px");
-      }})
-      .on("mouseout", () => tooltip.style("display","none"));
+      .attr("d", d => arc(d))
+      .attr("fill", d => color(d.data.name))
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 1)
+      .style("cursor", "pointer");
 
-  slice.append("title").text(d => `${{d.ancestors().map(d => d.data.name).reverse().join(" / ")}}\\n${{d.value}}`);
+  slices.append("title").text(d => `${d.data.name}\\n${d.value}`);
 
-  const labelGroup = g.append("g")
+  // add labels only for top-level languages
+  const labels = g.append("g")
     .attr("pointer-events", "none")
     .attr("text-anchor", "middle")
     .selectAll("text")
-    .data(root.descendants().slice(1))
+    .data(langRoot.children || [])
     .join("text")
       .attr("dy", "0.35em")
       .attr("transform", d => {{
-        const x = (d.x0 + d.x1) / 2 * 180 / Math.PI;
-        const y = (d.y0 + d.y1) / 2 * radius / (d.depth+1);
-        return `rotate(${{x - 90}}) translate(${{y}},0) rotate(${{x < 180 ? 0 : 180}})`;
+        const x = (d.x0 + d.x1)/2 * 180 / Math.PI;
+        const y = (d.y0 + d.y1)/2 * leftRadius / (d.depth+1);
+        return `rotate(${x - 90}) translate(${y},0) rotate(${x < 180 ? 0 : 180})`;
       }})
-      .text(d => d.depth === 1 ? d.data.name : (d.depth === 2 ? d.data.name : ""))
+      .text(d => d.data.name)
       .style("font-size", "12px");
 
-  function clicked(p) {{
-    if (!p) return;
-    const rootd = p;
-    root.each(d => d.target = {{
-      x0: Math.max(0, Math.min(2 * Math.PI, (d.x0 - rootd.x0) * (2*Math.PI) / (rootd.x1 - rootd.x0))),
-      x1: Math.max(0, Math.min(2 * Math.PI, (d.x1 - rootd.x0) * (2*Math.PI) / (rootd.x1 - rootd.x0))),
-      y0: Math.max(0, d.y0 - rootd.depth),
-      y1: Math.max(0, d.y1 - rootd.depth)
-    }});
+  // RIGHT: bar chart of commits
+  const rightWidth = 500, rightHeight = 800;
+  const rightSvg = d3.select("#barchart").append("svg")
+    .attr("viewBox", [0, 0, rightWidth, rightHeight]);
 
-    const t = g.transition().duration(750);
+  const commitsToShow = (commits || []).slice(0, 20); // top 20
+  const margin = {top: 20, right: 10, bottom: 20, left: 140};
+  const innerW = rightWidth - margin.left - margin.right;
+  const innerH = rightHeight - margin.top - margin.bottom;
 
-    slice.transition(t)
-        .tween("data", d => {{
-          const i = d3.interpolate(d.current, d.target);
-          return t => d.current = i(t);
-        }})
-        .attrTween("d", d => () => arc(d.current));
-  }}
+  const x = d3.scaleLinear().range([0, innerW]);
+  const y = d3.scaleBand().range([0, innerH]).padding(0.1);
 
-  d3.select("#resetBtn").on("click", () => clicked(root));
-  svg.on("click", (event) => {{
-    if (event.target.tagName === 'svg' || event.target.tagName === 'DIV') clicked(root);
-  }});
+  x.domain([0, d3.max(commitsToShow, d => d.commits || 0) || 1]);
+  y.domain(commitsToShow.map(d => d.name));
+
+  const barG = rightSvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+  barG.selectAll("rect")
+    .data(commitsToShow)
+    .join("rect")
+      .attr("y", d => y(d.name))
+      .attr("height", y.bandwidth())
+      .attr("x", 0)
+      .attr("width", d => x(d.commits || 0))
+      .attr("fill", "#4C78A8");
+
+  barG.selectAll("text.label")
+    .data(commitsToShow)
+    .join("text")
+      .attr("class", "label")
+      .attr("x", -8)
+      .attr("y", d => y(d.name) + y.bandwidth()/2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", "end")
+      .text(d => d.name)
+      .style("font-size", "12px");
+
+  // x axis (counts) at bottom
+  const xAxis = d3.axisBottom(x).ticks(4).tickFormat(d3.format("~s"));
+  barG.append("g")
+    .attr("transform", `translate(0,${innerH})`)
+    .call(xAxis);
+
+  // Done
 }})();
 </script>
 </body>
 </html>
 """
 
-def write_index_with_inline_json(hierarchy, path):
-    # embed the JSON safely
-    json_text = json.dumps(hierarchy, indent=2)
+def write_index_with_inline_json(hierarchy, lang_items, commits_list, path):
+    # Build a payload that contains the data the page expects
+    payload = {
+        "children": hierarchy.get("children", []),
+        "language_totals": lang_items,
+        "commits": commits_list
+    }
+    json_text = json.dumps(payload, indent=2)
     html_text = INDEX_HTML_TEMPLATE.format(user=GH_USER, json_data=json_text)
     path.write_text(html_text, encoding="utf-8")
     print(f"Wrote {path}")
@@ -262,11 +360,11 @@ def main():
     print("Fetching repos for user:", GH_USER)
     repos = get_user_repos(GH_USER)
     print(f"Found {len(repos)} repos (first 10): {[r['name'] for r in repos[:10]]}")
-    hierarchy = build_hierarchy(repos)
+    hierarchy, lang_items, commits_list = build_hierarchy_and_metrics(repos)
     json_out = OUT_DIR / "flare.json"
-    save_json(hierarchy, json_out)
+    save_json({"children": hierarchy.get("children", []) , "language_totals": lang_items, "commits": commits_list}, json_out)
     index_out = OUT_DIR / "index.html"
-    write_index_with_inline_json(hierarchy, index_out)
+    write_index_with_inline_json(hierarchy, lang_items, commits_list, index_out)
     update_readme()
     print("Done.")
 
