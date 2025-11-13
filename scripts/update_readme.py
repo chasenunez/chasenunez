@@ -2,13 +2,13 @@
 """
 scripts/update_readme.py
 
-Fetch top-5 most recently-updated repositories for a GitHub user,
-build a Markdown table and an ASCII table, create an ASCII language
-distribution figure sized to match the ASCII table, write README.md,
-and exit.
-
-This version ensures ASCII elements are wrapped in <pre><code> blocks
-so they render with preserved whitespace and fixed-width font on GitHub.
+- Uses the GitHub API to fetch repositories for `USERNAME`.
+- Builds:
+    * an ASCII table (monospace) of the TOP_N most recently-updated repos
+    * a Markdown table of the same repos (clickable repo links)
+    * a stacked horizontal ASCII bar that shows language proportions across all repos
+- Writes README.md containing ONLY the ASCII table (in a <pre><code> block),
+  the Markdown table, and the stacked-language bar (also in a <pre><code> block).
 
 Requirements:
     pip install requests
@@ -26,7 +26,7 @@ import requests
 
 GITHUB_API = "https://api.github.com"
 USERNAME = "chasenunez"   # change if needed
-TOP_N = 5
+TOP_N = 10                # now uses 10 most-recently-updated repos
 SESSION = requests.Session()
 SESSION.headers.update(
     {
@@ -37,10 +37,6 @@ SESSION.headers.update(
 
 
 def gh_get(url: str, token: str | None = None, params: dict | None = None) -> requests.Response:
-    """
-    GET wrapper that optionally adds an Authorization header.
-    Raises HTTPError on non-2xx responses (caller may catch).
-    """
     headers = {}
     if token:
         headers["Authorization"] = f"token {token}"
@@ -50,9 +46,6 @@ def gh_get(url: str, token: str | None = None, params: dict | None = None) -> re
 
 
 def fetch_repos(user: str, token: str | None = None, per_page: int = 100) -> List[dict]:
-    """
-    Fetch public repos for a user, sorted by update time (desc).
-    """
     url = f"{GITHUB_API}/users/{user}/repos"
     params = {"per_page": per_page, "sort": "updated", "direction": "desc"}
     r = gh_get(url, token, params)
@@ -60,9 +53,6 @@ def fetch_repos(user: str, token: str | None = None, per_page: int = 100) -> Lis
 
 
 def fetch_languages(owner: str, repo: str, token: str | None = None) -> Dict[str, int]:
-    """
-    Call /repos/{owner}/{repo}/languages and return a dict language->bytes.
-    """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/languages"
     try:
         r = gh_get(url, token)
@@ -72,10 +62,6 @@ def fetch_languages(owner: str, repo: str, token: str | None = None) -> Dict[str
 
 
 def get_commit_count(owner: str, repo: str, token: str | None = None) -> int:
-    """
-    Estimate total commits using commits endpoint with per_page=1 and the Link header.
-    If the repo is empty (HTTP 409), return 0. If Link header absent, return len(returned_commits).
-    """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
     params = {"per_page": 1}
     try:
@@ -87,14 +73,12 @@ def get_commit_count(owner: str, repo: str, token: str | None = None) -> int:
 
     link = r.headers.get("Link", "")
     if link:
-        # find page number in rel="last"
         m = re.search(r'[&?]page=(\d+)>;\s*rel="last"', link)
         if m:
             try:
                 return int(m.group(1))
             except ValueError:
                 pass
-    # Fallback: return number of commits on this (single) page (0 or 1)
     try:
         commits = r.json()
         if isinstance(commits, list):
@@ -105,9 +89,6 @@ def get_commit_count(owner: str, repo: str, token: str | None = None) -> int:
 
 
 def iso_to_date(s: str | None) -> str:
-    """
-    Convert ISO timestamp to YYYY-MM-DD. Handles trailing 'Z' and timezone offsets.
-    """
     if not s:
         return ""
     try:
@@ -121,11 +102,6 @@ def iso_to_date(s: str | None) -> str:
 
 
 def build_markdown_table(rows: List[dict]) -> str:
-    """
-    Build a Markdown table for rows where each row has:
-      name_md, language, size, commits, last_commit
-    Column headers are bolded.
-    """
     headers = [
         "**Repository**",
         "**Main Language (pct)**",
@@ -144,11 +120,6 @@ def build_markdown_table(rows: List[dict]) -> str:
 
 
 def make_ascii_table(rows: List[dict]) -> Tuple[str, int, int]:
-    """
-    Create a monospace ASCII table and return:
-      (table_string, table_width_chars, table_height_lines)
-    The width returned equals the length of the top border line (so can be used to size other boxes).
-    """
     cols = [
         "Repository",
         "Main Language",
@@ -158,7 +129,6 @@ def make_ascii_table(rows: List[dict]) -> Tuple[str, int, int]:
     ]
     data_rows = []
     for r in rows:
-        # ensure plain text names (no markdown) and no tabs
         plain_name = r["name_text"].replace("\t", "    ")
         data_rows.append(
             [plain_name, r["language"].replace("\t", "    "), str(r["size"]), str(r["commits"]), r["last_commit"]]
@@ -168,19 +138,15 @@ def make_ascii_table(rows: List[dict]) -> Tuple[str, int, int]:
     for row in data_rows:
         for i, cell in enumerate(row):
             widths[i] = max(widths[i], len(cell))
-    # add padding (1 space left/right)
-    widths = [w + 2 for w in widths]
-    # top border line
+    widths = [w + 2 for w in widths]  # 1 space padding each side
     top_line = "+" + "+".join(["-" * w for w in widths]) + "+"
     lines = [top_line]
-    # header
     header_cells = []
     for i, c in enumerate(cols):
         s = " " + c.center(widths[i] - 2) + " "
         header_cells.append(s)
     lines.append("|" + "|".join(header_cells) + "|")
     lines.append(top_line)
-    # data rows
     for row in data_rows:
         cells = []
         for i, cell in enumerate(row):
@@ -194,29 +160,39 @@ def make_ascii_table(rows: List[dict]) -> Tuple[str, int, int]:
     return table_str, table_width, table_height
 
 
-def generate_language_figure(lang_totals: Dict[str, int], total_width_chars: int, total_height_lines: int) -> str:
+def generate_stacked_bar(lang_totals: Dict[str, int], total_width_chars: int, inner_height: int | None = None,
+                         top_k: int = 8) -> str:
     """
-    Create an ASCII box figure representing language proportions.
-    total_width_chars should be the full-line width (including the two border chars),
-    total_height_lines is used to determine inner height; we compute inner box of size (width-2) x (height-2).
+    Build a stacked horizontal bar occupying the same width as total_width_chars (including borders).
+    - top_k: number of top languages to show; remaining languages are grouped into "Other".
+    - inner_height: number of inner rows for the box; if None, choose a reasonable small height (5).
     """
     total_bytes = sum(lang_totals.values()) or 1
-    # inner dimensions inside box borders
-    inner_w = max(10, total_width_chars - 2)
-    inner_h = max(6, total_height_lines - 2)
 
-    # Filter and sort languages by bytes desc
-    langs = sorted([(k, v) for k, v in lang_totals.items() if v > 0], key=lambda x: x[1], reverse=True)
-    if not langs:
+    # Prepare language list: top_k languages, others collapsed into "Other"
+    sorted_langs = sorted([(k, v) for k, v in lang_totals.items() if v > 0], key=lambda x: x[1], reverse=True)
+    if not sorted_langs:
         return "(no language data to display)\n"
 
-    # raw proportional widths
-    raw_widths = [v / total_bytes * inner_w for (_k, v) in langs]
-    int_widths = [max(1, floor(x)) for x in raw_widths]
+    display = sorted_langs[:top_k]
+    rest = sorted_langs[top_k:]
+    if rest:
+        other_bytes = sum(v for (_k, v) in rest)
+        display.append(("Other", other_bytes))
 
-    # adjust rounding to match inner_w exactly
+    # Dimensions
+    inner_w = max(20, total_width_chars - 2)  # inside width
+    if inner_height is None:
+        inner_h = 5
+    else:
+        inner_h = max(3, inner_height - 2)  # convert outer height to inner if an outer was given
+    inner_h = max(3, inner_h)
+
+    # compute widths (raw and integer), ensure sum == inner_w
+    raw_widths = [v / total_bytes * inner_w for (_k, v) in display]
+    int_widths = [max(1, floor(x)) for x in raw_widths]
+    # fix rounding
     while sum(int_widths) < inner_w:
-        # add to column with largest fractional remainder
         fracs = [(i, raw_widths[i] - int_widths[i]) for i in range(len(int_widths))]
         fracs.sort(key=lambda x: x[1], reverse=True)
         int_widths[fracs[0][0]] += 1
@@ -228,28 +204,35 @@ def generate_language_figure(lang_totals: Dict[str, int], total_width_chars: int
                 int_widths[idx] -= 1
                 break
 
-    # Build per-language vertical blocks (each block is inner_h rows of width int_widths[i])
+    # Build column blocks: for each language make inner_h rows of that width
     columns: List[List[str]] = []
-    for (lang, bytes_count), w in zip(langs, int_widths):
+    for (lang, bytes_count), w in zip(display, int_widths):
         pct = bytes_count / total_bytes * 100
         label = f"{lang} ({pct:.0f}%)"
-        # build blank block
         block = [" " * w for _ in range(inner_h)]
-        # place label centered on middle row, truncated if needed
+        # place label in middle row if it fits
         mid = inner_h // 2
         lab = label if len(label) <= w else label[:w]
         start = max(0, (w - len(lab)) // 2)
         row = list(block[mid])
-        row[start:start + len(lab)] = lab
+        # use block char for background and then overlay text
+        for i in range(w):
+            row[i] = "█"
+        # overlay label in center
+        row[start:start + len(lab)] = list(lab)
         block[mid] = "".join(row)
+        # fill other rows entirely with block char
+        for r in range(inner_h):
+            if r != mid:
+                block[r] = "█" * w
         columns.append(block)
 
-    # assemble lines by horizontally concatenating columns
+    # assemble full box
     top = "┌" + "─" * inner_w + "┐"
     bottom = "└" + "─" * inner_w + "┘"
     out_lines = [top]
-    for row_idx in range(inner_h):
-        row_pieces = [columns[c][row_idx] for c in range(len(columns))]
+    for r in range(inner_h):
+        row_pieces = [columns[c][r] for c in range(len(columns))]
         out_lines.append("│" + "".join(row_pieces) + "│")
     out_lines.append(bottom)
     return "\n".join(out_lines)
@@ -276,7 +259,7 @@ def main() -> None:
         for k, v in langs.items():
             all_lang_totals[k] = all_lang_totals.get(k, 0) + (v or 0)
 
-    # Prepare top-N rows (already sorted by updated desc because fetch_repos requested that)
+    # Prepare top-TOP_N repos (repos are already sorted by updated desc)
     top_repos = repos[:TOP_N]
     rows = []
     for repo in top_repos:
@@ -307,36 +290,21 @@ def main() -> None:
 
     ascii_table, ascii_width, ascii_height = make_ascii_table(rows)
     md_table = build_markdown_table(rows)
-    lang_figure = generate_language_figure(all_lang_totals, ascii_width, ascii_height)
 
-    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    # Use ascii_height as outer height for bar; pass ascii_height to compute inner height
+    lang_bar = generate_stacked_bar(all_lang_totals, ascii_width, inner_height=ascii_height, top_k=8)
 
-    # Build README with explicit <pre><code> blocks so whitespace is preserved reliably.
-    # Note: we avoid extra indentation in the string to keep the fences flush-left.
+    # README contains only the ASCII table (pre/code), the Markdown table, and the stacked bar (pre/code)
     readme_content = (
-        f"# Profile README — auto updated\n\n"
-        f"_Last updated: {now}_\n\n"
-        f"## 5 Most recently updated repositories\n\n"
-        f"Below is an ASCII-style table **and** a Markdown table; the Markdown table is easier to click/read, "
-        f"the ASCII table is preserved for monospace display.\n\n"
-        f"<details>\n"
-        f"<summary>ASCII table (click to expand)</summary>\n\n"
         f"<pre><code class=\"language-text\">\n"
         f"{ascii_table}\n"
         f"</code></pre>\n\n"
-        f"</details>\n\n"
-        f"### Markdown table\n"
         f"{md_table}\n\n"
-        f"---\n\n"
-        f"## Language distribution across all repositories (ASCII figure)\n"
         f"<pre><code class=\"language-text\">\n"
-        f"{lang_figure}\n"
-        f"</code></pre>\n\n"
-        f"---\n\n"
-        f"*This README is updated automatically by a GitHub Action once a day.*\n"
+        f"{lang_bar}\n"
+        f"</code></pre>\n"
     )
 
-    # Write README.md (overwrite)
     with open("README.md", "w", encoding="utf-8") as fh:
         fh.write(readme_content)
 
