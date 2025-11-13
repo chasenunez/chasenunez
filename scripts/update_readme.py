@@ -296,13 +296,13 @@ def main() -> None:
 
     # README contains only the ASCII table (pre/code), the Markdown table, and the stacked bar (pre/code)
     readme_content = (
-        f"<pre><code class=\"language-text\">\n"
-        f"{ascii_table}\n"
-        f"</code></pre>\n\n"
+        #f"<pre><code class=\"language-text\">\n"
+        #f"{ascii_table}\n"
+        #f"</code></pre>\n\n"
         f"{md_table}\n\n"
-        f"<pre><code class=\"language-text\">\n"
-        f"{lang_bar}\n"
-        f"</code></pre>\n"
+        #f"<pre><code class=\"language-text\">\n"
+        #f"{lang_bar}\n"
+        #f"</code></pre>\n"
     )
 
     with open("README.md", "w", encoding="utf-8") as fh:
