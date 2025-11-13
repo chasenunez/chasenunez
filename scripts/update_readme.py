@@ -2,31 +2,41 @@
 """
 scripts/update_readme.py
 
-- Uses the GitHub API to fetch repositories for `USERNAME`.
-- Builds:
-    * an ASCII table (monospace) of the TOP_N most recently-updated repos
-    * a Markdown table of the same repos (clickable repo links)
-    * a stacked horizontal ASCII bar that shows language proportions across all repos
-- Writes README.md containing ONLY the ASCII table (in a <pre><code> block),
-  the Markdown table, and the stacked-language bar (also in a <pre><code> block).
+Produces:
+ - Markdown table of TOP_N most recently-updated PUBLIC repositories for USERNAME
+ - A contributions-like grid (rows = repos from the table, plus "restricted" aggregated private repos),
+   columns = last 52 weeks (oldest -> newest). Each cell shows commit density for that repo-week.
 
-Requirements:
-    pip install requests
+Authentication:
+ - If GH_PAT is present in environment, it will be used (recommended; required to access private repos).
+ - Otherwise GITHUB_TOKEN will be used (public-only).
+
+Place this in your profile repo and run from GitHub Actions (pass GH_PAT secret into env).
+Requires: pip install requests
 """
 
 from __future__ import annotations
 import os
-import re
 import sys
-from datetime import datetime
-from math import floor
+import time
+import math
+import textwrap
+from datetime import datetime, timezone
 from typing import Dict, List, Tuple
 
 import requests
 
+# ---------- Configuration ----------
+USERNAME = "chasenunez"
+TOP_N = 10
+# shading characters from low -> high intensity
+SHADES = [" ", "░", "▒", "▓", "█"]
+# how many attempts to wait for stats endpoint to compute
+STATS_MAX_RETRIES = 6
+STATS_RETRY_SLEEP = 1.5  # seconds
+# -----------------------------------
+
 GITHUB_API = "https://api.github.com"
-USERNAME = "chasenunez"   # change if needed
-TOP_N = 10                # now uses 10 most-recently-updated repos
 SESSION = requests.Session()
 SESSION.headers.update(
     {
@@ -36,7 +46,12 @@ SESSION.headers.update(
 )
 
 
-def gh_get(url: str, token: str | None = None, params: dict | None = None) -> requests.Response:
+def auth_token() -> str | None:
+    # Prefer GH_PAT (user PAT with repo scope) to include private repos; fallback to GITHUB_TOKEN
+    return os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+
+
+def gh_get(url: str, params: dict | None = None, token: str | None = None) -> requests.Response:
     headers = {}
     if token:
         headers["Authorization"] = f"token {token}"
@@ -45,47 +60,74 @@ def gh_get(url: str, token: str | None = None, params: dict | None = None) -> re
     return resp
 
 
-def fetch_repos(user: str, token: str | None = None, per_page: int = 100) -> List[dict]:
-    url = f"{GITHUB_API}/users/{user}/repos"
-    params = {"per_page": per_page, "sort": "updated", "direction": "desc"}
-    r = gh_get(url, token, params)
-    return r.json()
+def fetch_repos_for_user(token: str | None = None, per_page: int = 100) -> List[dict]:
+    """
+    If token present and belongs to user, use /user/repos to include private repos.
+    Otherwise fall back to /users/{USERNAME}/repos for public repos only.
+    """
+    if token:
+        url = f"{GITHUB_API}/user/repos"
+        params = {"per_page": per_page, "sort": "updated", "direction": "desc", "affiliation": "owner"}
+    else:
+        url = f"{GITHUB_API}/users/{USERNAME}/repos"
+        params = {"per_page": per_page, "sort": "updated", "direction": "desc"}
+    r = gh_get(url, params=params, token=token)
+    return r.json()  # a list of repo dicts
 
 
-def fetch_languages(owner: str, repo: str, token: str | None = None) -> Dict[str, int]:
-    url = f"{GITHUB_API}/repos/{owner}/{repo}/languages"
-    try:
-        r = gh_get(url, token)
-        return r.json() or {}
-    except requests.HTTPError:
-        return {}
+def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> List[int]:
+    """
+    Return list of 52 integers (weekly commit totals for last year) using:
+      GET /repos/{owner}/{repo}/stats/commit_activity
+    This endpoint returns weeks as dicts with 'week' (unix epoch start) and 'total'.
+    It may return 202 if the data is being generated—retry in that case.
+    """
+    url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/commit_activity"
+    attempt = 0
+    while attempt < STATS_MAX_RETRIES:
+        try:
+            r = gh_get(url, token=token)
+        except requests.HTTPError as e:
+            # If an error (e.g., 404) return 52 zeros
+            code = getattr(e.response, "status_code", None)
+            # If private and unauthorized, treat as zeros
+            return [0] * 52
+        if r.status_code == 202:
+            # data being generated, wait and retry
+            attempt += 1
+            time.sleep(STATS_RETRY_SLEEP)
+            continue
+        data = r.json()
+        # Data should be a list of 52 week objects; if not, normalize to 52 zeros
+        if not isinstance(data, list) or len(data) == 0:
+            return [0] * 52
+        # Some repos return more/less; we will take the last 52 weeks (data is ordered oldest->newest)
+        weeks = [int(w.get("total", 0)) for w in data]
+        if len(weeks) >= 52:
+            return weeks[-52:]
+        # pad left if fewer than 52
+        pad = [0] * (52 - len(weeks))
+        return pad + weeks
+    # if we exhausted retries, return zeros
+    return [0] * 52
 
 
-def get_commit_count(owner: str, repo: str, token: str | None = None) -> int:
-    url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
-    params = {"per_page": 1}
-    try:
-        r = gh_get(url, token, params)
-    except requests.HTTPError as e:
-        if getattr(e.response, "status_code", None) == 409:
-            return 0
-        return 0
-
-    link = r.headers.get("Link", "")
-    if link:
-        m = re.search(r'[&?]page=(\d+)>;\s*rel="last"', link)
-        if m:
-            try:
-                return int(m.group(1))
-            except ValueError:
-                pass
-    try:
-        commits = r.json()
-        if isinstance(commits, list):
-            return len(commits)
-    except ValueError:
-        pass
-    return 0
+def build_markdown_table(rows: List[dict]) -> str:
+    headers = [
+        "**Repository**",
+        "**Main Language (pct)**",
+        "**Total Size (bytes)**",
+        "**Total Commits**",
+        "**Date of Last Commit**",
+    ]
+    md_lines = []
+    md_lines.append("| " + " | ".join(headers) + " |")
+    md_lines.append("| " + " | ".join(["---"] * len(headers)) + " |")
+    for r in rows:
+        md_lines.append(
+            f"| {r['name_md']} | {r['language']} | {r['size']} | {r['commits']} | {r['last_commit']} |"
+        )
+    return "\n".join(md_lines)
 
 
 def iso_to_date(s: str | None) -> str:
@@ -101,172 +143,126 @@ def iso_to_date(s: str | None) -> str:
         return s
 
 
-def build_markdown_table(rows: List[dict]) -> str:
-    headers = [
-        "**Repository**",
-        "**Main Language (pct)**",
-        "**Total Size (bytes)**",
-        "**Total Commits**",
-        "**Date of Last Commit**",
-    ]
-    md = []
-    md.append("| " + " | ".join(headers) + " |")
-    md.append("| " + " | ".join(["---"] * len(headers)) + " |")
-    for r in rows:
-        md.append(
-            f"| {r['name_md']} | {r['language']} | {r['size']} | {r['commits']} | {r['last_commit']} |"
-        )
-    return "\n".join(md)
+def get_commit_count(owner: str, repo: str, token: str | None = None) -> int:
+    # small helper: estimate commits using commits endpoint (per_page=1 + Link header)
+    url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
+    params = {"per_page": 1}
+    try:
+        r = gh_get(url, params=params, token=token)
+    except requests.HTTPError as e:
+        if getattr(e.response, "status_code", None) == 409:
+            return 0
+        return 0
+    link = r.headers.get("Link", "")
+    if link:
+        import re
+
+        m = re.search(r'[&?]page=(\d+)>;\s*rel="last"', link)
+        if m:
+            try:
+                return int(m.group(1))
+            except ValueError:
+                pass
+    try:
+        commits = r.json()
+        if isinstance(commits, list):
+            return len(commits)
+    except Exception:
+        pass
+    return 0
 
 
-def make_ascii_table(rows: List[dict]) -> Tuple[str, int, int]:
-    cols = [
-        "Repository",
-        "Main Language",
-        "Total Size (bytes)",
-        "Total Commits",
-        "Date of Last Commit",
-    ]
-    data_rows = []
-    for r in rows:
-        plain_name = r["name_text"].replace("\t", "    ")
-        data_rows.append(
-            [plain_name, r["language"].replace("\t", "    "), str(r["size"]), str(r["commits"]), r["last_commit"]]
-        )
-
-    widths = [len(c) for c in cols]
-    for row in data_rows:
-        for i, cell in enumerate(row):
-            widths[i] = max(widths[i], len(cell))
-    widths = [w + 2 for w in widths]  # 1 space padding each side
-    top_line = "+" + "+".join(["-" * w for w in widths]) + "+"
-    lines = [top_line]
-    header_cells = []
-    for i, c in enumerate(cols):
-        s = " " + c.center(widths[i] - 2) + " "
-        header_cells.append(s)
-    lines.append("|" + "|".join(header_cells) + "|")
-    lines.append(top_line)
-    for row in data_rows:
-        cells = []
-        for i, cell in enumerate(row):
-            s = " " + cell.center(widths[i] - 2) + " "
-            cells.append(s)
-        lines.append("|" + "|".join(cells) + "|")
-        lines.append(top_line)
-    table_str = "\n".join(lines)
-    table_width = len(top_line)
-    table_height = len(lines)
-    return table_str, table_width, table_height
+def format_repo_name_cell(name: str, max_width: int = 20) -> str:
+    # truncate or pad repository name to fixed width for the left label column in the grid
+    if len(name) > max_width - 1:
+        return name[: max_width - 3] + "…"
+    return name.ljust(max_width)
 
 
-def generate_stacked_bar(lang_totals: Dict[str, int], total_width_chars: int, inner_height: int | None = None,
-                         top_k: int = 8) -> str:
+def build_contrib_grid(repo_weekly: Dict[str, List[int]], repo_order: List[str]) -> str:
     """
-    Build a stacked horizontal bar occupying the same width as total_width_chars (including borders).
-    - top_k: number of top languages to show; remaining languages are grouped into "Other".
-    - inner_height: number of inner rows for the box; if None, choose a reasonable small height (5).
+    repo_weekly: mapping repo_name -> list of 52 ints (weekly totals oldest->newest)
+    repo_order: list of repo_names in desired output order
+    Returns a multiline string where each line is:
+      <repo-name-fixed-width> <52-char row of shade chars>
     """
-    total_bytes = sum(lang_totals.values()) or 1
+    # left label width
+    label_w = max(10, max((len(r) for r in repo_order), default=10))
+    label_w = min(label_w, 28)  # cap to avoid extremely wide labels
+    # we want each week's cell to be one char; 52 columns
+    cols = 52
 
-    # Prepare language list: top_k languages, others collapsed into "Other"
-    sorted_langs = sorted([(k, v) for k, v in lang_totals.items() if v > 0], key=lambda x: x[1], reverse=True)
-    if not sorted_langs:
-        return "(no language data to display)\n"
+    lines = []
+    for repo in repo_order:
+        weeks = repo_weekly.get(repo, [0] * cols)
+        # compute max for this repo to scale intensities per repo
+        max_val = max(weeks) or 1
+        row_chars = []
+        for w in weeks:
+            # compute intensity index 0..(len(SHADES)-1)
+            # use ratio = w / max_val
+            ratio = w / max_val if max_val > 0 else 0.0
+            # map ratio to bucket
+            idx = int(round(ratio * (len(SHADES) - 1)))
+            idx = max(0, min(len(SHADES) - 1, idx))
+            row_chars.append(SHADES[idx])
+        label = format_repo_name_cell(repo, max_width=label_w)
+        lines.append(f"{label} {' '.join(row_chars)}")  # spaces between cells improves readability
+    # add a final legend line (no extra descriptive text per your request—only tiny legend row with shades)
+    legend = " " * label_w + " " + " ".join(SHADES[1:]) + "  (low -> high)"
+    lines.append(legend)
+    # also add a small week axis (months approx) — compute week timestamps from oldest to newest using current date
+    # We'll provide year ticks every ~4 weeks to avoid clutter
+    now = datetime.now(timezone.utc)
+    # compute the starting week's unix epoch for the first column by looking at today's week start and subtracting 51 weeks
+    # Calculate Monday-based week starts (as GitHub commit_activity uses week starting on Sunday; but alignment inside README is approximate)
+    # For display only approximate month ticks
+    # Build axis with small labels every 4th column
+    axis_cells = []
+    for i in range(cols):
+        if i % 4 == 0:
+            # approximate month label at that column using date
+            # compute days offset = (52 - 1 - i) * 7 to go back from now to that week's start
+            days_back = (cols - 1 - i) * 7
+            dt = now - timedelta(days=days_back)
+            axis_cells.append(dt.strftime("%b")[0])  # 1-letter month initial to keep axis compact
+        else:
+            axis_cells.append(" ")
+    axis_line = " " * label_w + " " + " ".join(axis_cells)
+    # Put axis below grid
+    result = "\n".join(lines) + "\n" + axis_line
+    return result
 
-    display = sorted_langs[:top_k]
-    rest = sorted_langs[top_k:]
-    if rest:
-        other_bytes = sum(v for (_k, v) in rest)
-        display.append(("Other", other_bytes))
 
-    # Dimensions
-    inner_w = max(20, total_width_chars - 2)  # inside width
-    if inner_height is None:
-        inner_h = 5
-    else:
-        inner_h = max(3, inner_height - 2)  # convert outer height to inner if an outer was given
-    inner_h = max(3, inner_h)
-
-    # compute widths (raw and integer), ensure sum == inner_w
-    raw_widths = [v / total_bytes * inner_w for (_k, v) in display]
-    int_widths = [max(1, floor(x)) for x in raw_widths]
-    # fix rounding
-    while sum(int_widths) < inner_w:
-        fracs = [(i, raw_widths[i] - int_widths[i]) for i in range(len(int_widths))]
-        fracs.sort(key=lambda x: x[1], reverse=True)
-        int_widths[fracs[0][0]] += 1
-    while sum(int_widths) > inner_w:
-        fracs = [(i, raw_widths[i] - int_widths[i]) for i in range(len(int_widths))]
-        fracs.sort(key=lambda x: x[1])
-        for idx, _ in fracs:
-            if int_widths[idx] > 1:
-                int_widths[idx] -= 1
-                break
-
-    # Build column blocks: for each language make inner_h rows of that width
-    columns: List[List[str]] = []
-    for (lang, bytes_count), w in zip(display, int_widths):
-        pct = bytes_count / total_bytes * 100
-        label = f"{lang} ({pct:.0f}%)"
-        block = [" " * w for _ in range(inner_h)]
-        # place label in middle row if it fits
-        mid = inner_h // 2
-        lab = label if len(label) <= w else label[:w]
-        start = max(0, (w - len(lab)) // 2)
-        row = list(block[mid])
-        # use block char for background and then overlay text
-        for i in range(w):
-            row[i] = "█"
-        # overlay label in center
-        row[start:start + len(lab)] = list(lab)
-        block[mid] = "".join(row)
-        # fill other rows entirely with block char
-        for r in range(inner_h):
-            if r != mid:
-                block[r] = "█" * w
-        columns.append(block)
-
-    # assemble full box
-    top = "┌" + "─" * inner_w + "┐"
-    bottom = "└" + "─" * inner_w + "┘"
-    out_lines = [top]
-    for r in range(inner_h):
-        row_pieces = [columns[c][r] for c in range(len(columns))]
-        out_lines.append("│" + "".join(row_pieces) + "│")
-    out_lines.append(bottom)
-    return "\n".join(out_lines)
+# helper: need timedelta import
+from datetime import timedelta
 
 
 def main() -> None:
-    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    token = auth_token()
     try:
-        repos = fetch_repos(USERNAME, token)
+        all_repos = fetch_repos_for_user(token=token, per_page=200)
     except Exception as e:
-        print(f"Failed to fetch repos for {USERNAME}: {e}", file=sys.stderr)
+        print("Failed to fetch repositories:", e, file=sys.stderr)
         sys.exit(1)
 
-    if not repos:
-        print(f"No repositories found for user {USERNAME}", file=sys.stderr)
-        sys.exit(1)
+    # Separate public and private repos (if token was supplied we got both)
+    public_repos = [r for r in all_repos if not r.get("private")]
+    private_repos = [r for r in all_repos if r.get("private")]
 
-    # Aggregate language bytes across all fetched repos
-    all_lang_totals: Dict[str, int] = {}
-    for repo in repos:
-        owner = repo["owner"]["login"]
-        name = repo["name"]
-        langs = fetch_languages(owner, name, token)
-        for k, v in langs.items():
-            all_lang_totals[k] = all_lang_totals.get(k, 0) + (v or 0)
-
-    # Prepare top-TOP_N repos (repos are already sorted by updated desc)
-    top_repos = repos[:TOP_N]
+    # Build table rows from most recently updated public repos (sorted by updated at already)
+    top_public = public_repos[:TOP_N]
     rows = []
-    for repo in top_repos:
+    for repo in top_public:
         owner = repo["owner"]["login"]
         name = repo["name"]
         html_url = repo.get("html_url", f"https://github.com/{owner}/{name}")
-        langs = fetch_languages(owner, name, token)
+        # languages
+        langs = {}
+        try:
+            langs = gh_get(f"{GITHUB_API}/repos/{owner}/{name}/languages", token=token).json()
+        except Exception:
+            langs = {}
         total_bytes = sum(langs.values()) if langs else 0
         if langs and total_bytes > 0:
             sorted_langs = sorted(langs.items(), key=lambda x: x[1], reverse=True)
@@ -275,7 +271,7 @@ def main() -> None:
             lang_label = f"{top_lang} ({pct:.0f}%)"
         else:
             lang_label = "Unknown (0%)"
-        commits = get_commit_count(owner, name, token)
+        commits = get_commit_count(owner, name, token=token)
         last_commit = iso_to_date(repo.get("pushed_at"))
         rows.append(
             {
@@ -288,25 +284,48 @@ def main() -> None:
             }
         )
 
-    ascii_table, ascii_width, ascii_height = make_ascii_table(rows)
+    # Build markdown table
     md_table = build_markdown_table(rows)
 
-    # Use ascii_height as outer height for bar; pass ascii_height to compute inner height
-    lang_bar = generate_stacked_bar(all_lang_totals, ascii_width, inner_height=ascii_height, top_k=8)
+    # Build weekly commit data for each repo in rows
+    repo_weekly: Dict[str, List[int]] = {}
+    repo_order: List[str] = []
 
-    # README contains only the ASCII table (pre/code), the Markdown table, and the stacked bar (pre/code)
-    readme_content = (
-        #f"<pre><code class=\"language-text\">\n"
-        #f"{ascii_table}\n"
-        #f"</code></pre>\n\n"
-        f"{md_table}\n\n"
-        #f"<pre><code class=\"language-text\">\n"
-        #f"{lang_bar}\n"
-        #f"</code></pre>\n"
-    )
+    # For each public repo in table, fetch commit_activity
+    for r in rows:
+        name = r["name_text"]
+        owner = USERNAME
+        repo_weekly[name] = repo_commit_activity(owner, name, token=token)
+        repo_order.append(name)
+
+    # Build "restricted" aggregated row from private repos if any and if token available
+    restricted_name = "restricted"
+    if private_repos and token:
+        agg = [0] * 52
+        for repo in private_repos:
+            owner = repo["owner"]["login"]
+            name = repo["name"]
+            weekly = repo_commit_activity(owner, name, token=token)
+            # sum into agg
+            for i in range(52):
+                agg[i] += weekly[i]
+        repo_weekly[restricted_name] = agg
+        # place restricted row at the top (optional), here we'll add it after the public repos
+        repo_order.append(restricted_name)
+    else:
+        # If no token or no private repos, still include restricted as zeros so the grid has same rows if desired
+        if token:
+            repo_weekly[restricted_name] = [0] * 52
+            repo_order.append(restricted_name)
+
+    # Build grid string
+    grid = build_contrib_grid(repo_weekly, repo_order)
+
+    # Compose README content: only the Markdown table and the grid (grid in pre/code)
+    readme = md_table + "\n\n" + "<pre><code class=\"language-text\">\n" + grid + "\n</code></pre>\n"
 
     with open("README.md", "w", encoding="utf-8") as fh:
-        fh.write(readme_content)
+        fh.write(readme)
 
     print("README.md updated.")
 

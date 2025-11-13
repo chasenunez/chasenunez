@@ -1,23 +1,29 @@
 name: Update profile README (daily)
 
-# run once a day
+# run once a day + allow manual runs
 on:
   schedule:
-    - cron: '0 0 * * *'   # daily at 00:00 UTC (adjust if you want different time)
-  workflow_dispatch:      # allow manual run
+    - cron: '0 0 * * *'   # daily at 00:00 UTC
+  workflow_dispatch:
 
+# allow workflow to push updates using the built-in token
 permissions:
-  contents: write   # allow committing changes
+  contents: write
 
 jobs:
   update-readme:
     runs-on: ubuntu-latest
+
+    # Make GH_PAT available to the job steps via env (set GH_PAT as a repo secret)
+    env:
+      GH_PAT: ${{ secrets.GH_PAT }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: true   # so we can push changes using GITHUB_TOKEN
+          persist-credentials: true   # keep GITHUB_TOKEN configured for git push
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -27,19 +33,23 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
 
       - name: Run update script
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # GH_PAT will be available to the script via environment variable GH_PAT
         run: |
           python scripts/update_readme.py
-          git status --porcelain
+
+      - name: Commit & push changes (if any)
+        run: |
+          # Use the checked-out credentials (GITHUB_TOKEN) to push
           if [ -n "$(git status --porcelain)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add README.md
-            git commit -m "chore(readme): daily update of top repos and language figure"
+            git commit -m "chore(readme): daily automated update"
             git push
           else
             echo "No changes to commit"
