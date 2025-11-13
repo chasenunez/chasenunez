@@ -30,7 +30,7 @@ import requests
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
 TOP_N = 10
-WEEKS = 48  # switched back to 52 weeks (1 year)
+WEEKS = 47  # switched back to 52 weeks (1 year)
 SHADES = [" ", "░", "▒", "▓", "█"]  # intensity glyphs low->high
 STATS_MAX_RETRIES = 6
 STATS_RETRY_SLEEP = 1.5  # seconds
