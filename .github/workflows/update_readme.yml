@@ -37,6 +37,13 @@ jobs:
             pip install -r requirements.txt
           fi
 
+      - name: Debug token presence
+        run: |
+          echo "GH_PAT present? ${GH_PAT:+yes}"
+          python -c "import os; print('GH_PAT length:', len(os.getenv('GH_PAT') or ''))"
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+
       - name: Run update script
         # GH_PAT will be available to the script via environment variable GH_PAT
         run: |
