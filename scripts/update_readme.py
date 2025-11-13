@@ -5,8 +5,10 @@ scripts/update_readme.py
 Fetch top-5 most recently-updated repositories for a GitHub user,
 build a Markdown table and an ASCII table, create an ASCII language
 distribution figure sized to match the ASCII table, write README.md,
-and exit. Intended to run in GitHub Actions (uses GITHUB_TOKEN from env
-if available).
+and exit.
+
+This version ensures ASCII elements are wrapped in <pre><code> blocks
+so they render with preserved whitespace and fixed-width font on GitHub.
 
 Requirements:
     pip install requests
@@ -26,10 +28,12 @@ GITHUB_API = "https://api.github.com"
 USERNAME = "chasenunez"   # change if needed
 TOP_N = 5
 SESSION = requests.Session()
-SESSION.headers.update({
-    "Accept": "application/vnd.github.v3+json",
-    "User-Agent": f"update-readme-script ({USERNAME})"
-})
+SESSION.headers.update(
+    {
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": f"update-readme-script ({USERNAME})",
+    }
+)
 
 
 def gh_get(url: str, token: str | None = None, params: dict | None = None) -> requests.Response:
@@ -71,17 +75,14 @@ def get_commit_count(owner: str, repo: str, token: str | None = None) -> int:
     """
     Estimate total commits using commits endpoint with per_page=1 and the Link header.
     If the repo is empty (HTTP 409), return 0. If Link header absent, return len(returned_commits).
-    Note: Using per_page=1 makes the 'last' page number equal to total commits.
     """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
     params = {"per_page": 1}
     try:
         r = gh_get(url, token, params)
     except requests.HTTPError as e:
-        # empty repository will sometimes return 409 with message "Git Repository is empty."
         if getattr(e.response, "status_code", None) == 409:
             return 0
-        # treat other errors as 0 (caller can decide)
         return 0
 
     link = r.headers.get("Link", "")
@@ -110,7 +111,6 @@ def iso_to_date(s: str | None) -> str:
     if not s:
         return ""
     try:
-        # Replace trailing 'Z' with '+00:00' so fromisoformat can parse it reliably
         normalized = s.rstrip()
         if normalized.endswith("Z"):
             normalized = normalized[:-1] + "+00:00"
@@ -126,12 +126,20 @@ def build_markdown_table(rows: List[dict]) -> str:
       name_md, language, size, commits, last_commit
     Column headers are bolded.
     """
-    headers = ["**Repository**", "**Main Language (pct)**", "**Total Size (bytes)**", "**Total Commits**", "**Date of Last Commit**"]
+    headers = [
+        "**Repository**",
+        "**Main Language (pct)**",
+        "**Total Size (bytes)**",
+        "**Total Commits**",
+        "**Date of Last Commit**",
+    ]
     md = []
     md.append("| " + " | ".join(headers) + " |")
     md.append("| " + " | ".join(["---"] * len(headers)) + " |")
     for r in rows:
-        md.append(f"| {r['name_md']} | {r['language']} | {r['size']} | {r['commits']} | {r['last_commit']} |")
+        md.append(
+            f"| {r['name_md']} | {r['language']} | {r['size']} | {r['commits']} | {r['last_commit']} |"
+        )
     return "\n".join(md)
 
 
@@ -141,16 +149,21 @@ def make_ascii_table(rows: List[dict]) -> Tuple[str, int, int]:
       (table_string, table_width_chars, table_height_lines)
     The width returned equals the length of the top border line (so can be used to size other boxes).
     """
-    cols = ["Repository", "Main Language", "Total Size (bytes)", "Total Commits", "Date of Last Commit"]
+    cols = [
+        "Repository",
+        "Main Language",
+        "Total Size (bytes)",
+        "Total Commits",
+        "Date of Last Commit",
+    ]
     data_rows = []
     for r in rows:
-        data_rows.append([
-            r["name_text"],
-            r["language"],
-            str(r["size"]),
-            str(r["commits"]),
-            r["last_commit"]
-        ])
+        # ensure plain text names (no markdown) and no tabs
+        plain_name = r["name_text"].replace("\t", "    ")
+        data_rows.append(
+            [plain_name, r["language"].replace("\t", "    "), str(r["size"]), str(r["commits"]), r["last_commit"]]
+        )
+
     widths = [len(c) for c in cols]
     for row in data_rows:
         for i, cell in enumerate(row):
@@ -281,48 +294,47 @@ def main() -> None:
             lang_label = "Unknown (0%)"
         commits = get_commit_count(owner, name, token)
         last_commit = iso_to_date(repo.get("pushed_at"))
-        rows.append({
-            "name_md": f"[{name}]({html_url})",
-            "name_text": name,
-            "language": lang_label,
-            "size": total_bytes,
-            "commits": commits,
-            "last_commit": last_commit
-        })
+        rows.append(
+            {
+                "name_md": f"[{name}]({html_url})",
+                "name_text": name,
+                "language": lang_label,
+                "size": total_bytes,
+                "commits": commits,
+                "last_commit": last_commit,
+            }
+        )
 
     ascii_table, ascii_width, ascii_height = make_ascii_table(rows)
     md_table = build_markdown_table(rows)
     lang_figure = generate_language_figure(all_lang_totals, ascii_width, ascii_height)
 
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    readme_content = f"""# Profile README — auto updated
 
-_Last updated: {now}_
-
-## 5 Most recently updated repositories
-
-Below is an ASCII-style table **and** a Markdown table; the Markdown table is easier to click/read, the ASCII table is preserved for monospace display.
-
-<details>
-<summary>ASCII table (click to expand)</summary>
-
-{ascii_table}
-</details>
-
-### Markdown table
-{md_table}
-
----
-
-## Language distribution across all repositories (ASCII figure)
-
-{lang_figure}
-
-
----
-
-*This README is updated automatically by a GitHub Action once a day.*
-"""
+    # Build README with explicit <pre><code> blocks so whitespace is preserved reliably.
+    # Note: we avoid extra indentation in the string to keep the fences flush-left.
+    readme_content = (
+        f"# Profile README — auto updated\n\n"
+        f"_Last updated: {now}_\n\n"
+        f"## 5 Most recently updated repositories\n\n"
+        f"Below is an ASCII-style table **and** a Markdown table; the Markdown table is easier to click/read, "
+        f"the ASCII table is preserved for monospace display.\n\n"
+        f"<details>\n"
+        f"<summary>ASCII table (click to expand)</summary>\n\n"
+        f"<pre><code class=\"language-text\">\n"
+        f"{ascii_table}\n"
+        f"</code></pre>\n\n"
+        f"</details>\n\n"
+        f"### Markdown table\n"
+        f"{md_table}\n\n"
+        f"---\n\n"
+        f"## Language distribution across all repositories (ASCII figure)\n"
+        f"<pre><code class=\"language-text\">\n"
+        f"{lang_figure}\n"
+        f"</code></pre>\n\n"
+        f"---\n\n"
+        f"*This README is updated automatically by a GitHub Action once a day.*\n"
+    )
 
     # Write README.md (overwrite)
     with open("README.md", "w", encoding="utf-8") as fh:
