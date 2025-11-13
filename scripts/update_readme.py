@@ -371,17 +371,20 @@ def main() -> None:
 
     # Compose README: include headers, ASCII table (inside <pre>), header for graph, and grid (inside <pre>)
     readme = (
+        "<pre>\n"
         "┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸╻  ╻ ╻   ┏━┓┏━╸╺┳╸╻╻ ╻┏━╸   ┏━┓┏━╸┏━┓┏━┓┏━┓╻╺┳╸┏━┓┏━┓╻┏━╸┏━┓"
         "┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃ ┃  ┗┳┛   ┣━┫┃   ┃ ┃┃┏┛┣╸    ┣┳┛┣╸ ┣━┛┃ ┃┗━┓┃ ┃ ┃ ┃┣┳┛┃┣╸ ┗━┓"
         "╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹ ┗━╸ ╹    ╹ ╹┗━╸ ╹ ╹┗┛ ┗━╸   ╹┗╸┗━╸╹  ┗━┛┗━┛╹ ╹ ┗━┛╹┗╸╹┗━╸┗━┛\n\n"
+        "<pre>\n"
         #"recently active repositories:"
         "<pre>\n"
         f"{ascii_table}\n"
         "</pre>\n\n"
+        "<pre>\n"
         "┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻   ╺┳┓┏━╸┏┓╻┏━┓╻╺┳╸╻ ╻   ╺┳╸╻ ╻┏━┓┏━┓╻ ╻┏━╸╻ ╻   ╺┳╸╻┏┳┓┏━╸"
         "┣━┫┃   ┃ ┃┃┏┛┃ ┃ ┗┳┛    ┃┃┣╸ ┃┗┫┗━┓┃ ┃ ┗┳┛    ┃ ┣━┫┣┳┛┃ ┃┃ ┃┃╺┓┣━┫    ┃ ┃┃┃┃┣╸ "
         "╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹    ╺┻┛┗━╸╹ ╹┗━┛╹ ╹  ╹     ╹ ╹ ╹╹┗╸┗━┛┗━┛┗━┛╹ ╹    ╹ ╹╹ ╹┗━╸\n\n"
-        #"activity density through time:\n\n"
+        "<pre>\n"#"activity density through time:\n\n"
         "<pre>\n"
         f"{grid}\n"
         "</pre>\n"
