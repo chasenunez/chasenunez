@@ -3,7 +3,7 @@
 scripts/update_readme.py
 
 - Produces an ASCII-style table (text-art box) with clickable repo links (uses HTML anchors),
-  and a contributions-style grid showing weekly commit density over the last ~6 months (26 weeks).
+  and a contributions-style grid showing weekly commit density over the last 52 weeks.
 - Adds a 'restricted' aggregated row for private repos if GH_PAT is provided in environment.
 - Writes README.md containing only the ASCII table and the grid, both inside <pre> so spacing is preserved
   while HTML anchors remain clickable.
@@ -30,7 +30,7 @@ import requests
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
 TOP_N = 10
-WEEKS = 26  # 26 weeks ~ 6 months
+WEEKS = 52  # switched back to 52 weeks (1 year)
 SHADES = [" ", "░", "▒", "▓", "█"]  # intensity glyphs low->high
 STATS_MAX_RETRIES = 6
 STATS_RETRY_SLEEP = 1.5  # seconds
@@ -57,7 +57,7 @@ def gh_get(url: str, params: dict | None = None, token: str | None = None) -> re
     return resp
 
 
-def fetch_repos_for_user(token: str | None = None, per_page: int = 200) -> List[dict]:
+def fetch_repos_for_user(token: str | None = None, per_page: int = 300) -> List[dict]:
     """
     If a token is provided, call /user/repos to get private repos too (affiliation owner).
     Otherwise call /users/{USERNAME}/repos for public repos.
@@ -82,7 +82,7 @@ def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> Lis
     while attempt < STATS_MAX_RETRIES:
         try:
             r = gh_get(url, token=token)
-        except requests.HTTPError as e:
+        except requests.HTTPError:
             # treat errors (e.g., 404, private unauthorized) as zeros
             return [0] * WEEKS
         if r.status_code == 202:
@@ -95,7 +95,6 @@ def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> Lis
         weeks = [int(w.get("total", 0)) for w in data]
         if len(weeks) >= WEEKS:
             return weeks[-WEEKS:]
-        # pad left if fewer weeks
         pad = [0] * (WEEKS - len(weeks))
         return pad + weeks
     return [0] * WEEKS
@@ -184,10 +183,8 @@ def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
         url = row.get("name_url", "")
         # center the visible name inside widths[0]-2, but render with anchor tags
         inner_w0 = widths[0] - 2
-        # compute left padding for centering based on visible length
         left_pad = (inner_w0 - len(vis_name)) // 2
         right_pad = inner_w0 - len(vis_name) - left_pad
-        # build cell: space + left_pad spaces + anchor + right_pad spaces + space
         repo_cell = " " + (" " * left_pad) + f'<a href="{url}">{vis_name}</a>' + (" " * right_pad) + " "
         cells.append(repo_cell)
 
@@ -207,17 +204,11 @@ def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
 
 
 # ---------- contributions grid builder (WEEKS columns) ----------
-def format_visible_name(name: str, max_width: int = 20) -> str:
-    if len(name) > max_width - 1:
-        return name[: max_width - 3] + "…"
-    return name.ljust(max_width)
-
-
 def build_contrib_grid(repo_weekly: Dict[str, List[int]], repo_order: List[str]) -> str:
     """
     repo_weekly: repo -> list of WEEKS ints (oldest->newest)
     repo_order: order of rows
-    Returns grid as multiline string; left labels are anchors (clickable), grid cells are shade characters.
+    Returns grid as multiline string; left labels are plain text, grid cells are shade characters.
     """
     label_w = max(10, max((len(r) for r in repo_order), default=10))
     label_w = min(label_w, 28)
@@ -239,15 +230,8 @@ def build_contrib_grid(repo_weekly: Dict[str, List[int]], repo_order: List[str])
             vis_name = vis_name[: label_w - 1] + "…"
         else:
             vis_name = vis_name.ljust(label_w)
-        # anchor for name (we need repo url if available — repo_weekly keys may be "restricted" without url)
-        # We'll embed an anchor only if we can detect a "http" style url stored alongside name in repo_weekly metadata.
-        # For simplicity, expect keys in repo_weekly to be repo names; we'll keep anchor href empty for restricted or missing urls.
-        # Instead, to ensure anchors work, we accept a parallel mapping repo_urls passed via a closure or global — but to keep API small,
-        # we'll check if repo contains "@" marker (not used) — simpler: keep plain text label in grid and clickable anchors already available in table.
-        # However user asked for clickable names in table; grid anchors are optional. We will include anchors using a mapping provided externally.
         lines.append(f"{vis_name} {' '.join(row_cells)}")
 
-    # tiny legend under grid — compact
     legend = " " * label_w + " " + " ".join(SHADES[1:]) + "  (low->high)"
     lines.append(legend)
 
@@ -284,7 +268,6 @@ def build_rows_for_table(top_public: List[dict], token: str | None) -> List[dict
             lang_label = "Unknown (0%)"
         commits = get_commit_count(owner, name, token=token)
         last_commit = repo.get("pushed_at", "")
-        # normalize date
         try:
             if last_commit:
                 last_commit = last_commit.rstrip("Z")
@@ -313,14 +296,11 @@ def main() -> None:
     public_repos = [r for r in all_repos if not r.get("private")]
     private_repos = [r for r in all_repos if r.get("private")]
 
-    # Top-N most recently-updated public repos
     top_public = public_repos[:TOP_N]
     rows = build_rows_for_table(top_public, token)
 
-    # Build ASCII table with clickable repo links
     ascii_table, ascii_width, ascii_height = make_ascii_table_with_links(rows)
 
-    # Build weekly commit data for each repo in rows (last WEEKS)
     repo_weekly: Dict[str, List[int]] = {}
     repo_order: List[str] = []
 
@@ -330,7 +310,6 @@ def main() -> None:
         repo_weekly[name] = repo_commit_activity(owner, name, token=token)
         repo_order.append(name)
 
-    # restricted aggregated row for private repos (if token available)
     restricted_name = "restricted"
     if private_repos and token:
         agg = [0] * WEEKS
@@ -343,15 +322,12 @@ def main() -> None:
         repo_weekly[restricted_name] = agg
         repo_order.append(restricted_name)
     else:
-        # optionally include empty restricted row if token present but no private repos
         if token:
             repo_weekly[restricted_name] = [0] * WEEKS
             repo_order.append(restricted_name)
 
-    # Build grid string
     grid = build_contrib_grid(repo_weekly, repo_order)
 
-    # Compose README: ASCII table (inside <pre>) and grid (inside <pre>), only those two elements
     readme = (
         "<pre>\n"
         f"{ascii_table}\n"
