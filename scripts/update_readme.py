@@ -5,8 +5,11 @@ scripts/update_readme.py
 - Produces an ASCII-style table (text-art box) with clickable repo links (uses HTML anchors),
   and a contributions-style grid showing weekly commit density over the last 52 weeks.
 - Adds a 'restricted' aggregated row for private repos if GH_PAT is provided in environment.
-- Writes README.md containing only the ASCII table and the grid, both inside <pre> so spacing is preserved
-  while HTML anchors remain clickable.
+- Writes README.md containing:
+    Most Recent Repository Updates            <- plain text header
+    <pre>ASCII table with clickable links</pre>
+    commit density by date/project           <- plain text header
+    <pre>contributions grid</pre>
 
 Auth:
  - Provide GH_PAT (repo-scoped PAT) via environment to include private repos and commit activity for them.
@@ -15,7 +18,6 @@ Auth:
 Requirements:
     pip install requests
 """
-
 from __future__ import annotations
 import os
 import sys
@@ -30,7 +32,7 @@ import requests
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
 TOP_N = 10
-WEEKS = 47  # switched back to 52 weeks (1 year)
+WEEKS = 47  # 52 weeks = 1 year
 SHADES = [" ", "░", "▒", "▓", "█"]  # intensity glyphs low->high
 STATS_MAX_RETRIES = 6
 STATS_RETRY_SLEEP = 1.5  # seconds
@@ -101,6 +103,9 @@ def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> Lis
 
 
 def get_commit_count(owner: str, repo: str, token: str | None = None) -> int:
+    """
+    Estimate total commits using per_page=1 and Link header parsing.
+    """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
     params = {"per_page": 1}
     try:
@@ -126,6 +131,35 @@ def get_commit_count(owner: str, repo: str, token: str | None = None) -> int:
     return 0
 
 
+def get_branch_count(owner: str, repo: str, token: str | None = None) -> int:
+    """
+    Estimate number of branches using per_page=1 on branches endpoint and parsing Link header.
+    Falls back to len(returned_list) if no Link header.
+    """
+    url = f"{GITHUB_API}/repos/{owner}/{repo}/branches"
+    params = {"per_page": 1}
+    try:
+        r = gh_get(url, params=params, token=token)
+    except requests.HTTPError as e:
+        # some repos may return 404 or unauthorized for branches; treat as 0
+        return 0
+    link = r.headers.get("Link", "")
+    if link:
+        m = re.search(r'[&?]page=(\d+)>;\s*rel="last"', link)
+        if m:
+            try:
+                return int(m.group(1))
+            except ValueError:
+                pass
+    try:
+        data = r.json()
+        if isinstance(data, list):
+            return len(data)
+    except Exception:
+        pass
+    return 0
+
+
 def fetch_languages(owner: str, repo: str, token: str | None = None) -> Dict[str, int]:
     url = f"{GITHUB_API}/repos/{owner}/{repo}/languages"
     try:
@@ -141,11 +175,11 @@ def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
     rows: list of dicts containing:
         - name_text (visible plain name)
         - name_url (repo html url)
-        - language, size, commits, last_commit (strings/numbers)
+        - language, size, commits, last_commit, branches
     Returns (table_string, table_width_chars, table_height_lines).
     The table_string uses HTML anchors for repo names; the string is intended to be placed inside <pre>...</pre>.
     """
-    cols = ["Repository", "Main Language", "Total Size (bytes)", "Total Commits", "Date of Last Commit"]
+    cols = ["Repository", "Main Language", "Total Size (bytes)", "Total Commits", "Date of Last Commit", "Branches"]
     data_rows = []
     for r in rows:
         data_rows.append([
@@ -153,7 +187,8 @@ def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
             r["language"],
             str(r["size"]),
             str(r["commits"]),
-            r["last_commit"]
+            r["last_commit"],
+            str(r.get("branches", "0"))
         ])
 
     # compute widths based on visible content lengths
@@ -176,20 +211,24 @@ def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
     lines.append(top_line)
 
     # data rows; for the first (Repository) column, include an <a href="...">name</a> anchor
-    for idx, row in enumerate(rows):
+    for row in rows:
         cells = []
         # Repository column (index 0)
         vis_name = row["name_text"]
         url = row.get("name_url", "")
-        # center the visible name inside widths[0]-2, but render with anchor tags
         inner_w0 = widths[0] - 2
-        left_pad = (inner_w0 - len(vis_name)) // 2
-        right_pad = inner_w0 - len(vis_name) - left_pad
-        repo_cell = " " + (" " * left_pad) + f'<a href="{url}">{vis_name}</a>' + (" " * right_pad) + " "
+        # ensure visible name fits; if not, truncate for centering calculation and visual
+        if len(vis_name) > inner_w0:
+            vis_name_display = vis_name[:inner_w0 - 1] + "…"
+        else:
+            vis_name_display = vis_name
+        left_pad = (inner_w0 - len(vis_name_display)) // 2
+        right_pad = inner_w0 - len(vis_name_display) - left_pad
+        repo_cell = " " + (" " * left_pad) + f'<a href="{url}">{vis_name_display}</a>' + (" " * right_pad) + " "
         cells.append(repo_cell)
 
         # other columns — center text
-        other = [row["language"], str(row["size"]), str(row["commits"]), row["last_commit"]]
+        other = [row["language"], str(row["size"]), str(row["commits"]), row["last_commit"], str(row.get("branches", "0"))]
         for i, val in enumerate(other, start=1):
             w = widths[i] - 2
             cell = " " + val.center(w) + " "
@@ -267,6 +306,7 @@ def build_rows_for_table(top_public: List[dict], token: str | None) -> List[dict
         else:
             lang_label = "Unknown (0%)"
         commits = get_commit_count(owner, name, token=token)
+        branches = get_branch_count(owner, name, token=token)
         last_commit = repo.get("pushed_at", "")
         try:
             if last_commit:
@@ -280,7 +320,8 @@ def build_rows_for_table(top_public: List[dict], token: str | None) -> List[dict
             "language": lang_label,
             "size": total_bytes,
             "commits": commits,
-            "last_commit": last_commit
+            "last_commit": last_commit,
+            "branches": branches
         })
     return rows
 
@@ -328,10 +369,13 @@ def main() -> None:
 
     grid = build_contrib_grid(repo_weekly, repo_order)
 
+    # Compose README: include headers, ASCII table (inside <pre>), header for graph, and grid (inside <pre>)
     readme = (
+        "Most Recent Repository Updates\n\n"
         "<pre>\n"
         f"{ascii_table}\n"
         "</pre>\n\n"
+        "commit density by date/project\n\n"
         "<pre>\n"
         f"{grid}\n"
         "</pre>\n"
