@@ -371,11 +371,11 @@ def main() -> None:
 
     # Compose README: include headers, ASCII table (inside <pre>), header for graph, and grid (inside <pre>)
     readme = (
-        "Most Recent Repository Updates\n\n"
+        "Most recent repository updates:\n\n"
         "<pre>\n"
         f"{ascii_table}\n"
         "</pre>\n\n"
-        "commit density by date/project\n\n"
+        "Commit density by date and project:\n\n"
         "<pre>\n"
         f"{grid}\n"
         "</pre>\n"
