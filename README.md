@@ -1,6 +1,6 @@
 # Profile README — auto updated
 
-_Last updated: 2025-11-13 07:11 UTC_
+_Last updated: 2025-11-13 07:18 UTC_
 
 ## 5 Most recently updated repositories
 
@@ -9,10 +9,11 @@ Below is an ASCII-style table **and** a Markdown table; the Markdown table is ea
 <details>
 <summary>ASCII table (click to expand)</summary>
 
+<pre><code class="language-text">
 +--------------------+-------------------+--------------------+---------------+---------------------+
 |     Repository     |   Main Language   | Total Size (bytes) | Total Commits | Date of Last Commit |
 +--------------------+-------------------+--------------------+---------------+---------------------+
-|     chasenunez     |   Python (100%)   |       11460        |       58      |      2025-11-13     |
+|     chasenunez     |   Python (100%)   |       12034        |       60      |      2025-11-13     |
 +--------------------+-------------------+--------------------+---------------+---------------------+
 |      data_HUD      |  JavaScript (69%) |       17069        |       57      |      2025-11-11     |
 +--------------------+-------------------+--------------------+---------------+---------------------+
@@ -22,12 +23,14 @@ Below is an ASCII-style table **and** a Markdown table; the Markdown table is ea
 +--------------------+-------------------+--------------------+---------------+---------------------+
 |  recursive_shrink  |    Shell (100%)   |        2036        |       7       |      2025-09-16     |
 +--------------------+-------------------+--------------------+---------------+---------------------+
+</code></pre>
+
 </details>
 
 ### Markdown table
 | **Repository** | **Main Language (pct)** | **Total Size (bytes)** | **Total Commits** | **Date of Last Commit** |
 | --- | --- | --- | --- | --- |
-| [chasenunez](https://github.com/chasenunez/chasenunez) | Python (100%) | 11460 | 58 | 2025-11-13 |
+| [chasenunez](https://github.com/chasenunez/chasenunez) | Python (100%) | 12034 | 60 | 2025-11-13 |
 | [data_HUD](https://github.com/chasenunez/data_HUD) | JavaScript (69%) | 17069 | 57 | 2025-11-11 |
 | [contribution_chart](https://github.com/chasenunez/contribution_chart) | TypeScript (100%) | 181371 | 213 | 2025-09-13 |
 | [tui_log](https://github.com/chasenunez/tui_log) | Rust (100%) | 347968 | 916 | 2025-10-01 |
@@ -36,7 +39,7 @@ Below is an ASCII-style table **and** a Markdown table; the Markdown table is ea
 ---
 
 ## Language distribution across all repositories (ASCII figure)
-
+<pre><code class="language-text">
 ┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                                   │
 │                                                                                                   │
@@ -50,7 +53,7 @@ Below is an ASCII-style table **and** a Markdown table; the Markdown table is ea
 │                                                                                                   │
 │                                                                                                   │
 └───────────────────────────────────────────────────────────────────────────────────────────────────┘
-
+</code></pre>
 
 ---
 
