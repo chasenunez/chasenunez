@@ -3,7 +3,7 @@
 scripts/update_readme.py
 
 - Produces an ASCII-style table (text-art box) with clickable repo links (uses HTML anchors),
-  and a contributions-style grid showing weekly commit density over the last 52 weeks.
+  and a contributions-style grid showing weekly commit density over the last 52 weeks (orr however many weeks. Currently we are using 47 because it fits the default width of github profile pages better).
 - Adds a 'restricted' aggregated row for private repos if GH_PAT is provided in environment.
 - Writes README.md containing:
     Most Recent Repository Updates            <- plain text header
