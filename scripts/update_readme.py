@@ -386,7 +386,7 @@ def main() -> None:
         "</pre>\n"#"activity density through time:\n\n"
         #"recently active repositories:"
         "<pre>\n"
-        f"{ascii_table}\n\n"
+        f"{ascii_table}\n\n\n"
         f"{grid}\n"
         "</pre>\n\n"
         #"<pre>\n"
