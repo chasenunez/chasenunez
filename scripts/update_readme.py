@@ -34,8 +34,8 @@ USERNAME = "chasenunez"
 TOP_N = 10
 WEEKS = 47  # 52 weeks = 1 year
 SHADES = [" ", "░", "▒", "▓", "█"]  # intensity glyphs low->high
-STATS_MAX_RETRIES = 6
-STATS_RETRY_SLEEP = 1.5  # seconds
+STATS_MAX_RETRIES = 10
+STATS_RETRY_SLEEP = 2  # seconds
 # -----------------------------------
 
 GITHUB_API = "https://api.github.com"
