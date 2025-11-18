@@ -179,7 +179,7 @@ def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
     Returns (table_string, table_width_chars, table_height_lines).
     The table_string uses HTML anchors for repo names; the string is intended to be placed inside <pre>...</pre>.
     """
-    cols = ["Repository", "Main Language", "Total Size (bytes)", "Total Commits", "Date of Last Commit", "Branches"]
+    cols = ["Repository", "Main Language", "Total Bytes", "Total Commits", "Last Commit", "Branch Number"]
     data_rows = []
     for r in rows:
         data_rows.append([
