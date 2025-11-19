@@ -32,7 +32,7 @@ import requests
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
 TOP_N = 10
-WEEKS = 47  # 52 weeks = 1 year
+WEEKS = 45  # 52 weeks = 1 year
 SHADES = [" ", "░", "▒", "▓", "█"]  # intensity glyphs low->high
 STATS_MAX_RETRIES = 10
 STATS_RETRY_SLEEP = 2  # seconds
@@ -179,7 +179,7 @@ def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
     Returns (table_string, table_width_chars, table_height_lines).
     The table_string uses HTML anchors for repo names; the string is intended to be placed inside <pre>...</pre>.
     """
-    cols = ["Repository", "Main Language", "Total Bytes", "Total Commits", "Last Commit", "Branch Number"]
+    cols = ["Repository", "Main Language", "Total Bytes", "Total Commits", "Date of Last Commit", "Branch Number"]
     data_rows = []
     for r in rows:
         data_rows.append([
