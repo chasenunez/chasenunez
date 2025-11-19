@@ -7,11 +7,11 @@
 +--------------------+-------------------+-------------+---------------+-------------+---------------+
 |     Repository     |   Main Language   | Total Bytes | Total Commits | Last Commit | Branch Number |
 +--------------------+-------------------+-------------+---------------+-------------+---------------+
+|     <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>     |   Python (100%)   |    17562    |      142      |  2025-11-19 |       1       |
++--------------------+-------------------+-------------+---------------+-------------+---------------+
 |   <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>   |   Python (100%)   |     9464    |      112      |  2025-11-19 |       1       |
 +--------------------+-------------------+-------------+---------------+-------------+---------------+
 |   <a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>    |   Python (100%)   |    25489    |       48      |  2025-11-19 |       1       |
-+--------------------+-------------------+-------------+---------------+-------------+---------------+
-|     <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>     |   Python (100%)   |    17563    |      140      |  2025-11-19 |       1       |
 +--------------------+-------------------+-------------+---------------+-------------+---------------+
 |  <a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>  |    HTML (100%)    |   19467689  |       18      |  2025-11-18 |       1       |
 +--------------------+-------------------+-------------+---------------+-------------+---------------+
@@ -29,5 +29,18 @@
 +--------------------+-------------------+-------------+---------------+-------------+---------------+
 
 
+chasenunez                                                                                                   █ ░
+DEVO_validator                                                                       █ ░ ▒ ░                    
+DEVO_enricher                                                                                █                 ▒
+envidat_entrails                                                                                       ▒ ▒ █    
+byos_django                    █ ░                   ▓                                                          
+trmnlp               █                   ▒ ▒   █ ▒         ░         ▒   ░                                      
+contribution_chart                     █                                     ░         ░   ░                    
+recursive_shrink                                                                           █                    
+tui_log            ▓ █     ░             ░ █             ░ ░             █     ▒         ░                      
+etani_shordul                                                                                      █            
+restricted                                                                           ░ ░ ▒ █ ▓ ▒ ▓ █ ▒ ▓ ▒ ▓ ▒ ░
+                   ░ ▒ ▓ █  (low->high)
+                   J       J       F       M       A       M       J       J       A       S       O       N    
 </pre>
 
