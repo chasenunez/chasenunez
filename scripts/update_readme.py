@@ -547,7 +547,7 @@ def main() -> None:
 
     repos_to_query = [r["name_text"] for r in rows]
 
-    # fetch commit_activity in parallel (for contrib grid)
+    # fetch commit_activity
     repo_weekly: Dict[str, List[int]] = {}
     print(f"Fetching commit_activity for {len(repos_to_query)} repos...")
     with ThreadPoolExecutor(max_workers=8) as ex:
@@ -566,7 +566,7 @@ def main() -> None:
                 print(f"  commit_activity failed for {repo_name}: {e}", file=sys.stderr)
                 repo_weekly[repo_name] = [0] * WEEKS
 
-    # fetch code_frequency (lines) in parallel, convert to BYTES (per-week)
+    # fetch code_frequency
     repo_codefreq_weeks_bytes: Dict[str, List[float]] = {}
     print(f"Fetching code_frequency for {len(repos_to_query)} repos...")
     with ThreadPoolExecutor(max_workers=6) as ex:
@@ -579,7 +579,7 @@ def main() -> None:
                     weeks_lines = repo_weekly.get(repo_name, [0] * WEEKS)
                 if len(weeks_lines) < WEEKS:
                     weeks_lines = ([0] * (WEEKS - len(weeks_lines))) + weeks_lines
-                # convert lines -> bytes
+
                 weeks_bytes = [float(x) * AVG_BYTES_PER_LINE for x in weeks_lines]
                 repo_codefreq_weeks_bytes[repo_name] = weeks_bytes
                 print(f"  code_frequency (lines->bytes) for {repo_name}")
@@ -589,7 +589,7 @@ def main() -> None:
 
     repo_order: List[str] = list(repos_to_query)
 
-    # aggregate private repos into RESTRICTED_NAME if token present
+    # aggregate private repos
     if private_repos and token:
         print(f"Aggregating {len(private_repos)} private repos into '{RESTRICTED_NAME}'...")
         agg_weekly = [0] * WEEKS
@@ -624,14 +624,49 @@ def main() -> None:
 
     contrib_grid = build_contrib_grid(repo_weekly, repo_order)
 
-    # aggregate bytes to daily series and plot
-    daily_bytes = aggregate_daily_bytes(repo_codefreq_weeks_bytes)  # oldest->newest per-day
+    # -----------------------------
+    #   WIDTH-CONTROLLED ASCII PLOT
+    # -----------------------------
+    daily_bytes = aggregate_daily_bytes(repo_codefreq_weeks_bytes)
+
     if not daily_bytes or all(v == 0 for v in daily_bytes):
         ascii_plot = "(no activity data)"
     else:
-        # choose height, and plotting config
-        ascii_plot = plot_with_mean(daily_bytes, {'height': PLOT_HEIGHT, 'format': PLOT_FORMAT})
+        # label format (tight)
+        label_format = '{:7.2f} '
+        offset_len = len(label_format.format(0.0))
+        safety = 1
+        max_plot_points = max(10, ascii_width - offset_len - safety)
 
+        def downsample_avg(series, max_pts):
+            n = len(series)
+            if n <= max_pts:
+                return series[:]
+            out = []
+            step = n / max_pts
+            pos = 0.0
+            for _ in range(max_pts):
+                start = int(round(pos))
+                pos += step
+                end = int(round(pos))
+                if end <= start:
+                    end = min(n, start + 1)
+                chunk = series[start:end]
+                out.append(sum(chunk) / len(chunk))
+            return out
+
+        mean = sum(daily_bytes) / len(daily_bytes)
+        centered = [v - mean for v in daily_bytes]
+        series_fit = downsample_avg(centered, max_plot_points)
+
+        cfg = {
+            'height': PLOT_HEIGHT,
+            'format': label_format,
+            'offset': offset_len,
+        }
+        ascii_plot = plot_ascii(series_fit, cfg)
+
+    # build README
     readme = build_readme(ascii_table, contrib_grid, ascii_plot)
 
     with open("README.md", "w", encoding="utf-8") as fh:
@@ -639,6 +674,3 @@ def main() -> None:
 
     print("README.md updated.")
 
-
-if __name__ == "__main__":
-    main()
