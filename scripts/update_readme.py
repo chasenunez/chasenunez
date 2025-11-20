@@ -38,7 +38,7 @@ AVG_BYTES_PER_LINE = 40.0
 
 # Plot settings
 PLOT_HEIGHT = 10  # rows for plot; increase for more vertical resolution
-PLOT_FORMAT = "{:8.1f} "  # label formatting (right-justified)
+PLOT_FORMAT = "{:8.1f} "  # default label formatting (right-justified)
 # -----------------------------------
 
 GITHUB_API = "https://api.github.com"
@@ -362,7 +362,7 @@ def plot_with_mean(series, cfg=None):
     """
     Adapted `plot()` from the inspiration code, with an added dotted mean overlay.
     series: list of numbers (oldest->newest)
-    cfg: optional dict with keys: 'height', 'format' (label), 'min', 'max'
+    cfg: optional dict with keys: 'height', 'format' (label), 'min', 'max', 'offset'
     """
     from math import ceil
 
@@ -521,7 +521,7 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
         "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔\n\n"
         f"{ascii_table}\n\n\n"
         f"{contrib_grid}\n\n\n"
-        f"Activity (daily bytes; dotted line = long-term mean):\n"
+        f"Activity (weekly bytes; 2 columns = 1 week; dotted line = long-term mean):\n"
         f"{ascii_plot}\n"
         "</pre>\n"
     )
@@ -536,9 +536,9 @@ def main() -> None:
         sys.exit(1)
 
     # sensible defaults if not defined elsewhere
-    AVG_BYTES_PER_LINE = globals().get("AVG_BYTES_PER_LINE", 50.0)
-    RESTRICTED_NAME = globals().get("RESTRICTED_NAME", "restricted")
-    PLOT_HEIGHT = globals().get("PLOT_HEIGHT", 8)
+    AVG_BYTES_PER_LINE = globals().get("AVG_BYTES_PER_LINE", AVG_BYTES_PER_LINE)
+    RESTRICTED_NAME = globals().get("RESTRICTED_NAME", RESTRICTED_NAME)
+    PLOT_HEIGHT = globals().get("PLOT_HEIGHT", PLOT_HEIGHT)
 
     public_repos = [r for r in all_repos if not r.get("private")]
     private_repos = [r for r in all_repos if r.get("private")]
@@ -629,23 +629,36 @@ def main() -> None:
 
     contrib_grid = build_contrib_grid(repo_weekly, repo_order)
 
-    # ------------- BUILD WIDTH-CONSTRAINED ASCII PLOT ----------------
-    # convert aggregated weekly bytes -> daily series (oldest -> newest)
-    daily_bytes = aggregate_daily_bytes(repo_codefreq_weeks_bytes)  # oldest->newest per-day
+    # ------------------ NEW: 2 chars per week plotting -------------------
+    # Build weekly aggregated bytes (oldest -> newest)
+    weekly_totals: List[float] = [0.0] * WEEKS
+    for weeks in repo_codefreq_weeks_bytes.values():
+        if len(weeks) < WEEKS:
+            weeks = ([0.0] * (WEEKS - len(weeks))) + weeks
+        for i, v in enumerate(weeks):
+            weekly_totals[i] += float(v)
 
-    if not daily_bytes or all(v == 0 for v in daily_bytes):
+    # create a plotting series where each week is represented by two adjacent columns
+    series_points: List[float] = []
+    for w in weekly_totals:
+        # duplicate the weekly value twice so 2 columns == 1 week
+        series_points.append(w)
+        series_points.append(w)
+
+    # now we have length = WEEKS * 2 (oldest -> newest)
+    # compute mean and center
+    if not series_points or all(v == 0 for v in series_points):
         ascii_plot = "(no activity data)"
     else:
-        # center series on long-term mean
-        mean = sum(daily_bytes) / len(daily_bytes)
-        centered = [v - mean for v in daily_bytes]
+        mean = sum(series_points) / len(series_points)
+        centered = [v - mean for v in series_points]
 
-        # automatic scaling to keep axis labels short ('' / 'K' / 'M')
+        # automatic unit scaling to keep labels short
         max_abs = max(abs(x) for x in centered) if centered else 0.0
         if max_abs >= 1_000_000:
             scale = 1_000_000.0
             scale_suffix = "M"
-            dec_places = 2
+            dec_places = 1
         elif max_abs >= 1_000:
             scale = 1_000.0
             scale_suffix = "K"
@@ -653,63 +666,53 @@ def main() -> None:
         else:
             scale = 1.0
             scale_suffix = ""
-            dec_places = 2
+            dec_places = 1
 
-        scaled = [x / scale for x in centered]
+        scaled_series = [x / scale for x in centered]
 
-        # compute label width from actual min/max values (so labels cannot overflow)
-        vmin = min(scaled)
-        vmax = max(scaled)
-        # prepare candidate formatted strings and compute width needed
-        fmt_spec = f".{dec_places}f"
-        min_label = format(vmin, fmt_spec)
-        max_label = format(vmax, fmt_spec)
-        # allow sign and one trailing space
-        label_width = max(len(min_label), len(max_label), len("0" + format(0, fmt_spec))) + 1
-        offset_len = label_width
+        # target series length (we prefer exactly WEEKS*2)
+        target_len = WEEKS * 2
+        if len(scaled_series) != target_len:
+            # ensure exact length by trimming/padding (shouldn't happen)
+            if len(scaled_series) > target_len:
+                scaled_series = scaled_series[-target_len:]
+            else:
+                scaled_series = ([0.0] * (target_len - len(scaled_series))) + scaled_series
+
+        # prepare a compact label format and ensure it fits ascii_width
         safety = 1
+        # start with a short format: width 7 (e.g., ' 123.4 ')
+        fmt_width = 7
+        fmt_template = "{{:{w}.{p}f}} ".format(w=fmt_width, p=dec_places)
+        label_format = fmt_template
+        offset_len = len(label_format.format(0.0))
 
-        # ensure there's room for at least some plot columns; reduce decimals if needed
-        max_plot_points = ascii_width - offset_len - safety
-        if max_plot_points < 8:
-            # try fewer decimals
-            dec_places = max(0, dec_places - 1)
-            fmt_spec = f".{dec_places}f"
-            min_label = format(vmin, fmt_spec)
-            max_label = format(vmax, fmt_spec)
-            label_width = max(len(min_label), len(max_label), len("0" + format(0, fmt_spec))) + 1
-            offset_len = label_width
-            max_plot_points = ascii_width - offset_len - safety
+        # compute required width
+        required_width = offset_len + len(scaled_series) + safety
 
-        # as a final fallback, force offset to leave room for at least 6 plot cols
-        if max_plot_points < 6:
-            offset_len = max(4, ascii_width - 6 - safety)
+        # If required width is larger than ascii table width, try to shorten labels
+        # reduce decimal places and then width
+        while required_width > ascii_width and dec_places > 0:
+            dec_places -= 1
+            fmt_template = "{{:{w}.{p}f}} ".format(w=fmt_width, p=dec_places)
+            label_format = fmt_template
+            offset_len = len(label_format.format(0.0))
+            required_width = offset_len + len(scaled_series) + safety
+
+        # try reducing field width if still doesn't fit
+        while required_width > ascii_width and fmt_width > 4:
+            fmt_width -= 1
+            fmt_template = "{{:{w}.{p}f}} ".format(w=fmt_width, p=dec_places)
+            label_format = fmt_template
+            offset_len = len(label_format.format(0.0))
+            required_width = offset_len + len(scaled_series) + safety
+
+        # final fallback: if it still doesn't fit, truncate the series on the left (oldest)
+        if required_width > ascii_width:
             max_plot_points = max(6, ascii_width - offset_len - safety)
-
-        # downsample by averaging to fit the width
-        def downsample_avg(series: List[float], max_pts: int) -> List[float]:
-            n = len(series)
-            if n <= max_pts:
-                return series[:]
-            out: List[float] = []
-            step = n / float(max_pts)
-            pos = 0.0
-            for _ in range(max_pts):
-                start = int(round(pos))
-                pos += step
-                end = int(round(pos))
-                if end <= start:
-                    end = min(n, start + 1)
-                chunk = series[start:end]
-                out.append(sum(chunk) / len(chunk))
-            return out
-
-        series_fit = downsample_avg(scaled, max_plot_points)
-
-        # build format string with computed width to align with offset_len
-        # subtract 1 for final trailing space included in format
-        fmt_width = max(1, offset_len - 1)
-        label_format = "{:" + str(fmt_width) + fmt_spec + "} "
+            scaled_series = scaled_series[-max_plot_points:]
+            # recompute required width with truncated series
+            required_width = offset_len + len(scaled_series) + safety
 
         cfg = {
             "height": PLOT_HEIGHT,
@@ -717,18 +720,21 @@ def main() -> None:
             "offset": offset_len,
         }
 
-        # generate ASCII plot; caller should be aware labels are in scaled units (K/M) relative to mean
+        # produce ascii using plot_with_mean
         try:
-            ascii_plot_body = plot_ascii(series_fit, cfg)
+            ascii_plot_body = plot_with_mean(scaled_series, cfg)
         except Exception:
-            # if plot fails for any unexpected reason, fallback to a short series
-            ascii_plot_body = plot_ascii(series_fit[-(max(1, max_plot_points)):], cfg)
+            # if something goes wrong, try a minimal format and shorter series
+            cfg_min = {"height": max(4, PLOT_HEIGHT // 2), "format": "{:5.0f} ", "offset": 5}
+            ascii_plot_body = plot_with_mean(scaled_series[-min(len(scaled_series), ascii_width - cfg_min["offset"] - 1):], cfg_min)
 
-        # add a short header line indicating units
+        # header with units
         if scale_suffix:
-            ascii_plot = f"Activity (daily bytes / {scale_suffix}; dotted line = long-term mean):\n{ascii_plot_body}"
+            ascii_plot = f"Activity (weekly bytes / {scale_suffix}; 2 cols = 1 week; dotted = mean):\n{ascii_plot_body}"
         else:
-            ascii_plot = "Activity (daily bytes; dotted line = long-term mean):\n" + ascii_plot_body
+            ascii_plot = "Activity (weekly bytes; 2 cols = 1 week; dotted = mean):\n" + ascii_plot_body
+
+    # ------------------ end plotting -------------------
 
     # build README and write
     readme = build_readme(ascii_table, contrib_grid, ascii_plot)
@@ -737,3 +743,7 @@ def main() -> None:
         fh.write(readme)
 
     print("README.md updated.")
+
+
+if __name__ == "__main__":
+    main()
