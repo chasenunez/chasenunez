@@ -2,21 +2,27 @@
 """
 scripts/update_readme.py
 
-- Produces an ASCII-style table (text-art box) with clickable repo links (uses HTML anchors),
-  and a contributions-style grid showing weekly commit density over the last 52 weeks (orr however many weeks. Currently we are using 47 because it fits the default width of github profile pages better).
-- Adds a 'restricted' aggregated row for private repos if GH_PAT is provided in environment.
-- Writes README.md containing:
-    Most Recent Repository Updates            <- plain text header
-    <pre>ASCII table with clickable links</pre>
-    commit density by date/project           <- plain text header
-    <pre>contributions grid</pre>
+Improved version of the user's script with the following changes:
+- robust pagination when fetching repositories (handles GitHub's 100-per-page limit)
+- improved handling of GitHub "202 Accepted" for stats endpoints (exponential backoff)
+- fallback to counting commits per-week via the commits endpoint when /stats/commit_activity
+  doesn't return usable data (prevents spurious blanks)
+- uses /stats/code_frequency to compute weekly lines-changed (additions+deletions) as a proxy
+  for "bytes committed"; expands weekly values to daily values and aggregates across repos
+- adds an ASCII line-plot (based on the provided inspiration) that shows daily activity
+  centered on the long-term mean for the timeframe
+- conservative behaviour for private repos (only included when a token is present)
+- improvements to table formatting and defensive programming
 
-Auth:
- - Provide GH_PAT (repo-scoped PAT) via environment to include private repos and commit activity for them.
- - The script falls back to GITHUB_TOKEN for public data only.
+Notes:
+- This script can be API-heavy if lots of repos are involved. Use a valid GH_PAT in GH_PAT
+  environment variable to increase rate limits and to include private repos.
+- The code_frequency and commit_activity endpoints may take a few seconds on GitHub to compute
+  (they return 202 while computing). The script retries with exponential backoff.
 
 Requirements:
     pip install requests
+
 """
 from __future__ import annotations
 import os
@@ -24,18 +30,19 @@ import sys
 import time
 import re
 from datetime import datetime, timezone, timedelta
-from math import floor
-from typing import Dict, List, Tuple
+from math import floor, isnan
+from typing import Dict, List, Tuple, Optional
 
 import requests
 
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
 TOP_N = 10
-WEEKS = 45  # 52 weeks = 1 year
+WEEKS = 42  # number of weeks to show
 SHADES = [" ", "░", "▒", "▓", "█"]  # intensity glyphs low->high
-STATS_MAX_RETRIES = 10
-STATS_RETRY_SLEEP = 2  # seconds
+STATS_MAX_RETRIES = 12
+STATS_RETRY_SLEEP = 2  # base seconds, exponential backoff applied
+PER_PAGE = 100  # GitHub max per_page
 # -----------------------------------
 
 GITHUB_API = "https://api.github.com"
@@ -46,60 +53,143 @@ SESSION.headers.update({
 })
 
 
-def auth_token() -> str | None:
+def auth_token() -> Optional[str]:
     return os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
 
-def gh_get(url: str, params: dict | None = None, token: str | None = None) -> requests.Response:
+def gh_get(url: str, params: dict | None = None, token: str | None = None, timeout: int = 30) -> requests.Response:
     headers = {}
     if token:
         headers["Authorization"] = f"token {token}"
-    resp = SESSION.get(url, headers=headers, params=params or {})
+    resp = SESSION.get(url, headers=headers, params=params or {}, timeout=timeout)
     resp.raise_for_status()
     return resp
 
 
-def fetch_repos_for_user(token: str | None = None, per_page: int = 300) -> List[dict]:
+def _get_paginated(url: str, params: dict | None = None, token: str | None = None) -> List[dict]:
+    """Generic paginator for endpoints that return lists with Link headers."""
+    out: List[dict] = []
+    params = dict(params or {})
+    params.setdefault("per_page", PER_PAGE)
+    next_url = url
+    while next_url:
+        r = gh_get(next_url, params=params if next_url == url else None, token=token)
+        page = r.json() or []
+        if isinstance(page, list):
+            out.extend(page)
+        else:
+            break
+        link = r.headers.get("Link", "")
+        m = re.search(r'<([^>]+)>;\s*rel="next"', link)
+        if m:
+            next_url = m.group(1)
+            params = None  # subsequent cursors already contained in next_url
+        else:
+            break
+    return out
+
+
+def fetch_repos_for_user(token: str | None = None) -> List[dict]:
     """
-    If a token is provided, call /user/repos to get private repos too (affiliation owner).
-    Otherwise call /users/{USERNAME}/repos for public repos.
+    Fetch all repositories for the user. If token is provided, use /user/repos with
+    affiliation=owner to include private repos owned by the token user.
     """
     if token:
         url = f"{GITHUB_API}/user/repos"
-        params = {"per_page": per_page, "sort": "updated", "direction": "desc", "affiliation": "owner"}
+        params = {"sort": "updated", "direction": "desc", "affiliation": "owner"}
     else:
         url = f"{GITHUB_API}/users/{USERNAME}/repos"
-        params = {"per_page": per_page, "sort": "updated", "direction": "desc"}
-    r = gh_get(url, params=params, token=token)
-    return r.json()
+        params = {"sort": "updated", "direction": "desc"}
+    return _get_paginated(url, params=params, token=token)
 
 
-def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> List[int]:
-    """
-    Return the last WEEKS weekly commit totals (oldest->newest) using /repos/{owner}/{repo}/stats/commit_activity.
-    Retries on 202 Accepted while GitHub computes the stats.
-    """
-    url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/commit_activity"
+def _retry_stats_get(url: str, token: str | None = None) -> Optional[requests.Response]:
+    """Call stats endpoints which may return 202 while GitHub computes them; retry with backoff."""
     attempt = 0
     while attempt < STATS_MAX_RETRIES:
         try:
             r = gh_get(url, token=token)
-        except requests.HTTPError:
-            # treat errors (e.g., 404, private unauthorized) as zeros
-            return [0] * WEEKS
+        except requests.HTTPError as e:
+            # treat errors (e.g., 404, private unauthorized) as not available
+            # caller should handle None
+            return None
         if r.status_code == 202:
+            # compute backoff and sleep
+            sleep_time = STATS_RETRY_SLEEP * (2 ** attempt)
+            time.sleep(sleep_time)
             attempt += 1
-            time.sleep(STATS_RETRY_SLEEP)
             continue
-        data = r.json()
-        if not isinstance(data, list) or len(data) == 0:
-            return [0] * WEEKS
-        weeks = [int(w.get("total", 0)) for w in data]
-        if len(weeks) >= WEEKS:
-            return weeks[-WEEKS:]
-        pad = [0] * (WEEKS - len(weeks))
-        return pad + weeks
-    return [0] * WEEKS
+        return r
+    return None
+
+
+def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> List[int]:
+    """
+    Prefer /stats/commit_activity (weekly totals, oldest->newest). If not available or
+    obviously incomplete, fall back to counting commits per-week via the commits API.
+    Returns list of length WEEKS (oldest->newest).
+    """
+    url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/commit_activity"
+    r = _retry_stats_get(url, token=token)
+    if r is not None:
+        try:
+            data = r.json()
+            if isinstance(data, list) and len(data) > 0:
+                weeks = [int(w.get("total", 0)) for w in data]
+                # normalize length to WEEKS
+                if len(weeks) >= WEEKS:
+                    return weeks[-WEEKS:]
+                pad = [0] * (WEEKS - len(weeks))
+                return pad + weeks
+        except Exception:
+            pass
+
+    # fallback: count commits per-week using commits endpoint with since/until (more reliable)
+    return repo_weekly_from_commits(owner, repo, token=token)
+
+
+def repo_weekly_from_commits(owner: str, repo: str, token: str | None = None) -> List[int]:
+    """Count commits per each of the last WEEKS weeks by querying commits?since&until.
+    Uses per_page=1 and Link header to estimate counts which is much lighter than
+    fetching full lists.
+    Returns list oldest->newest of length WEEKS.
+    """
+    now = datetime.now(timezone.utc)
+    # compute week starts so last element is the most recent week
+    weeks: List[int] = []
+    # We'll define the latest week to start at midnight UTC of the date that is multiple of 7 days before now.
+    # Simpler: generate WEEKS weeks ending today (each week is [start, start+7days))
+    for i in range(WEEKS, 0, -1):
+        start = now - timedelta(days=i * 7)
+        end = start + timedelta(days=7)
+        iso_since = start.isoformat(timespec='seconds').replace('+00:00', 'Z')
+        iso_until = end.isoformat(timespec='seconds').replace('+00:00', 'Z')
+        url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
+        params = {"since": iso_since, "until": iso_until, "per_page": 1}
+        try:
+            r = gh_get(url, params=params, token=token)
+        except requests.HTTPError:
+            weeks.append(0)
+            continue
+        link = r.headers.get("Link", "")
+        if link:
+            m = re.search(r'[&?]page=(\d+)>;\s*rel="last"', link)
+            if m:
+                try:
+                    weeks.append(int(m.group(1)))
+                    continue
+                except ValueError:
+                    pass
+        # otherwise fall back to length of returned list
+        try:
+            commits = r.json()
+            if isinstance(commits, list):
+                weeks.append(len(commits))
+            else:
+                weeks.append(0)
+        except Exception:
+            weeks.append(0)
+    return weeks
 
 
 def get_commit_count(owner: str, repo: str, token: str | None = None) -> int:
@@ -140,8 +230,7 @@ def get_branch_count(owner: str, repo: str, token: str | None = None) -> int:
     params = {"per_page": 1}
     try:
         r = gh_get(url, params=params, token=token)
-    except requests.HTTPError as e:
-        # some repos may return 404 or unauthorized for branches; treat as 0
+    except requests.HTTPError:
         return 0
     link = r.headers.get("Link", "")
     if link:
@@ -171,38 +260,27 @@ def fetch_languages(owner: str, repo: str, token: str | None = None) -> Dict[str
 
 # ---------- ASCII table builder with clickable links (using HTML anchors in <pre>) ----------
 def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
-    """
-    rows: list of dicts containing:
-        - name_text (visible plain name)
-        - name_url (repo html url)
-        - language, size, commits, last_commit, branches
-    Returns (table_string, table_width_chars, table_height_lines).
-    The table_string uses HTML anchors for repo names; the string is intended to be placed inside <pre>...</pre>.
-    """
-    cols = ["Repository", "Main Language", "Total Bytes", "Total Commits", "Date of Last Commit", "Branch Number"]
+    cols = ["Repository", "Main Language", "Total Bytes", "Total Commits", "Date of Last Commit", "Branches"]
     data_rows = []
     for r in rows:
         data_rows.append([
-            r["name_text"],      # visible name (we'll insert anchor in output)
-            r["language"],
-            str(r["size"]),
-            str(r["commits"]),
-            r["last_commit"],
+            r.get("name_text", ""),
+            r.get("language", ""),
+            str(r.get("size", "0")),
+            str(r.get("commits", "0")),
+            r.get("last_commit", ""),
             str(r.get("branches", "0"))
         ])
 
-    # compute widths based on visible content lengths
     widths = [len(c) for c in cols]
     for row in data_rows:
         for i, cell in enumerate(row):
             widths[i] = max(widths[i], len(cell))
-    widths = [w + 2 for w in widths]  # add 1 space padding both sides
+    widths = [w + 2 for w in widths]
 
-    # build top border
     top_line = "+" + "+".join(["-" * w for w in widths]) + "+"
     lines = [top_line]
 
-    # header centered
     header_cells = []
     for i, c in enumerate(cols):
         content = " " + c.center(widths[i] - 2) + " "
@@ -210,14 +288,11 @@ def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
     lines.append("|" + "|".join(header_cells) + "|")
     lines.append(top_line)
 
-    # data rows; for the first (Repository) column, include an <a href="...">name</a> anchor
-    for row in rows:
+    for r in rows:
         cells = []
-        # Repository column (index 0)
-        vis_name = row["name_text"]
-        url = row.get("name_url", "")
+        vis_name = r.get("name_text", "")
+        url = r.get("name_url", "")
         inner_w0 = widths[0] - 2
-        # ensure visible name fits; if not, truncate for centering calculation and visual
         if len(vis_name) > inner_w0:
             vis_name_display = vis_name[:inner_w0 - 1] + "…"
         else:
@@ -227,8 +302,7 @@ def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
         repo_cell = " " + (" " * left_pad) + f'<a href="{url}">{vis_name_display}</a>' + (" " * right_pad) + " "
         cells.append(repo_cell)
 
-        # other columns — center text
-        other = [row["language"], str(row["size"]), str(row["commits"]), row["last_commit"], str(row.get("branches", "0"))]
+        other = [r.get("language", ""), str(r.get("size", "0")), str(r.get("commits", "0")), r.get("last_commit", ""), str(r.get("branches", "0"))]
         for i, val in enumerate(other, start=1):
             w = widths[i] - 2
             cell = " " + val.center(w) + " "
@@ -244,11 +318,6 @@ def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
 
 # ---------- contributions grid builder (WEEKS columns) ----------
 def build_contrib_grid(repo_weekly: Dict[str, List[int]], repo_order: List[str]) -> str:
-    """
-    repo_weekly: repo -> list of WEEKS ints (oldest->newest)
-    repo_order: order of rows
-    Returns grid as multiline string; left labels are plain text, grid cells are shade characters.
-    """
     label_w = max(10, max((len(r) for r in repo_order), default=10))
     label_w = min(label_w, 28)
     cols = WEEKS
@@ -256,6 +325,8 @@ def build_contrib_grid(repo_weekly: Dict[str, List[int]], repo_order: List[str])
     lines = []
     for repo in repo_order:
         weeks = repo_weekly.get(repo, [0] * cols)
+        if len(weeks) < cols:
+            weeks = ([0] * (cols - len(weeks))) + weeks
         max_val = max(weeks) or 1
         row_cells = []
         for w in weeks:
@@ -263,7 +334,6 @@ def build_contrib_grid(repo_weekly: Dict[str, List[int]], repo_order: List[str])
             idx = int(round(ratio * (len(SHADES) - 1)))
             idx = max(0, min(len(SHADES) - 1, idx))
             row_cells.append(SHADES[idx])
-        # build visible truncated/padded repo name
         vis_name = repo
         if len(vis_name) > label_w:
             vis_name = vis_name[: label_w - 1] + "…"
@@ -274,7 +344,6 @@ def build_contrib_grid(repo_weekly: Dict[str, List[int]], repo_order: List[str])
     legend = " " * label_w + " " + " ".join(SHADES[1:]) + "  (low->high)"
     lines.append(legend)
 
-    # small week axis labels (month initials) every 4 weeks
     now = datetime.now(timezone.utc)
     axis_cells = []
     for i in range(cols):
@@ -325,10 +394,153 @@ def build_rows_for_table(top_public: List[dict], token: str | None) -> List[dict
         })
     return rows
 
+
+# ---------- code_frequency wrapper to get weekly lines-changed (additions+deletions) ----------
+def fetch_code_frequency(owner: str, repo: str, token: str | None = None) -> Optional[List[int]]:
+    """Return list of weekly "changes" (additions + abs(deletions)) oldest->newest.
+    If unavailable, return None to indicate fallback required.
+    """
+    url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/code_frequency"
+    r = _retry_stats_get(url, token=token)
+    if not r:
+        return None
+    try:
+        data = r.json()
+        if not isinstance(data, list) or len(data) == 0:
+            return None
+        weeks = []
+        for item in data:
+            # item = [week_unix_ts, additions, deletions]
+            if not isinstance(item, (list, tuple)) or len(item) < 3:
+                continue
+            additions = int(item[1]) if item[1] is not None else 0
+            deletions = int(item[2]) if item[2] is not None else 0
+            weeks.append(abs(additions) + abs(deletions))
+        if len(weeks) >= WEEKS:
+            return weeks[-WEEKS:]
+        pad = [0] * (WEEKS - len(weeks))
+        return pad + weeks
+    except Exception:
+        return None
+
+
+# ---------- simple ascii plot (adapted from the provided inspiration) ----------
+
+def _isnum(n):
+    try:
+        return not isnan(float(n))
+    except Exception:
+        return False
+
+
+def plot_ascii(series, cfg=None):
+    if len(series) == 0:
+        return ''
+    if not isinstance(series[0], list):
+        if all((not _isnum(n)) for n in series):
+            return ''
+        else:
+            series = [series]
+    cfg = cfg or {}
+    minimum = cfg.get('min', min(filter(_isnum, [j for i in series for j in i])))
+    maximum = cfg.get('max', max(filter(_isnum, [j for i in series for j in i])))
+    symbols = cfg.get('symbols', ['┼', '┤', '╶', '╴', '─', '╰', '╭', '╮', '╯', '│'])
+    if minimum > maximum:
+        raise ValueError('The min value cannot exceed the max value.')
+    interval = maximum - minimum
+    offset = cfg.get('offset', 8)
+    height = cfg.get('height', int(cfg.get('height', interval if interval > 0 else 4)))
+    ratio = height / interval if interval > 0 else 1
+    min2 = int(floor(minimum * ratio))
+    max2 = int(floor(maximum * ratio))
+    def clamp(n):
+        return min(max(n, minimum), maximum)
+    def scaled(y):
+        return int(round(clamp(y) * ratio) - min2)
+    rows = max2 - min2
+    width = 0
+    for i in range(0, len(series)):
+        width = max(width, len(series[i]))
+    width += offset
+    placeholder = cfg.get('format', '{:8.2f} ')
+    result = [[' '] * width for i in range(rows + 1)]
+    for y in range(min2, max2 + 1):
+        label = placeholder.format(maximum - ((y - min2) * interval / (rows if rows else 1)))
+        x = max(offset - len(label), 0)
+        for idx, ch in enumerate(label):
+            if x + idx < width:
+                result[y - min2][x + idx] = ch
+        result[y - min2][offset - 1] = symbols[0] if y == 0 else symbols[1]
+    d0 = series[0][0]
+    if _isnum(d0):
+        result[rows - scaled(d0)][offset - 1] = symbols[0]
+    for i in range(0, len(series)):
+        for x in range(0, len(series[i]) - 1):
+            d0 = series[i][x + 0]
+            d1 = series[i][x + 1]
+            if (not _isnum(d0)) and (not _isnum(d1)):
+                continue
+            if (not _isnum(d0)) and _isnum(d1):
+                result[rows - scaled(d1)][x + offset] = symbols[2]
+                continue
+            if _isnum(d0) and (not _isnum(d1)):
+                result[rows - scaled(d0)][x + offset] = symbols[3]
+                continue
+            y0 = scaled(d0)
+            y1 = scaled(d1)
+            if y0 == y1:
+                result[rows - y0][x + offset] = symbols[4]
+                continue
+            result[rows - y1][x + offset] = symbols[5] if y0 > y1 else symbols[6]
+            result[rows - y0][x + offset] = symbols[7] if y0 > y1 else symbols[8]
+            start = min(y0, y1) + 1
+            end = max(y0, y1)
+            for y in range(start, end):
+                result[rows - y][x + offset] = symbols[9]
+    return '\n'.join([''.join(row).rstrip() for row in result])
+
+
+def expand_weeks_to_days(weekly: List[int]) -> List[float]:
+    # evenly distribute weekly total across 7 days; returns list of length len(weekly)*7 oldest->newest
+    days: List[float] = []
+    for w in weekly:
+        per_day = (w / 7.0) if w is not None else 0.0
+        days.extend([per_day] * 7)
+    return days
+
+
+def aggregate_daily_changes(repos_weeks: Dict[str, List[int]]) -> List[float]:
+    # produce aggregated daily series oldest->newest
+    days_len = WEEKS * 7
+    agg = [0.0] * days_len
+    for weeks in repos_weeks.values():
+        if len(weeks) < WEEKS:
+            weeks = ([0] * (WEEKS - len(weeks))) + weeks
+        days = expand_weeks_to_days(weeks)
+        for i, v in enumerate(days[-days_len:]):
+            agg[i] += v
+    return agg
+
+
+def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
+    return (
+        "<pre>\n"
+        "                           ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸   ┏━┓┏━╸┏━┓┏━┓   ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻                           \n"
+        "                           ┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃    ┣┳┛┣╸ ┣━┛┃ ┃   ┣━┫┃   ┃ ┃┃┏┛┃ ┃ ┗┳┛                           \n"
+        "                           ╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹    ╹┗╸┗━╸╹  ┗━┛   ╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹                            \n"
+        "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔\n\n"
+        f"{ascii_table}\n\n\n"
+        f"{contrib_grid}\n\n\n"
+        f"Activity (daily, centered on long-term mean):\n"
+        f"{ascii_plot}\n"
+        "</pre>\n"
+    )
+
+
 def main() -> None:
     token = auth_token()
     try:
-        all_repos = fetch_repos_for_user(token=token, per_page=300)
+        all_repos = fetch_repos_for_user(token=token)
     except Exception as e:
         print("Failed to fetch repositories:", e, file=sys.stderr)
         sys.exit(1)
@@ -341,13 +553,19 @@ def main() -> None:
 
     ascii_table, ascii_width, ascii_height = make_ascii_table_with_links(rows)
 
+    # gather weekly commit activity (oldest->newest)
     repo_weekly: Dict[str, List[int]] = {}
     repo_order: List[str] = []
 
     for r in rows:
         name = r["name_text"]
+        owner = r.get("name_url", "").split("/github.com/")[-1].split("/")[0] if r.get("name_url") else USERNAME
+        # owner default to USERNAME; primary key is name
         owner = USERNAME
-        repo_weekly[name] = repo_commit_activity(owner, name, token=token)
+        weekly = repo_commit_activity(owner, name, token=token)
+        if len(weekly) < WEEKS:
+            weekly = ([0] * (WEEKS - len(weekly))) + weekly
+        repo_weekly[name] = weekly
         repo_order.append(name)
 
     restricted_name = "restricted"
@@ -357,6 +575,8 @@ def main() -> None:
             owner = repo["owner"]["login"]
             name = repo["name"]
             weekly = repo_commit_activity(owner, name, token=token)
+            if len(weekly) < WEEKS:
+                weekly = ([0] * (WEEKS - len(weekly))) + weekly
             for i in range(WEEKS):
                 agg[i] += weekly[i]
         repo_weekly[restricted_name] = agg
@@ -366,39 +586,51 @@ def main() -> None:
             repo_weekly[restricted_name] = [0] * WEEKS
             repo_order.append(restricted_name)
 
-    grid = build_contrib_grid(repo_weekly, repo_order)
+    contrib_grid = build_contrib_grid(repo_weekly, repo_order)
 
-    # Compose README: include headers, ASCII table (inside <pre>), header for graph, and grid (inside <pre>)
-    readme = (
-        "<pre>\n"
-        #"              ▄█▄                                                                                                \n"
-        #"      ▄█    ▀▀▀██▀▀                                                                                              \n"
-        #"  ███████▄    ████▄                                                                                              \n"
-        #"  ▀▀▀▀█████▄ ▄█████                                                                                              \n"
-        #"       ▀█████▄█████▄▄▄                                                                                           \n"
-        #"        ███████████████▄█▄                                                                                       \n"
-        #"        ███████████████▀▀██▄█   ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸╻  ╻ ╻   ┏━┓┏━╸╺┳╸╻╻ ╻┏━╸   ┏━┓┏━╸┏━┓┏━┓┏━┓╻╺┳╸┏━┓┏━┓╻┏━╸┏━┓   \n"
-        #"        ██████▀▀██████    ▀▀    ┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃ ┃  ┗┳┛   ┣━┫┃   ┃ ┃┃┏┛┣╸    ┣┳┛┣╸ ┣━┛┃ ┃┗━┓┃ ┃ ┃ ┃┣┳┛┃┣╸ ┗━┓   \n"
-        #"       ▄   █    ▀█▀ ▀██         ╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹ ┗━╸ ╹    ╹ ╹┗━╸ ╹ ╹┗┛ ┗━╸   ╹┗╸┗━╸╹  ┗━┛┗━┛╹ ╹ ┗━┛╹┗╸╹┗━╸┗━┛   \n"
-        #"      █     █ ▄▄▀      █▄                                                                                        \n"
-        #"▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔\n\n\n"
-        "                           ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸   ┏━┓┏━╸┏━┓┏━┓   ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻                           \n"
-        "                           ┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃    ┣┳┛┣╸ ┣━┛┃ ┃   ┣━┫┃   ┃ ┃┃┏┛┃ ┃ ┗┳┛                           \n"
-        "                           ╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹    ╹┗╸┗━╸╹  ┗━┛   ╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹                            \n"
-        "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔\n\n"
-        f"{ascii_table}\n\n\n"
-        f"{grid}\n"
-        "</pre>\n\n"
-        #"<pre>\n"
-        #"┏━               ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻   ╺┳┓┏━╸┏┓╻┏━┓╻╺┳╸╻ ╻   ╺┳╸╻ ╻┏━┓┏━┓╻ ╻┏━╸╻ ╻   ╺┳╸╻┏┳┓┏━╸               ━┓\n"
-        #"┃                ┣━┫┃   ┃ ┃┃┏┛┃ ┃ ┗┳┛    ┃┃┣╸ ┃┗┫┗━┓┃ ┃ ┗┳┛    ┃ ┣━┫┣┳┛┃ ┃┃ ┃┃╺┓┣━┫    ┃ ┃┃┃┃┣╸                 ┃\n"
-        #"┗━               ╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹    ╺┻┛┗━╸╹ ╹┗━┛╹ ╹  ╹     ╹ ╹ ╹╹┗╸┗━┛┗━┛┗━┛╹ ╹    ╹ ╹╹ ╹┗━╸               ━┛\n"
-        #"</pre>\n"#"activity density through time:\n\n"
-        #"<pre>\n"
-        #f"{grid}\n"
-        #"</pre>\n"
+    # Build code-frequency (lines changed) weekly series per repo and aggregate daily
+    repo_codefreq_weeks: Dict[str, List[int]] = {}
+    for repo in rows:
+        name = repo["name_text"]
+        owner = USERNAME
+        weeks = fetch_code_frequency(owner, name, token=token)
+        if weeks is None:
+            # fallback: approximate by using commit counts as a proxy
+            weeks = repo_weekly.get(name, [0] * WEEKS)
+        if len(weeks) < WEEKS:
+            weeks = ([0] * (WEEKS - len(weeks))) + weeks
+        repo_codefreq_weeks[name] = weeks
 
-    )
+    # include restricted (private) codefreq if token provided
+    if private_repos and token:
+        agg_weeks = [0] * WEEKS
+        for repo in private_repos:
+            owner = repo["owner"]["login"]
+            name = repo["name"]
+            weeks = fetch_code_frequency(owner, name, token=token)
+            if weeks is None:
+                weeks = repo_weekly.get(name, [0] * WEEKS)
+            if len(weeks) < WEEKS:
+                weeks = ([0] * (WEEKS - len(weeks))) + weeks
+            for i in range(WEEKS):
+                agg_weeks[i] += weeks[i]
+        repo_codefreq_weeks[restricted_name] = agg_weeks
+
+    daily_agg = aggregate_daily_changes(repo_codefreq_weeks)  # oldest->newest, per-day
+    if len(daily_agg) == 0:
+        ascii_plot = "(no activity data)"
+    else:
+        mean = sum(daily_agg) / len(daily_agg)
+        centered = [v - mean for v in daily_agg]
+        # choose reasonable height based on dynamic range
+        rng = max(centered) - min(centered) if len(centered) > 0 else 0
+        height = 8
+        try:
+            ascii_plot = plot_ascii(centered, {'height': height, 'format': '{:8.2f} '})
+        except Exception:
+            ascii_plot = plot_ascii(centered[:200], {'height': height, 'format': '{:8.2f} '})
+
+    readme = build_readme(ascii_table, contrib_grid, ascii_plot)
 
     with open("README.md", "w", encoding="utf-8") as fh:
         fh.write(readme)
