@@ -542,6 +542,7 @@ def main() -> None:
     PLOT_HEIGHT = globals().get("PLOT_HEIGHT", 10)
 
 
+
     public_repos = [r for r in all_repos if not r.get("private")]
     private_repos = [r for r in all_repos if r.get("private")]
 
