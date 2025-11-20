@@ -536,7 +536,7 @@ def main() -> None:
         sys.exit(1)
 
     # sensible defaults if not defined elsewhere
-    AVG_BYTES_PER_LINE = globals().get("AVG_BYTES_PER_LINE", AVG_BYTES_PER_LINE)
+    # AVG_BYTES_PER_LINE is assumed to be defined globally in config/constants
     RESTRICTED_NAME = globals().get("RESTRICTED_NAME", RESTRICTED_NAME)
     PLOT_HEIGHT = globals().get("PLOT_HEIGHT", PLOT_HEIGHT)
 
