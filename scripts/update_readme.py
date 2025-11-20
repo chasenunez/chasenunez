@@ -2,27 +2,11 @@
 """
 scripts/update_readme.py
 
-Improved version of the user's script with the following changes:
-- robust pagination when fetching repositories (handles GitHub's 100-per-page limit)
-- improved handling of GitHub "202 Accepted" for stats endpoints (exponential backoff)
-- fallback to counting commits per-week via the commits endpoint when /stats/commit_activity
-  doesn't return usable data (prevents spurious blanks)
-- uses /stats/code_frequency to compute weekly lines-changed (additions+deletions) as a proxy
-  for "bytes committed"; expands weekly values to daily values and aggregates across repos
-- adds an ASCII line-plot (based on the provided inspiration) that shows daily activity
-  centered on the long-term mean for the timeframe
-- conservative behaviour for private repos (only included when a token is present)
-- improvements to table formatting and defensive programming
-
-Notes:
-- This script can be API-heavy if lots of repos are involved. Use a valid GH_PAT in GH_PAT
-  environment variable to increase rate limits and to include private repos.
-- The code_frequency and commit_activity endpoints may take a few seconds on GitHub to compute
-  (they return 202 while computing). The script retries with exponential backoff.
+Corrected and annotated version — fixes NameError and missing variables,
+adds light progress logging and defensive padding/aggregation for private repos.
 
 Requirements:
     pip install requests
-
 """
 from __future__ import annotations
 import os
@@ -43,6 +27,9 @@ SHADES = [" ", "░", "▒", "▓", "█"]  # intensity glyphs low->high
 STATS_MAX_RETRIES = 3
 STATS_RETRY_SLEEP = 1  # base seconds, exponential backoff applied
 PER_PAGE = 100  # GitHub max per_page
+
+# Name used to aggregate private/restricted repos
+RESTRICTED_NAME = "restricted"
 # -----------------------------------
 
 GITHUB_API = "https://api.github.com"
@@ -109,9 +96,8 @@ def _retry_stats_get(url: str, token: str | None = None) -> Optional[requests.Re
     while attempt < STATS_MAX_RETRIES:
         try:
             r = gh_get(url, token=token)
-        except requests.HTTPError as e:
+        except requests.HTTPError:
             # treat errors (e.g., 404, private unauthorized) as not available
-            # caller should handle None
             return None
         if r.status_code == 202:
             # compute backoff and sleep
@@ -146,12 +132,11 @@ def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> Lis
     # FALLBACK: try code_frequency as a lightweight proxy (additions+deletions)
     cf = fetch_code_frequency(owner, repo, token=token)
     if cf is not None:
-        # convert lines-changed to a proxy for commit count by scaling (optional)
-        # Here we just normalize to integer values (preserve relative magnitude)
-        return [int(round(x / 10.0)) for x in cf]  # tweak divisor to taste
+        # convert lines-changed to a proxy for commit count by scaling to smaller integers
+        # (this is heuristic; tweak divisor if desired)
+        return [int(round(x / 10.0)) for x in cf]
     # final fallback: return zeros instead of doing heavy commits-by-week queries
     return [0] * WEEKS
-
 
 
 def repo_weekly_from_commits(owner: str, repo: str, token: str | None = None) -> List[int]:
@@ -159,12 +144,10 @@ def repo_weekly_from_commits(owner: str, repo: str, token: str | None = None) ->
     Uses per_page=1 and Link header to estimate counts which is much lighter than
     fetching full lists.
     Returns list oldest->newest of length WEEKS.
-    """
+    NOTE: This function is present for completeness but is intentionally not used by default
+    because it can lead to many API calls (WEEKS requests per repo)."""
     now = datetime.now(timezone.utc)
-    # compute week starts so last element is the most recent week
     weeks: List[int] = []
-    # We'll define the latest week to start at midnight UTC of the date that is multiple of 7 days before now.
-    # Simpler: generate WEEKS weeks ending today (each week is [start, start+7days))
     for i in range(WEEKS, 0, -1):
         start = now - timedelta(days=i * 7)
         end = start + timedelta(days=7)
@@ -186,7 +169,6 @@ def repo_weekly_from_commits(owner: str, repo: str, token: str | None = None) ->
                     continue
                 except ValueError:
                     pass
-        # otherwise fall back to length of returned list
         try:
             commits = r.json()
             if isinstance(commits, list):
@@ -403,7 +385,7 @@ def build_rows_for_table(top_public: List[dict], token: str | None) -> List[dict
 
 # ---------- code_frequency wrapper to get weekly lines-changed (additions+deletions) ----------
 def fetch_code_frequency(owner: str, repo: str, token: str | None = None) -> Optional[List[int]]:
-    """Return list of weekly "changes" (additions + abs(deletions)) oldest->newest.
+    """Return list of weekly \"changes\" (additions + abs(deletions)) oldest->newest.
     If unavailable, return None to indicate fallback required.
     """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/code_frequency"
@@ -431,7 +413,6 @@ def fetch_code_frequency(owner: str, repo: str, token: str | None = None) -> Opt
 
 
 # ---------- simple ascii plot (adapted from the provided inspiration) ----------
-
 def _isnum(n):
     try:
         return not isnan(float(n))
@@ -561,25 +542,32 @@ def main() -> None:
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    # inside main() after rows/top_public constructed:
+    # Build list of repo names to query (in the same order as rows)
     repos_to_query = [r["name_text"] for r in rows]
 
     # 1) fetch commit_activity in parallel
-    repo_weekly = {}
+    repo_weekly: Dict[str, List[int]] = {}
+    print(f"Fetching commit_activity for {len(repos_to_query)} repos in parallel...")
     with ThreadPoolExecutor(max_workers=8) as ex:
         futures = {ex.submit(repo_commit_activity, USERNAME, repo_name, token): repo_name for repo_name in repos_to_query}
         for fut in as_completed(futures):
             repo_name = futures[fut]
             try:
                 weeks = fut.result()
+                if weeks is None:
+                    weeks = [0] * WEEKS
                 if len(weeks) < WEEKS:
                     weeks = ([0] * (WEEKS - len(weeks))) + weeks
                 repo_weekly[repo_name] = weeks
-            except Exception:
+                # progress log
+                print(f"  commit_activity fetched for {repo_name}")
+            except Exception as e:
+                print(f"  commit_activity failed for {repo_name}: {e}", file=sys.stderr)
                 repo_weekly[repo_name] = [0] * WEEKS
 
     # 2) fetch code_frequency in parallel (used for daily plot)
-    repo_codefreq_weeks = {}
+    repo_codefreq_weeks: Dict[str, List[int]] = {}
+    print(f"Fetching code_frequency for {len(repos_to_query)} repos in parallel...")
     with ThreadPoolExecutor(max_workers=6) as ex:
         futures = {ex.submit(fetch_code_frequency, USERNAME, repo_name, token): repo_name for repo_name in repos_to_query}
         for fut in as_completed(futures):
@@ -591,25 +579,56 @@ def main() -> None:
                 if len(weeks) < WEEKS:
                     weeks = ([0] * (WEEKS - len(weeks))) + weeks
                 repo_codefreq_weeks[repo_name] = weeks
-            except Exception:
+                print(f"  code_frequency fetched for {repo_name}")
+            except Exception as e:
+                print(f"  code_frequency failed for {repo_name}: {e}", file=sys.stderr)
                 repo_codefreq_weeks[repo_name] = [0] * WEEKS
 
+    # Build repo_order for display (rows order)
+    repo_order: List[str] = list(repos_to_query)
 
-    # include restricted (private) codefreq if token provided
+    # include restricted (private) repos aggregated only if token provided
     if private_repos and token:
-        agg_weeks = [0] * WEEKS
+        print(f"Aggregating {len(private_repos)} private repos into '{RESTRICTED_NAME}'...")
+        # aggregate commit_activity (weekly) across private repos
+        agg_weekly = [0] * WEEKS
+        agg_codefreq = [0] * WEEKS
         for repo in private_repos:
             owner = repo["owner"]["login"]
             name = repo["name"]
-            weeks = fetch_code_frequency(owner, name, token=token)
+            # commit_activity for private repo - try stats endpoint, fallback to zeros (we avoid heavy commit queries)
+            weeks = repo_commit_activity(owner, name, token=token)
             if weeks is None:
-                weeks = repo_weekly.get(name, [0] * WEEKS)
+                weeks = [0] * WEEKS
             if len(weeks) < WEEKS:
                 weeks = ([0] * (WEEKS - len(weeks))) + weeks
             for i in range(WEEKS):
-                agg_weeks[i] += weeks[i]
-        repo_codefreq_weeks[restricted_name] = agg_weeks
+                agg_weekly[i] += weeks[i]
 
+            # code_frequency for private repo
+            cf = fetch_code_frequency(owner, name, token=token)
+            if cf is None:
+                cf = [0] * WEEKS
+            if len(cf) < WEEKS:
+                cf = ([0] * (WEEKS - len(cf))) + cf
+            for i in range(WEEKS):
+                agg_codefreq[i] += cf[i]
+
+        # add aggregated rows to both maps and order list
+        repo_weekly[RESTRICTED_NAME] = agg_weekly
+        repo_codefreq_weeks[RESTRICTED_NAME] = agg_codefreq
+        repo_order.append(RESTRICTED_NAME)
+    else:
+        # If token present but there are no private repos, optionally include an empty restricted row
+        if token and not private_repos:
+            repo_weekly[RESTRICTED_NAME] = [0] * WEEKS
+            repo_codefreq_weeks[RESTRICTED_NAME] = [0] * WEEKS
+            repo_order.append(RESTRICTED_NAME)
+
+    # Build contributions grid now that repo_weekly and repo_order are ready
+    contrib_grid = build_contrib_grid(repo_weekly, repo_order)
+
+    # aggregate codefreq into daily series and plot
     daily_agg = aggregate_daily_changes(repo_codefreq_weeks)  # oldest->newest, per-day
     if len(daily_agg) == 0:
         ascii_plot = "(no activity data)"
@@ -617,7 +636,6 @@ def main() -> None:
         mean = sum(daily_agg) / len(daily_agg)
         centered = [v - mean for v in daily_agg]
         # choose reasonable height based on dynamic range
-        rng = max(centered) - min(centered) if len(centered) > 0 else 0
         height = 8
         try:
             ascii_plot = plot_ascii(centered, {'height': height, 'format': '{:8.2f} '})
