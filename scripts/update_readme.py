@@ -2,8 +2,8 @@
 """
 scripts/update_readme.py
 
-Corrected and annotated version — fixes NameError and missing variables,
-adds light progress logging and defensive padding/aggregation for private repos.
+Corrected and annotated version — fixes plotting area (auto-scaling) and draws a dotted mean line.
+Other improvements (pagination, retries, fallbacks, private-aggregate) are retained.
 
 Requirements:
     pip install requests
@@ -132,8 +132,7 @@ def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> Lis
     # FALLBACK: try code_frequency as a lightweight proxy (additions+deletions)
     cf = fetch_code_frequency(owner, repo, token=token)
     if cf is not None:
-        # convert lines-changed to a proxy for commit count by scaling to smaller integers
-        # (this is heuristic; tweak divisor if desired)
+        # convert lines-changed to a proxy for commit count (heuristic)
         return [int(round(x / 10.0)) for x in cf]
     # final fallback: return zeros instead of doing heavy commits-by-week queries
     return [0] * WEEKS
@@ -141,11 +140,10 @@ def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> Lis
 
 def repo_weekly_from_commits(owner: str, repo: str, token: str | None = None) -> List[int]:
     """Count commits per each of the last WEEKS weeks by querying commits?since&until.
-    Uses per_page=1 and Link header to estimate counts which is much lighter than
-    fetching full lists.
-    Returns list oldest->newest of length WEEKS.
-    NOTE: This function is present for completeness but is intentionally not used by default
-    because it can lead to many API calls (WEEKS requests per repo)."""
+
+    NOTE: This function is kept for completeness but is intentionally not used by default
+    because it causes many API calls (WEEKS requests per repo).
+    """
     now = datetime.now(timezone.utc)
     weeks: List[int] = []
     for i in range(WEEKS, 0, -1):
@@ -385,7 +383,7 @@ def build_rows_for_table(top_public: List[dict], token: str | None) -> List[dict
 
 # ---------- code_frequency wrapper to get weekly lines-changed (additions+deletions) ----------
 def fetch_code_frequency(owner: str, repo: str, token: str | None = None) -> Optional[List[int]]:
-    """Return list of weekly \"changes\" (additions + abs(deletions)) oldest->newest.
+    """Return list of weekly "changes" (additions + abs(deletions)) oldest->newest.
     If unavailable, return None to indicate fallback required.
     """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/code_frequency"
@@ -412,7 +410,7 @@ def fetch_code_frequency(owner: str, repo: str, token: str | None = None) -> Opt
         return None
 
 
-# ---------- simple ascii plot (adapted from the provided inspiration) ----------
+# ---------- improved safe plotter (auto-scaling) ----------
 def _isnum(n):
     try:
         return not isnan(float(n))
@@ -421,70 +419,106 @@ def _isnum(n):
 
 
 def plot_ascii(series, cfg=None):
-    if len(series) == 0:
-        return ''
-    if not isinstance(series[0], list):
-        if all((not _isnum(n)) for n in series):
-            return ''
-        else:
-            series = [series]
+    """
+    Robust ASCII plotter.
+    - series: list of numeric values (oldest->newest)
+    - cfg: optional dict supporting:
+        - 'height': int rows (default 8)
+        - 'format': format string for y-axis labels (default '{:8.1f} ')
+        - 'draw_mean': bool whether to draw a dotted mean line (default True)
+    Returns multiline string (rows top->bottom).
+    """
+    if not series or all((not _isnum(x)) for x in series):
+        return ""
+
     cfg = cfg or {}
-    minimum = cfg.get('min', min(filter(_isnum, [j for i in series for j in i])))
-    maximum = cfg.get('max', max(filter(_isnum, [j for i in series for j in i])))
-    symbols = cfg.get('symbols', ['┼', '┤', '╶', '╴', '─', '╰', '╭', '╮', '╯', '│'])
-    if minimum > maximum:
-        raise ValueError('The min value cannot exceed the max value.')
-    interval = maximum - minimum
-    offset = cfg.get('offset', 8)
-    height = cfg.get('height', int(cfg.get('height', interval if interval > 0 else 4)))
-    ratio = height / interval if interval > 0 else 1
-    min2 = int(floor(minimum * ratio))
-    max2 = int(floor(maximum * ratio))
-    def clamp(n):
-        return min(max(n, minimum), maximum)
-    def scaled(y):
-        return int(round(clamp(y) * ratio) - min2)
-    rows = max2 - min2
-    width = 0
-    for i in range(0, len(series)):
-        width = max(width, len(series[i]))
-    width += offset
-    placeholder = cfg.get('format', '{:8.2f} ')
-    result = [[' '] * width for i in range(rows + 1)]
-    for y in range(min2, max2 + 1):
-        label = placeholder.format(maximum - ((y - min2) * interval / (rows if rows else 1)))
-        x = max(offset - len(label), 0)
-        for idx, ch in enumerate(label):
-            if x + idx < width:
-                result[y - min2][x + idx] = ch
-        result[y - min2][offset - 1] = symbols[0] if y == 0 else symbols[1]
-    d0 = series[0][0]
-    if _isnum(d0):
-        result[rows - scaled(d0)][offset - 1] = symbols[0]
-    for i in range(0, len(series)):
-        for x in range(0, len(series[i]) - 1):
-            d0 = series[i][x + 0]
-            d1 = series[i][x + 1]
-            if (not _isnum(d0)) and (not _isnum(d1)):
-                continue
-            if (not _isnum(d0)) and _isnum(d1):
-                result[rows - scaled(d1)][x + offset] = symbols[2]
-                continue
-            if _isnum(d0) and (not _isnum(d1)):
-                result[rows - scaled(d0)][x + offset] = symbols[3]
-                continue
-            y0 = scaled(d0)
-            y1 = scaled(d1)
-            if y0 == y1:
-                result[rows - y0][x + offset] = symbols[4]
-                continue
-            result[rows - y1][x + offset] = symbols[5] if y0 > y1 else symbols[6]
-            result[rows - y0][x + offset] = symbols[7] if y0 > y1 else symbols[8]
-            start = min(y0, y1) + 1
-            end = max(y0, y1)
-            for y in range(start, end):
-                result[rows - y][x + offset] = symbols[9]
-    return '\n'.join([''.join(row).rstrip() for row in result])
+    height = int(cfg.get("height", 8))
+    fmt = cfg.get("format", "{:8.1f} ")
+    draw_mean = cfg.get("draw_mean", True)
+
+    # filter numeric and convert to floats (keep None/NaN for missing)
+    vals = []
+    for x in series:
+        try:
+            vals.append(float(x))
+        except Exception:
+            vals.append(float('nan'))
+
+    # compute numeric min/max ignoring NaNs
+    numeric = [v for v in vals if _isnum(v)]
+    if not numeric:
+        return ""
+
+    min_val = min(numeric)
+    max_val = max(numeric)
+
+    # if min == max, give a tiny range so all points map to center
+    if min_val == max_val:
+        min_val -= 0.5
+        max_val += 0.5
+
+    # label width based on formatted min/max
+    sample_max = fmt.format(max_val).rstrip()
+    sample_min = fmt.format(min_val).rstrip()
+    label_w = max(len(sample_max), len(sample_min), 6)
+    offset = label_w + 2  # label + space + axis char
+
+    width = offset + len(series)
+    # create grid rows x cols filled with spaces
+    grid = [[" "] * width for _ in range(height)]
+
+    # draw y-axis labels and axis char at column offset-1
+    for row in range(height):
+        # compute label value for this row (top row -> max_val)
+        if height == 1:
+            yv = max_val
+        else:
+            yv = max_val - (row * (max_val - min_val) / (height - 1))
+        label = fmt.format(yv)
+        # ensure label length fits label_w
+        label_s = label.rjust(label_w)
+        for i, ch in enumerate(label_s):
+            grid[row][i] = ch
+        grid[row][offset - 1] = "┤"
+
+    # map series values to row indices (0..height-1)
+    denom = (max_val - min_val)
+    rows_map: List[Optional[int]] = []
+    for v in vals:
+        if not _isnum(v):
+            rows_map.append(None)
+        else:
+            frac = (v - min_val) / denom if denom != 0 else 0.5
+            scaled = int(round(frac * (height - 1)))
+            # invert because row 0 is top (max)
+            row_idx = (height - 1) - scaled
+            # clamp just in case
+            row_idx = max(0, min(height - 1, row_idx))
+            rows_map.append(row_idx)
+
+    # place point markers (●) at (row_idx, col)
+    for x, row_idx in enumerate(rows_map):
+        col = offset + x
+        if row_idx is None:
+            continue
+        # do not overwrite label area
+        if 0 <= row_idx < height and 0 <= col < width:
+            grid[row_idx][col] = "●"
+
+    # optionally draw dotted mean line (use '┄' for dotted)
+    if draw_mean:
+        mean_val = sum(numeric) / len(numeric)
+        frac = (mean_val - min_val) / denom if denom != 0 else 0.5
+        mean_row = (height - 1) - int(round(frac * (height - 1)))
+        mean_row = max(0, min(height - 1, mean_row))
+        for col in range(offset, width):
+            # only draw dotted mean where there's no point
+            if grid[mean_row][col] == " ":
+                grid[mean_row][col] = "┄"
+
+    # convert grid rows into strings and rstrip trailing spaces
+    out_lines = ["".join(r).rstrip() for r in grid]
+    return "\n".join(out_lines)
 
 
 def expand_weeks_to_days(weekly: List[int]) -> List[float]:
@@ -518,7 +552,7 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
         "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔\n\n"
         f"{ascii_table}\n\n\n"
         f"{contrib_grid}\n\n\n"
-        f"Activity (daily, centered on long-term mean):\n"
+        f"Activity (daily; dotted line = long-term mean):\n"
         f"{ascii_plot}\n"
         "</pre>\n"
     )
@@ -596,7 +630,6 @@ def main() -> None:
         for repo in private_repos:
             owner = repo["owner"]["login"]
             name = repo["name"]
-            # commit_activity for private repo - try stats endpoint, fallback to zeros (we avoid heavy commit queries)
             weeks = repo_commit_activity(owner, name, token=token)
             if weeks is None:
                 weeks = [0] * WEEKS
@@ -605,7 +638,6 @@ def main() -> None:
             for i in range(WEEKS):
                 agg_weekly[i] += weeks[i]
 
-            # code_frequency for private repo
             cf = fetch_code_frequency(owner, name, token=token)
             if cf is None:
                 cf = [0] * WEEKS
@@ -633,14 +665,9 @@ def main() -> None:
     if len(daily_agg) == 0:
         ascii_plot = "(no activity data)"
     else:
-        mean = sum(daily_agg) / len(daily_agg)
-        centered = [v - mean for v in daily_agg]
-        # choose reasonable height based on dynamic range
+        # Draw a clear plot automatically scaled to data; draw dotted mean line
         height = 8
-        try:
-            ascii_plot = plot_ascii(centered, {'height': height, 'format': '{:8.2f} '})
-        except Exception:
-            ascii_plot = plot_ascii(centered[:200], {'height': height, 'format': '{:8.2f} '})
+        ascii_plot = plot_ascii(daily_agg, {'height': height, 'format': '{:8.1f} ', 'draw_mean': True})
 
     readme = build_readme(ascii_table, contrib_grid, ascii_plot)
 
