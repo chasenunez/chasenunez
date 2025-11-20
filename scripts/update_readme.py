@@ -2,11 +2,14 @@
 """
 scripts/update_readme.py
 
-Corrected and annotated version — fixes plotting area (auto-scaling) and draws a dotted mean line.
-Other improvements (pagination, retries, fallbacks, private-aggregate) are retained.
-
-Requirements:
-    pip install requests
+Shows bytes-per-day activity in the README:
+ - Uses /stats/code_frequency (weekly additions+deletions -> lines changed)
+ - Converts lines -> bytes via AVG_BYTES_PER_LINE (approximation)
+ - Expands weekly -> daily (even distribution)
+ - Produces ASCII line plot (adapted from the provided `plot` inspiration)
+   and overlays a dotted horizontal mean line
+Other features:
+ - pagination, token support, private repo aggregation, thread pool for speed
 """
 from __future__ import annotations
 import os
@@ -14,7 +17,7 @@ import sys
 import time
 import re
 from datetime import datetime, timezone, timedelta
-from math import floor, isnan
+from math import ceil, floor, isnan
 from typing import Dict, List, Tuple, Optional
 
 import requests
@@ -28,8 +31,14 @@ STATS_MAX_RETRIES = 3
 STATS_RETRY_SLEEP = 1  # base seconds, exponential backoff applied
 PER_PAGE = 100  # GitHub max per_page
 
-# Name used to aggregate private/restricted repos
 RESTRICTED_NAME = "restricted"
+
+# APPROX: bytes per line changed. Adjust if you want a different conversion.
+AVG_BYTES_PER_LINE = 40.0
+
+# Plot settings
+PLOT_HEIGHT = 10  # rows for plot; increase for more vertical resolution
+PLOT_FORMAT = "{:8.1f} "  # label formatting (right-justified)
 # -----------------------------------
 
 GITHUB_API = "https://api.github.com"
@@ -77,10 +86,6 @@ def _get_paginated(url: str, params: dict | None = None, token: str | None = Non
 
 
 def fetch_repos_for_user(token: str | None = None) -> List[dict]:
-    """
-    Fetch all repositories for the user. If token is provided, use /user/repos with
-    affiliation=owner to include private repos owned by the token user.
-    """
     if token:
         url = f"{GITHUB_API}/user/repos"
         params = {"sort": "updated", "direction": "desc", "affiliation": "owner"}
@@ -91,16 +96,13 @@ def fetch_repos_for_user(token: str | None = None) -> List[dict]:
 
 
 def _retry_stats_get(url: str, token: str | None = None) -> Optional[requests.Response]:
-    """Call stats endpoints which may return 202 while GitHub computes them; retry with backoff."""
     attempt = 0
     while attempt < STATS_MAX_RETRIES:
         try:
             r = gh_get(url, token=token)
         except requests.HTTPError:
-            # treat errors (e.g., 404, private unauthorized) as not available
             return None
         if r.status_code == 202:
-            # compute backoff and sleep
             sleep_time = STATS_RETRY_SLEEP * (2 ** attempt)
             time.sleep(sleep_time)
             attempt += 1
@@ -111,9 +113,7 @@ def _retry_stats_get(url: str, token: str | None = None) -> Optional[requests.Re
 
 def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> List[int]:
     """
-    Prefer /stats/commit_activity; if unavailable, fall back to zeros or code_frequency
-    (do NOT perform per-week /commits queries — that's very slow).
-    Returns list of length WEEKS (oldest->newest).
+    Keep as fallback for commit counts. Prefer commit_activity; otherwise zeros.
     """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/commit_activity"
     r = _retry_stats_get(url, token=token)
@@ -128,60 +128,10 @@ def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> Lis
                 return pad + weeks
         except Exception:
             pass
-
-    # FALLBACK: try code_frequency as a lightweight proxy (additions+deletions)
-    cf = fetch_code_frequency(owner, repo, token=token)
-    if cf is not None:
-        # convert lines-changed to a proxy for commit count (heuristic)
-        return [int(round(x / 10.0)) for x in cf]
-    # final fallback: return zeros instead of doing heavy commits-by-week queries
     return [0] * WEEKS
 
 
-def repo_weekly_from_commits(owner: str, repo: str, token: str | None = None) -> List[int]:
-    """Count commits per each of the last WEEKS weeks by querying commits?since&until.
-
-    NOTE: This function is kept for completeness but is intentionally not used by default
-    because it causes many API calls (WEEKS requests per repo).
-    """
-    now = datetime.now(timezone.utc)
-    weeks: List[int] = []
-    for i in range(WEEKS, 0, -1):
-        start = now - timedelta(days=i * 7)
-        end = start + timedelta(days=7)
-        iso_since = start.isoformat(timespec='seconds').replace('+00:00', 'Z')
-        iso_until = end.isoformat(timespec='seconds').replace('+00:00', 'Z')
-        url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
-        params = {"since": iso_since, "until": iso_until, "per_page": 1}
-        try:
-            r = gh_get(url, params=params, token=token)
-        except requests.HTTPError:
-            weeks.append(0)
-            continue
-        link = r.headers.get("Link", "")
-        if link:
-            m = re.search(r'[&?]page=(\d+)>;\s*rel="last"', link)
-            if m:
-                try:
-                    weeks.append(int(m.group(1)))
-                    continue
-                except ValueError:
-                    pass
-        try:
-            commits = r.json()
-            if isinstance(commits, list):
-                weeks.append(len(commits))
-            else:
-                weeks.append(0)
-        except Exception:
-            weeks.append(0)
-    return weeks
-
-
 def get_commit_count(owner: str, repo: str, token: str | None = None) -> int:
-    """
-    Estimate total commits using per_page=1 and Link header parsing.
-    """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
     params = {"per_page": 1}
     try:
@@ -208,10 +158,6 @@ def get_commit_count(owner: str, repo: str, token: str | None = None) -> int:
 
 
 def get_branch_count(owner: str, repo: str, token: str | None = None) -> int:
-    """
-    Estimate number of branches using per_page=1 on branches endpoint and parsing Link header.
-    Falls back to len(returned_list) if no Link header.
-    """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/branches"
     params = {"per_page": 1}
     try:
@@ -244,7 +190,6 @@ def fetch_languages(owner: str, repo: str, token: str | None = None) -> Dict[str
         return {}
 
 
-# ---------- ASCII table builder with clickable links (using HTML anchors in <pre>) ----------
 def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
     cols = ["Repository", "Main Language", "Total Bytes", "Total Commits", "Date of Last Commit", "Branches"]
     data_rows = []
@@ -302,7 +247,6 @@ def make_ascii_table_with_links(rows: List[dict]) -> Tuple[str, int, int]:
     return table_str, table_width, table_height
 
 
-# ---------- contributions grid builder (WEEKS columns) ----------
 def build_contrib_grid(repo_weekly: Dict[str, List[int]], repo_order: List[str]) -> str:
     label_w = max(10, max((len(r) for r in repo_order), default=10))
     label_w = min(label_w, 28)
@@ -381,11 +325,8 @@ def build_rows_for_table(top_public: List[dict], token: str | None) -> List[dict
     return rows
 
 
-# ---------- code_frequency wrapper to get weekly lines-changed (additions+deletions) ----------
 def fetch_code_frequency(owner: str, repo: str, token: str | None = None) -> Optional[List[int]]:
-    """Return list of weekly "changes" (additions + abs(deletions)) oldest->newest.
-    If unavailable, return None to indicate fallback required.
-    """
+    """Return list of weekly lines-changed (additions + abs(deletions)) oldest->newest."""
     url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/code_frequency"
     r = _retry_stats_get(url, token=token)
     if not r:
@@ -396,7 +337,6 @@ def fetch_code_frequency(owner: str, repo: str, token: str | None = None) -> Opt
             return None
         weeks = []
         for item in data:
-            # item = [week_unix_ts, additions, deletions]
             if not isinstance(item, (list, tuple)) or len(item) < 3:
                 continue
             additions = int(item[1]) if item[1] is not None else 0
@@ -410,7 +350,7 @@ def fetch_code_frequency(owner: str, repo: str, token: str | None = None) -> Opt
         return None
 
 
-# ---------- improved safe plotter (auto-scaling) ----------
+# ---------- plotting: adapted from your inspiration with mean overlay ----------
 def _isnum(n):
     try:
         return not isnan(float(n))
@@ -418,111 +358,140 @@ def _isnum(n):
         return False
 
 
-def plot_ascii(series, cfg=None):
+def plot_with_mean(series, cfg=None):
     """
-    Robust ASCII plotter.
-    - series: list of numeric values (oldest->newest)
-    - cfg: optional dict supporting:
-        - 'height': int rows (default 8)
-        - 'format': format string for y-axis labels (default '{:8.1f} ')
-        - 'draw_mean': bool whether to draw a dotted mean line (default True)
-    Returns multiline string (rows top->bottom).
+    Adapted `plot()` from the inspiration code, with an added dotted mean overlay.
+    series: list of numbers (oldest->newest)
+    cfg: optional dict with keys: 'height', 'format' (label), 'min', 'max'
     """
-    if not series or all((not _isnum(x)) for x in series):
-        return ""
+    from math import ceil
+
+    if len(series) == 0:
+        return ''
+
+    if not isinstance(series[0], list):
+        if all(isnan(n) for n in series):
+            return ''
+        else:
+            series = [series]
 
     cfg = cfg or {}
-    height = int(cfg.get("height", 8))
-    fmt = cfg.get("format", "{:8.1f} ")
-    draw_mean = cfg.get("draw_mean", True)
 
-    # filter numeric and convert to floats (keep None/NaN for missing)
-    vals = []
-    for x in series:
-        try:
-            vals.append(float(x))
-        except Exception:
-            vals.append(float('nan'))
-
-    # compute numeric min/max ignoring NaNs
-    numeric = [v for v in vals if _isnum(v)]
+    # Flatten and compute min/max using numeric values (ignore NaN)
+    flattened = [j for i in series for j in i]
+    numeric = [x for x in flattened if _isnum(x)]
     if not numeric:
-        return ""
+        return ''
 
-    min_val = min(numeric)
-    max_val = max(numeric)
+    minimum = cfg.get('min', min(numeric))
+    maximum = cfg.get('max', max(numeric))
 
-    # if min == max, give a tiny range so all points map to center
-    if min_val == max_val:
-        min_val -= 0.5
-        max_val += 0.5
+    default_symbols = ['┼', '┤', '╶', '╴', '─', '╰', '╭', '╮', '╯', '│']
+    symbols = cfg.get('symbols', default_symbols)
 
-    # label width based on formatted min/max
-    sample_max = fmt.format(max_val).rstrip()
-    sample_min = fmt.format(min_val).rstrip()
-    label_w = max(len(sample_max), len(sample_min), 6)
-    offset = label_w + 2  # label + space + axis char
+    if minimum > maximum:
+        raise ValueError('The min value cannot exceed the max value.')
 
-    width = offset + len(series)
-    # create grid rows x cols filled with spaces
-    grid = [[" "] * width for _ in range(height)]
+    interval = maximum - minimum
+    # offset controls space reserved for labels; choose a safe default
+    offset = cfg.get('offset', max(8, len(cfg.get('format', PLOT_FORMAT).format(maximum))))
+    height = cfg.get('height', PLOT_HEIGHT)
+    ratio = height / interval if interval > 0 else 1
 
-    # draw y-axis labels and axis char at column offset-1
-    for row in range(height):
-        # compute label value for this row (top row -> max_val)
-        if height == 1:
-            yv = max_val
-        else:
-            yv = max_val - (row * (max_val - min_val) / (height - 1))
-        label = fmt.format(yv)
-        # ensure label length fits label_w
-        label_s = label.rjust(label_w)
-        for i, ch in enumerate(label_s):
-            grid[row][i] = ch
-        grid[row][offset - 1] = "┤"
+    min2 = int(floor(minimum * ratio))
+    max2 = int(ceil(maximum * ratio))
 
-    # map series values to row indices (0..height-1)
-    denom = (max_val - min_val)
-    rows_map: List[Optional[int]] = []
-    for v in vals:
-        if not _isnum(v):
-            rows_map.append(None)
-        else:
-            frac = (v - min_val) / denom if denom != 0 else 0.5
-            scaled = int(round(frac * (height - 1)))
-            # invert because row 0 is top (max)
-            row_idx = (height - 1) - scaled
-            # clamp just in case
-            row_idx = max(0, min(height - 1, row_idx))
-            rows_map.append(row_idx)
+    def clamp(n):
+        return min(max(n, minimum), maximum)
 
-    # place point markers (●) at (row_idx, col)
-    for x, row_idx in enumerate(rows_map):
-        col = offset + x
-        if row_idx is None:
-            continue
-        # do not overwrite label area
-        if 0 <= row_idx < height and 0 <= col < width:
-            grid[row_idx][col] = "●"
+    def scaled(y):
+        return int(round(clamp(y) * ratio) - min2)
 
-    # optionally draw dotted mean line (use '┄' for dotted)
-    if draw_mean:
-        mean_val = sum(numeric) / len(numeric)
-        frac = (mean_val - min_val) / denom if denom != 0 else 0.5
-        mean_row = (height - 1) - int(round(frac * (height - 1)))
-        mean_row = max(0, min(height - 1, mean_row))
-        for col in range(offset, width):
-            # only draw dotted mean where there's no point
-            if grid[mean_row][col] == " ":
-                grid[mean_row][col] = "┄"
+    rows = max2 - min2
 
-    # convert grid rows into strings and rstrip trailing spaces
-    out_lines = ["".join(r).rstrip() for r in grid]
-    return "\n".join(out_lines)
+    width = 0
+    for i in range(0, len(series)):
+        width = max(width, len(series[i]))
+    width += offset
+
+    placeholder = cfg.get('format', PLOT_FORMAT)
+
+    # Build the grid as list of lists for mutability
+    result = [[' '] * width for i in range(rows + 1)]
+
+    # axis and labels
+    for y in range(min2, max2 + 1):
+        # compute label (top->bottom)
+        label = placeholder.format(maximum - ((y - min2) * interval / (rows if rows else 1)))
+        pos = max(offset - len(label), 0)
+        # write label characters into result[y-min2][pos:pos+len(label)]
+        for idx, ch in enumerate(label):
+            if pos + idx < width:
+                result[y - min2][pos + idx] = ch
+        result[y - min2][offset - 1] = symbols[0] if y == 0 else symbols[1]
+
+    # first value tick
+    try:
+        d0 = series[0][0]
+        if _isnum(d0):
+            result[rows - scaled(d0)][offset - 1] = symbols[0]
+    except Exception:
+        pass
+
+    # Plot the line(s)
+    for i in range(0, len(series)):
+        color = None  # we don't use color codes here
+        for x in range(0, len(series[i]) - 1):
+            d0 = series[i][x + 0]
+            d1 = series[i][x + 1]
+
+            if isnan(d0) and isnan(d1):
+                continue
+
+            if isnan(d0) and _isnum(d1):
+                result[rows - scaled(d1)][x + offset] = symbols[2]
+                continue
+
+            if _isnum(d0) and isnan(d1):
+                result[rows - scaled(d0)][x + offset] = symbols[3]
+                continue
+
+            y0 = scaled(d0)
+            y1 = scaled(d1)
+            if y0 == y1:
+                result[rows - y0][x + offset] = symbols[4]
+                continue
+
+            # diagonal pieces
+            result[rows - y1][x + offset] = symbols[5] if y0 > y1 else symbols[6]
+            result[rows - y0][x + offset] = symbols[7] if y0 > y1 else symbols[8]
+
+            start = min(y0, y1) + 1
+            end = max(y0, y1)
+            for y in range(start, end):
+                result[rows - y][x + offset] = symbols[9]
+
+    # ----- overlay dotted mean line -----
+    # compute mean using numeric values from flattened series
+    mean_val = sum(numeric) / len(numeric)
+    # scale mean value to row coordinate using same mapping
+    try:
+        mean_scaled = scaled(mean_val)
+        mean_row = rows - mean_scaled
+        mean_row = max(0, min(rows, mean_row))
+        # draw dotted mean (use '┄') across plotting area (offset .. width-1)
+        for c in range(offset, width):
+            # don't overwrite existing plot glyphs (only fill spaces)
+            if result[mean_row][c] == ' ':
+                result[mean_row][c] = '┄'
+    except Exception:
+        # if mapping fails, skip mean overlay gracefully
+        pass
+
+    return '\n'.join([''.join(row).rstrip() for row in result])
 
 
-def expand_weeks_to_days(weekly: List[int]) -> List[float]:
-    # evenly distribute weekly total across 7 days; returns list of length len(weekly)*7 oldest->newest
+def expand_weeks_to_days(weekly: List[float]) -> List[float]:
     days: List[float] = []
     for w in weekly:
         per_day = (w / 7.0) if w is not None else 0.0
@@ -530,14 +499,14 @@ def expand_weeks_to_days(weekly: List[int]) -> List[float]:
     return days
 
 
-def aggregate_daily_changes(repos_weeks: Dict[str, List[int]]) -> List[float]:
-    # produce aggregated daily series oldest->newest
+def aggregate_daily_bytes(repos_weeks_bytes: Dict[str, List[float]]) -> List[float]:
     days_len = WEEKS * 7
     agg = [0.0] * days_len
-    for weeks in repos_weeks.values():
+    for weeks in repos_weeks_bytes.values():
         if len(weeks) < WEEKS:
-            weeks = ([0] * (WEEKS - len(weeks))) + weeks
+            weeks = ([0.0] * (WEEKS - len(weeks))) + weeks
         days = expand_weeks_to_days(weeks)
+        # take last days_len days (oldest->newest)
         for i, v in enumerate(days[-days_len:]):
             agg[i] += v
     return agg
@@ -552,7 +521,7 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
         "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔\n\n"
         f"{ascii_table}\n\n\n"
         f"{contrib_grid}\n\n\n"
-        f"Activity (daily; dotted line = long-term mean):\n"
+        f"Activity (daily bytes; dotted line = long-term mean):\n"
         f"{ascii_plot}\n"
         "</pre>\n"
     )
@@ -576,12 +545,11 @@ def main() -> None:
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    # Build list of repo names to query (in the same order as rows)
     repos_to_query = [r["name_text"] for r in rows]
 
-    # 1) fetch commit_activity in parallel
+    # fetch commit_activity in parallel (for contrib grid)
     repo_weekly: Dict[str, List[int]] = {}
-    print(f"Fetching commit_activity for {len(repos_to_query)} repos in parallel...")
+    print(f"Fetching commit_activity for {len(repos_to_query)} repos...")
     with ThreadPoolExecutor(max_workers=8) as ex:
         futures = {ex.submit(repo_commit_activity, USERNAME, repo_name, token): repo_name for repo_name in repos_to_query}
         for fut in as_completed(futures):
@@ -593,40 +561,39 @@ def main() -> None:
                 if len(weeks) < WEEKS:
                     weeks = ([0] * (WEEKS - len(weeks))) + weeks
                 repo_weekly[repo_name] = weeks
-                # progress log
                 print(f"  commit_activity fetched for {repo_name}")
             except Exception as e:
                 print(f"  commit_activity failed for {repo_name}: {e}", file=sys.stderr)
                 repo_weekly[repo_name] = [0] * WEEKS
 
-    # 2) fetch code_frequency in parallel (used for daily plot)
-    repo_codefreq_weeks: Dict[str, List[int]] = {}
-    print(f"Fetching code_frequency for {len(repos_to_query)} repos in parallel...")
+    # fetch code_frequency (lines) in parallel, convert to BYTES (per-week)
+    repo_codefreq_weeks_bytes: Dict[str, List[float]] = {}
+    print(f"Fetching code_frequency for {len(repos_to_query)} repos...")
     with ThreadPoolExecutor(max_workers=6) as ex:
         futures = {ex.submit(fetch_code_frequency, USERNAME, repo_name, token): repo_name for repo_name in repos_to_query}
         for fut in as_completed(futures):
             repo_name = futures[fut]
             try:
-                weeks = fut.result()
-                if weeks is None:
-                    weeks = repo_weekly.get(repo_name, [0] * WEEKS)
-                if len(weeks) < WEEKS:
-                    weeks = ([0] * (WEEKS - len(weeks))) + weeks
-                repo_codefreq_weeks[repo_name] = weeks
-                print(f"  code_frequency fetched for {repo_name}")
+                weeks_lines = fut.result()
+                if weeks_lines is None:
+                    weeks_lines = repo_weekly.get(repo_name, [0] * WEEKS)
+                if len(weeks_lines) < WEEKS:
+                    weeks_lines = ([0] * (WEEKS - len(weeks_lines))) + weeks_lines
+                # convert lines -> bytes
+                weeks_bytes = [float(x) * AVG_BYTES_PER_LINE for x in weeks_lines]
+                repo_codefreq_weeks_bytes[repo_name] = weeks_bytes
+                print(f"  code_frequency (lines->bytes) for {repo_name}")
             except Exception as e:
                 print(f"  code_frequency failed for {repo_name}: {e}", file=sys.stderr)
-                repo_codefreq_weeks[repo_name] = [0] * WEEKS
+                repo_codefreq_weeks_bytes[repo_name] = [0.0] * WEEKS
 
-    # Build repo_order for display (rows order)
     repo_order: List[str] = list(repos_to_query)
 
-    # include restricted (private) repos aggregated only if token provided
+    # aggregate private repos into RESTRICTED_NAME if token present
     if private_repos and token:
         print(f"Aggregating {len(private_repos)} private repos into '{RESTRICTED_NAME}'...")
-        # aggregate commit_activity (weekly) across private repos
         agg_weekly = [0] * WEEKS
-        agg_codefreq = [0] * WEEKS
+        agg_bytes = [0.0] * WEEKS
         for repo in private_repos:
             owner = repo["owner"]["login"]
             name = repo["name"]
@@ -644,30 +611,26 @@ def main() -> None:
             if len(cf) < WEEKS:
                 cf = ([0] * (WEEKS - len(cf))) + cf
             for i in range(WEEKS):
-                agg_codefreq[i] += cf[i]
+                agg_bytes[i] += float(cf[i]) * AVG_BYTES_PER_LINE
 
-        # add aggregated rows to both maps and order list
         repo_weekly[RESTRICTED_NAME] = agg_weekly
-        repo_codefreq_weeks[RESTRICTED_NAME] = agg_codefreq
+        repo_codefreq_weeks_bytes[RESTRICTED_NAME] = agg_bytes
         repo_order.append(RESTRICTED_NAME)
     else:
-        # If token present but there are no private repos, optionally include an empty restricted row
         if token and not private_repos:
             repo_weekly[RESTRICTED_NAME] = [0] * WEEKS
-            repo_codefreq_weeks[RESTRICTED_NAME] = [0] * WEEKS
+            repo_codefreq_weeks_bytes[RESTRICTED_NAME] = [0.0] * WEEKS
             repo_order.append(RESTRICTED_NAME)
 
-    # Build contributions grid now that repo_weekly and repo_order are ready
     contrib_grid = build_contrib_grid(repo_weekly, repo_order)
 
-    # aggregate codefreq into daily series and plot
-    daily_agg = aggregate_daily_changes(repo_codefreq_weeks)  # oldest->newest, per-day
-    if len(daily_agg) == 0:
+    # aggregate bytes to daily series and plot
+    daily_bytes = aggregate_daily_bytes(repo_codefreq_weeks_bytes)  # oldest->newest per-day
+    if not daily_bytes or all(v == 0 for v in daily_bytes):
         ascii_plot = "(no activity data)"
     else:
-        # Draw a clear plot automatically scaled to data; draw dotted mean line
-        height = 8
-        ascii_plot = plot_ascii(daily_agg, {'height': height, 'format': '{:8.1f} ', 'draw_mean': True})
+        # choose height, and plotting config
+        ascii_plot = plot_with_mean(daily_bytes, {'height': PLOT_HEIGHT, 'format': PLOT_FORMAT})
 
     readme = build_readme(ascii_table, contrib_grid, ascii_plot)
 
