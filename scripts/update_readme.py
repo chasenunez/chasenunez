@@ -40,8 +40,8 @@ USERNAME = "chasenunez"
 TOP_N = 10
 WEEKS = 42  # number of weeks to show
 SHADES = [" ", "░", "▒", "▓", "█"]  # intensity glyphs low->high
-STATS_MAX_RETRIES = 12
-STATS_RETRY_SLEEP = 2  # base seconds, exponential backoff applied
+STATS_MAX_RETRIES = 3
+STATS_RETRY_SLEEP = 1  # base seconds, exponential backoff applied
 PER_PAGE = 100  # GitHub max per_page
 # -----------------------------------
 
@@ -125,8 +125,8 @@ def _retry_stats_get(url: str, token: str | None = None) -> Optional[requests.Re
 
 def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> List[int]:
     """
-    Prefer /stats/commit_activity (weekly totals, oldest->newest). If not available or
-    obviously incomplete, fall back to counting commits per-week via the commits API.
+    Prefer /stats/commit_activity; if unavailable, fall back to zeros or code_frequency
+    (do NOT perform per-week /commits queries — that's very slow).
     Returns list of length WEEKS (oldest->newest).
     """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/commit_activity"
@@ -136,7 +136,6 @@ def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> Lis
             data = r.json()
             if isinstance(data, list) and len(data) > 0:
                 weeks = [int(w.get("total", 0)) for w in data]
-                # normalize length to WEEKS
                 if len(weeks) >= WEEKS:
                     return weeks[-WEEKS:]
                 pad = [0] * (WEEKS - len(weeks))
@@ -144,8 +143,15 @@ def repo_commit_activity(owner: str, repo: str, token: str | None = None) -> Lis
         except Exception:
             pass
 
-    # fallback: count commits per-week using commits endpoint with since/until (more reliable)
-    return repo_weekly_from_commits(owner, repo, token=token)
+    # FALLBACK: try code_frequency as a lightweight proxy (additions+deletions)
+    cf = fetch_code_frequency(owner, repo, token=token)
+    if cf is not None:
+        # convert lines-changed to a proxy for commit count by scaling (optional)
+        # Here we just normalize to integer values (preserve relative magnitude)
+        return [int(round(x / 10.0)) for x in cf]  # tweak divisor to taste
+    # final fallback: return zeros instead of doing heavy commits-by-week queries
+    return [0] * WEEKS
+
 
 
 def repo_weekly_from_commits(owner: str, repo: str, token: str | None = None) -> List[int]:
@@ -553,53 +559,41 @@ def main() -> None:
 
     ascii_table, ascii_width, ascii_height = make_ascii_table_with_links(rows)
 
-    # gather weekly commit activity (oldest->newest)
-    repo_weekly: Dict[str, List[int]] = {}
-    repo_order: List[str] = []
+    from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    for r in rows:
-        name = r["name_text"]
-        owner = r.get("name_url", "").split("/github.com/")[-1].split("/")[0] if r.get("name_url") else USERNAME
-        # owner default to USERNAME; primary key is name
-        owner = USERNAME
-        weekly = repo_commit_activity(owner, name, token=token)
-        if len(weekly) < WEEKS:
-            weekly = ([0] * (WEEKS - len(weekly))) + weekly
-        repo_weekly[name] = weekly
-        repo_order.append(name)
+    # inside main() after rows/top_public constructed:
+    repos_to_query = [r["name_text"] for r in rows]
 
-    restricted_name = "restricted"
-    if private_repos and token:
-        agg = [0] * WEEKS
-        for repo in private_repos:
-            owner = repo["owner"]["login"]
-            name = repo["name"]
-            weekly = repo_commit_activity(owner, name, token=token)
-            if len(weekly) < WEEKS:
-                weekly = ([0] * (WEEKS - len(weekly))) + weekly
-            for i in range(WEEKS):
-                agg[i] += weekly[i]
-        repo_weekly[restricted_name] = agg
-        repo_order.append(restricted_name)
-    else:
-        if token:
-            repo_weekly[restricted_name] = [0] * WEEKS
-            repo_order.append(restricted_name)
+    # 1) fetch commit_activity in parallel
+    repo_weekly = {}
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futures = {ex.submit(repo_commit_activity, USERNAME, repo_name, token): repo_name for repo_name in repos_to_query}
+        for fut in as_completed(futures):
+            repo_name = futures[fut]
+            try:
+                weeks = fut.result()
+                if len(weeks) < WEEKS:
+                    weeks = ([0] * (WEEKS - len(weeks))) + weeks
+                repo_weekly[repo_name] = weeks
+            except Exception:
+                repo_weekly[repo_name] = [0] * WEEKS
 
-    contrib_grid = build_contrib_grid(repo_weekly, repo_order)
+    # 2) fetch code_frequency in parallel (used for daily plot)
+    repo_codefreq_weeks = {}
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futures = {ex.submit(fetch_code_frequency, USERNAME, repo_name, token): repo_name for repo_name in repos_to_query}
+        for fut in as_completed(futures):
+            repo_name = futures[fut]
+            try:
+                weeks = fut.result()
+                if weeks is None:
+                    weeks = repo_weekly.get(repo_name, [0] * WEEKS)
+                if len(weeks) < WEEKS:
+                    weeks = ([0] * (WEEKS - len(weeks))) + weeks
+                repo_codefreq_weeks[repo_name] = weeks
+            except Exception:
+                repo_codefreq_weeks[repo_name] = [0] * WEEKS
 
-    # Build code-frequency (lines changed) weekly series per repo and aggregate daily
-    repo_codefreq_weeks: Dict[str, List[int]] = {}
-    for repo in rows:
-        name = repo["name_text"]
-        owner = USERNAME
-        weeks = fetch_code_frequency(owner, name, token=token)
-        if weeks is None:
-            # fallback: approximate by using commit counts as a proxy
-            weeks = repo_weekly.get(name, [0] * WEEKS)
-        if len(weeks) < WEEKS:
-            weeks = ([0] * (WEEKS - len(weeks))) + weeks
-        repo_codefreq_weeks[name] = weeks
 
     # include restricted (private) codefreq if token provided
     if private_repos and token:
