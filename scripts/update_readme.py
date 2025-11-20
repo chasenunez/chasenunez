@@ -536,9 +536,11 @@ def main() -> None:
         sys.exit(1)
 
     # sensible defaults if not defined elsewhere
-    # AVG_BYTES_PER_LINE is assumed to be defined globally in config/constants
-    RESTRICTED_NAME = globals().get("RESTRICTED_NAME", RESTRICTED_NAME)
-    PLOT_HEIGHT = globals().get("PLOT_HEIGHT", PLOT_HEIGHT)
+    # safe fallbacks (do not reference local names on the RHS)
+    AVG_BYTES_PER_LINE = globals().get("AVG_BYTES_PER_LINE", 40.0)
+    RESTRICTED_NAME = globals().get("RESTRICTED_NAME", "restricted")
+    PLOT_HEIGHT = globals().get("PLOT_HEIGHT", 10)
+
 
     public_repos = [r for r in all_repos if not r.get("private")]
     private_repos = [r for r in all_repos if r.get("private")]
