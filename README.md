@@ -7,13 +7,15 @@
 +--------------------+-------------------+-------------+---------------+---------------------+---------------+
 |     Repository     |   Main Language   | Total Bytes | Total Commits | Date of Last Commit | Branch Number |
 +--------------------+-------------------+-------------+---------------+---------------------+---------------+
-|     <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>     |   Python (100%)   |    17618    |      146      |      2025-11-19     |       1       |
+|      <a href="https://github.com/chasenunez/data_HUD">data_HUD</a>      |  JavaScript (69%) |    17069    |       58      |      2025-11-19     |       1       |
 +--------------------+-------------------+-------------+---------------+---------------------+---------------+
-|   <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>   |   Python (100%)   |     9464    |      112      |      2025-11-19     |       1       |
+|  <a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>  |    HTML (100%)    |   19469805  |       18      |      2025-11-19     |       1       |
++--------------------+-------------------+-------------+---------------+---------------------+---------------+
+|   <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>   |   Python (100%)   |     9464    |      121      |      2025-11-19     |       1       |
++--------------------+-------------------+-------------+---------------+---------------------+---------------+
+|     <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>     |   Python (100%)   |    17618    |      147      |      2025-11-19     |       1       |
 +--------------------+-------------------+-------------+---------------+---------------------+---------------+
 |   <a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>    |   Python (100%)   |    25489    |       48      |      2025-11-19     |       1       |
-+--------------------+-------------------+-------------+---------------+---------------------+---------------+
-|  <a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>  |    HTML (100%)    |   19467689  |       18      |      2025-11-18     |       1       |
 +--------------------+-------------------+-------------+---------------+---------------------+---------------+
 |    <a href="https://github.com/chasenunez/byos_django">byos_django</a>     |    Python (87%)   |    38825    |       7       |      2025-04-28     |       1       |
 +--------------------+-------------------+-------------+---------------+---------------------+---------------+
@@ -25,21 +27,19 @@
 +--------------------+-------------------+-------------+---------------+---------------------+---------------+
 |      <a href="https://github.com/chasenunez/tui_log">tui_log</a>       |    Rust (100%)    |    347968   |      916      |      2025-10-01     |       8       |
 +--------------------+-------------------+-------------+---------------+---------------------+---------------+
-|   <a href="https://github.com/chasenunez/etani_shordul">etani_shordul</a>    |   Python (100%)   |     1405    |       15      |      2025-10-15     |       1       |
-+--------------------+-------------------+-------------+---------------+---------------------+---------------+
 
 
-chasenunez                                                                                               █ ░
-DEVO_validator                                                                   █ ░ ▒ ░                    
-DEVO_enricher                                                                            █                 ▒
+data_HUD                                                                                                    
 envidat_entrails                                                                                   ▒ ▒ █    
+DEVO_validator                                                                                              
+chasenunez                                                                                                  
+DEVO_enricher                                                                                               
 byos_django                █ ░                   ▓                                                          
 trmnlp                               ▒ ▒   █ ▒         ░         ▒   ░                                      
-contribution_chart                 █                                     ░         ░   ░                    
+contribution_chart                                                                                          
 recursive_shrink                                                                       █                    
 tui_log                ░             ░ █             ░ ░             █     ▒         ░                      
-etani_shordul                                                                                  █            
-restricted                                                                       ░ ░ ▒ █ ▓ ▒ ▓ █ ▒ ▓ ▒ ▓ ░  
+restricted                                                                           ░ █ ▓ ▒ ▓ █ ▒ ▓ ▒ ▓ ▒ ░
                    ░ ▒ ▓ █  (low->high)
                    J       F       M       A       M       J       J       J       A       S       O       N
 </pre>
