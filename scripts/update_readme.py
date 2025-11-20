@@ -521,10 +521,11 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
         "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔\n\n"
         f"{ascii_table}\n\n\n"
         f"{contrib_grid}\n\n\n"
-        f"Activity (weekly bytes; 2 columns = 1 week; dotted line = long-term mean):\n"
+        f"Activity (weekly commits; 2 columns = 1 week; dotted line = long-term mean):\n"
         f"{ascii_plot}\n"
         "</pre>\n"
     )
+
 
 
 def main() -> None:
@@ -534,14 +535,6 @@ def main() -> None:
     except Exception as e:
         print("Failed to fetch repositories:", e, file=sys.stderr)
         sys.exit(1)
-
-    # sensible defaults if not defined elsewhere
-    # safe fallbacks (do not reference local names on the RHS)
-    AVG_BYTES_PER_LINE = globals().get("AVG_BYTES_PER_LINE", 40.0)
-    RESTRICTED_NAME = globals().get("RESTRICTED_NAME", "restricted")
-    PLOT_HEIGHT = globals().get("PLOT_HEIGHT", 10)
-
-
 
     public_repos = [r for r in all_repos if not r.get("private")]
     private_repos = [r for r in all_repos if r.get("private")]
@@ -555,7 +548,7 @@ def main() -> None:
 
     repos_to_query = [r["name_text"] for r in rows]
 
-    # fetch commit_activity in parallel (for contrib grid)
+    # fetch commit_activity in parallel (for contrib grid and now plotting)
     repo_weekly: Dict[str, List[int]] = {}
     print(f"Fetching commit_activity for {len(repos_to_query)} repos...")
     with ThreadPoolExecutor(max_workers=8) as ex:
@@ -574,34 +567,12 @@ def main() -> None:
                 print(f"  commit_activity failed for {repo_name}: {e}", file=sys.stderr)
                 repo_weekly[repo_name] = [0] * WEEKS
 
-    # fetch code_frequency (lines) in parallel, convert to BYTES (per-week)
-    repo_codefreq_weeks_bytes: Dict[str, List[float]] = {}
-    print(f"Fetching code_frequency for {len(repos_to_query)} repos...")
-    with ThreadPoolExecutor(max_workers=6) as ex:
-        futures = {ex.submit(fetch_code_frequency, USERNAME, repo_name, token): repo_name for repo_name in repos_to_query}
-        for fut in as_completed(futures):
-            repo_name = futures[fut]
-            try:
-                weeks_lines = fut.result()
-                if weeks_lines is None:
-                    weeks_lines = repo_weekly.get(repo_name, [0] * WEEKS)
-                if len(weeks_lines) < WEEKS:
-                    weeks_lines = ([0] * (WEEKS - len(weeks_lines))) + weeks_lines
-                # convert lines -> bytes
-                weeks_bytes = [float(x) * AVG_BYTES_PER_LINE for x in weeks_lines]
-                repo_codefreq_weeks_bytes[repo_name] = weeks_bytes
-                print(f"  code_frequency (lines->bytes) for {repo_name}")
-            except Exception as e:
-                print(f"  code_frequency failed for {repo_name}: {e}", file=sys.stderr)
-                repo_codefreq_weeks_bytes[repo_name] = [0.0] * WEEKS
-
     repo_order: List[str] = list(repos_to_query)
 
     # aggregate private repos into RESTRICTED_NAME if token present
     if private_repos and token:
         print(f"Aggregating {len(private_repos)} private repos into '{RESTRICTED_NAME}'...")
         agg_weekly = [0] * WEEKS
-        agg_bytes = [0.0] * WEEKS
         for repo in private_repos:
             owner = repo["owner"]["login"]
             name = repo["name"]
@@ -613,38 +584,28 @@ def main() -> None:
             for i in range(WEEKS):
                 agg_weekly[i] += weeks[i]
 
-            cf = fetch_code_frequency(owner, name, token=token)
-            if cf is None:
-                cf = [0] * WEEKS
-            if len(cf) < WEEKS:
-                cf = ([0] * (WEEKS - len(cf))) + cf
-            for i in range(WEEKS):
-                agg_bytes[i] += float(cf[i]) * AVG_BYTES_PER_LINE
-
         repo_weekly[RESTRICTED_NAME] = agg_weekly
-        repo_codefreq_weeks_bytes[RESTRICTED_NAME] = agg_bytes
         repo_order.append(RESTRICTED_NAME)
     else:
         if token and not private_repos:
             repo_weekly[RESTRICTED_NAME] = [0] * WEEKS
-            repo_codefreq_weeks_bytes[RESTRICTED_NAME] = [0.0] * WEEKS
             repo_order.append(RESTRICTED_NAME)
 
     contrib_grid = build_contrib_grid(repo_weekly, repo_order)
 
-    # ------------------ NEW: 2 chars per week plotting -------------------
-    # Build weekly aggregated bytes (oldest -> newest)
+    # ------------------ NEW: 2 chars per week plotting using commits -------------------
+    # Build weekly aggregated commit counts (oldest -> newest)
     weekly_totals: List[float] = [0.0] * WEEKS
-    for weeks in repo_codefreq_weeks_bytes.values():
+    for repo_name in repo_order:
+        weeks = repo_weekly.get(repo_name, [0] * WEEKS)
         if len(weeks) < WEEKS:
-            weeks = ([0.0] * (WEEKS - len(weeks))) + weeks
+            weeks = ([0] * (WEEKS - len(weeks))) + weeks
         for i, v in enumerate(weeks):
             weekly_totals[i] += float(v)
 
     # create a plotting series where each week is represented by two adjacent columns
     series_points: List[float] = []
     for w in weekly_totals:
-        # duplicate the weekly value twice so 2 columns == 1 week
         series_points.append(w)
         series_points.append(w)
 
@@ -656,7 +617,7 @@ def main() -> None:
         mean = sum(series_points) / len(series_points)
         centered = [v - mean for v in series_points]
 
-        # automatic unit scaling to keep labels short
+        # automatic unit scaling to keep labels short (commits rarely need huge scaling)
         max_abs = max(abs(x) for x in centered) if centered else 0.0
         if max_abs >= 1_000_000:
             scale = 1_000_000.0
@@ -673,28 +634,23 @@ def main() -> None:
 
         scaled_series = [x / scale for x in centered]
 
-        # target series length (we prefer exactly WEEKS*2)
+        # ensure length == WEEKS*2
         target_len = WEEKS * 2
         if len(scaled_series) != target_len:
-            # ensure exact length by trimming/padding (shouldn't happen)
             if len(scaled_series) > target_len:
                 scaled_series = scaled_series[-target_len:]
             else:
                 scaled_series = ([0.0] * (target_len - len(scaled_series))) + scaled_series
 
-        # prepare a compact label format and ensure it fits ascii_width
+        # build compact label format and ensure it fits ascii_width
         safety = 1
-        # start with a short format: width 7 (e.g., ' 123.4 ')
         fmt_width = 7
         fmt_template = "{{:{w}.{p}f}} ".format(w=fmt_width, p=dec_places)
         label_format = fmt_template
         offset_len = len(label_format.format(0.0))
-
-        # compute required width
         required_width = offset_len + len(scaled_series) + safety
 
-        # If required width is larger than ascii table width, try to shorten labels
-        # reduce decimal places and then width
+        # reduce decimals/field width if needed
         while required_width > ascii_width and dec_places > 0:
             dec_places -= 1
             fmt_template = "{{:{w}.{p}f}} ".format(w=fmt_width, p=dec_places)
@@ -702,7 +658,6 @@ def main() -> None:
             offset_len = len(label_format.format(0.0))
             required_width = offset_len + len(scaled_series) + safety
 
-        # try reducing field width if still doesn't fit
         while required_width > ascii_width and fmt_width > 4:
             fmt_width -= 1
             fmt_template = "{{:{w}.{p}f}} ".format(w=fmt_width, p=dec_places)
@@ -710,11 +665,10 @@ def main() -> None:
             offset_len = len(label_format.format(0.0))
             required_width = offset_len + len(scaled_series) + safety
 
-        # final fallback: if it still doesn't fit, truncate the series on the left (oldest)
+        # final fallback: if still too wide, truncate oldest weeks (left)
         if required_width > ascii_width:
             max_plot_points = max(6, ascii_width - offset_len - safety)
             scaled_series = scaled_series[-max_plot_points:]
-            # recompute required width with truncated series
             required_width = offset_len + len(scaled_series) + safety
 
         cfg = {
@@ -723,19 +677,16 @@ def main() -> None:
             "offset": offset_len,
         }
 
-        # produce ascii using plot_with_mean
         try:
             ascii_plot_body = plot_with_mean(scaled_series, cfg)
         except Exception:
-            # if something goes wrong, try a minimal format and shorter series
             cfg_min = {"height": max(4, PLOT_HEIGHT // 2), "format": "{:5.0f} ", "offset": 5}
             ascii_plot_body = plot_with_mean(scaled_series[-min(len(scaled_series), ascii_width - cfg_min["offset"] - 1):], cfg_min)
 
-        # header with units
         if scale_suffix:
-            ascii_plot = f"Activity (weekly bytes / {scale_suffix}; 2 cols = 1 week; dotted = mean):\n{ascii_plot_body}"
+            ascii_plot = f"Activity (weekly commits / {scale_suffix}; 2 cols = 1 week; dotted = mean):\n{ascii_plot_body}"
         else:
-            ascii_plot = "Activity (weekly bytes; 2 cols = 1 week; dotted = mean):\n" + ascii_plot_body
+            ascii_plot = "Activity (weekly commits; 2 cols = 1 week; dotted = mean):\n" + ascii_plot_body
 
     # ------------------ end plotting -------------------
 
@@ -747,6 +698,3 @@ def main() -> None:
 
     print("README.md updated.")
 
-
-if __name__ == "__main__":
-    main()
