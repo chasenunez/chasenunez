@@ -29,6 +29,26 @@ SESSION.headers.update({
 })
 # -----------------------------------
 
+def month_initials_for_weeks(weeks: int, use_three_letter: bool=False) -> List[str]:
+    """
+    Return a list of length `weeks` with month labels aligned to weekly columns.
+    We place a label only when the calendar month changes compared to the last
+    labeled column (avoids multiple labels inside the same month).
+    If use_three_letter=True we return e.g. "Mar"/"Apr", else a single initial "M"/"A".
+    """
+    labels: List[str] = []
+    now = datetime.now(timezone.utc)
+    last_month = None
+    for i in range(weeks):
+        dt = now - timedelta(days=(weeks-1-i)*7)
+        if dt.month != last_month:
+            m = dt.strftime("%b")  # 'Mar', 'May', ...
+            labels.append(m if use_three_letter else m[0])
+            last_month = dt.month
+        else:
+            labels.append(" ")
+    return labels
+
 def auth_token() -> Optional[str]:
     """Get GitHub token from environment (PAT)."""
     return os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
@@ -261,14 +281,9 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]], repo_order: List[str], 
     legend = " "*label_w + " " + " ".join(SHADES[1:]) + "  (low→high)"
     lines.append(legend)
     now = datetime.now(timezone.utc)
-    axis_cells = []
-    for i in range(WEEKS):
-        if i % 4 == 0:
-            dt = now - timedelta(days=(WEEKS-1-i)*7)
-            axis_cells.append(dt.strftime("%b")[0])
-        else:
-            axis_cells.append(" ")
-    axis_line = " "*label_w + " " + " ".join(axis_cells)
+     # old code that used i % 4 == 0 ...
+    axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
+    axis_line = " " * label_w + " " + " ".join(axis_cells)
     lines.append(axis_line)
     return "\n".join(lines), label_w
 
@@ -532,15 +547,10 @@ def main():
         ascii_body = plot_with_mean(scaled_series, cfg)
 
         # Append x-axis (month initials). We need axis to match duplicated columns (one char + space per week -> 2 chars)
-        axis_labels = []
-        now = datetime.now(timezone.utc)
-        for i in range(WEEKS):
-            if i % 4 == 0:
-                dt = now - timedelta(days=(WEEKS-1-i)*7)
-                axis_labels.append(dt.strftime("%b")[0])
-            else:
-                axis_labels.append(" ")
+        axis_labels = month_initials_for_weeks(WEEKS, use_three_letter=False)
+        # Keep the "one-char + space per week" layout:
         axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
+
         ascii_plot = "\n" + ascii_body + "\n" + axis_line
 
     # If ascii_plot was the no-activity case, we already built contrib_grid above.
