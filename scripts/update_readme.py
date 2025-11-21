@@ -223,45 +223,7 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int=None)
     table_str = "\n".join(lines)
     return table_str, len(top_line), len(lines)
 
-def build_contrib_grid(repo_weekly: Dict[str,List[int]], repo_order: List[str]) -> str:
-    """
-    Build an ASCII heat map (rows = repos, cols = weeks) using SHADES.
-    Each row is scaled so that its max maps to '█'.
-    """
-    label_w = max(10, max((len(r) for r in repo_order), default=10))
-    label_w = min(label_w, 28)
-    lines = []
-    for repo in repo_order:
-        weeks = repo_weekly.get(repo, [0]*WEEKS)
-        if len(weeks) < WEEKS:
-            weeks = [0]*(WEEKS-len(weeks)) + weeks
-        max_val = max(weeks) or 1
-        cells = []
-        for w in weeks:
-            ratio = w / max_val if max_val else 0
-            idx = int(round(ratio*(len(SHADES)-1)))
-            idx = max(0, min(len(SHADES)-1, idx))
-            cells.append(SHADES[idx])
-        name = repo
-        if len(name) > label_w:
-            name = name[:label_w-1] + "…"
-        else:
-            name = name.ljust(label_w)
-        lines.append(f"{name} {' '.join(cells)}")
-    # Legend and time axis (month initials every 4 weeks)
-    legend = " "*label_w + " " + " ".join(SHADES[1:]) + "  (low→high)"
-    lines.append(legend)
-    now = datetime.now(timezone.utc)
-    axis_cells = []
-    for i in range(WEEKS):
-        if i % 4 == 0:
-            dt = now - timedelta(days=(WEEKS-1-i)*7)
-            axis_cells.append(dt.strftime("%b")[0])
-        else:
-            axis_cells.append(" ")
-    axis_line = " "*label_w + " " + " ".join(axis_cells)
-    lines.append(axis_line)
-    return "\n".join(lines)
+
 
 def build_rows_for_table(repos: List[dict], token: str=None) -> List[dict]:
     """Construct the rows for the summary table (public repos only)."""
@@ -296,77 +258,165 @@ def build_rows_for_table(repos: List[dict], token: str=None) -> List[dict]:
         })
     return rows
 
+def build_contrib_grid(repo_weekly: Dict[str, List[int]], repo_order: List[str], label_w_override: Optional[int] = None) -> str:
+    """
+    Build a heatmap of weekly commits per repo (ASCII art).
+    Accepts label_w_override so we can align left padding with the plot.
+    """
+    if label_w_override is not None:
+        label_w = max(6, min(28, label_w_override))
+    else:
+        label_w = max(10, max((len(r) for r in repo_order), default=10))
+        label_w = min(label_w, 28)
+
+    cols = WEEKS
+    lines = []
+    now = datetime.now(timezone.utc)
+    for repo in repo_order:
+        weeks = repo_weekly.get(repo, [0] * cols)
+        if len(weeks) < cols:
+            weeks = [0] * (cols - len(weeks)) + weeks
+        max_val = max(weeks) or 1
+        row_cells = []
+        for w in weeks:
+            ratio = w / max_val if max_val > 0 else 0.0
+            idx = int(round(ratio * (len(SHADES) - 1)))
+            idx = max(0, min(len(SHADES) - 1, idx))
+            row_cells.append(SHADES[idx])
+        vis_name = repo
+        if len(vis_name) > label_w:
+            vis_name = vis_name[: label_w - 1] + "…"
+        else:
+            vis_name = vis_name.ljust(label_w)
+        # Keep one space between name and first cell, and one space between cells
+        lines.append(f"{vis_name} {' '.join(row_cells)}")
+
+    legend = " " * label_w + " " + " ".join(SHADES[1:]) + "  (low→high)"
+    lines.append(legend)
+
+    axis_cells = []
+    for i in range(cols):
+        if i % 4 == 0:
+            days_back = (cols - 1 - i) * 7
+            dt = now - timedelta(days=days_back)
+            axis_cells.append(dt.strftime("%b")[0])
+        else:
+            axis_cells.append(" ")
+    axis_line = " " * label_w + " " + " ".join(axis_cells)
+    lines.append(axis_line)
+    return "\n".join(lines)
+
 def plot_with_mean(series, cfg=None) -> str:
-    """ASCII line plot of a series (or multiple series) with a dotted mean line."""
+    """
+    ASCII line plot (adapted) with a dotted long-term mean line.
+    series: list of numbers (oldest->newest). cfg: {'height','format','offset'}
+    Important change: ensure Y-axis minimum is never below 0 (commits cannot be negative).
+    """
     if not series:
-        return ""
+        return ''
     if not isinstance(series[0], list):
-        if all(isnan(x) for x in series):
-            return ""
-        series = [series]
-    # Flatten for scale calculations
-    flat = [x for s in series for x in s if not isnan(x)]
-    if not flat:
-        return ""
+        if all(isnan(n) for n in series):
+            return ''
+        else:
+            series = [series]
+
     cfg = cfg or {}
-    minimum = cfg.get('min', min(flat))
-    maximum = cfg.get('max', max(flat))
-    symbols = cfg.get('symbols', ['┼','┤','╶','╴','─','╰','╭','╮','╯','│'])
+    flattened = [j for sub in series for j in sub]
+    numeric = [x for x in flattened if _isnum(x)]
+    if not numeric:
+        return ''
+
+    # Force minimum >= 0
+    minimum = cfg.get('min', min(numeric))
+    minimum = max(0.0, float(minimum))
+    maximum = cfg.get('max', max(numeric))
+
+    default_symbols = ['┼', '┤', '╶', '╴', '─', '╰', '╭', '╮', '╯', '│']
+    symbols = cfg.get('symbols', default_symbols)
+
+    if minimum > maximum:
+        raise ValueError('The min value cannot exceed the max value.')
+
     interval = maximum - minimum
-    offset = cfg.get('offset', max(8, len(cfg.get('format',PLOT_FORMAT).format(maximum))))
+    offset = cfg.get('offset', max(8, len(cfg.get('format', "{:8.1f} ").format(maximum))))
     height = cfg.get('height', PLOT_HEIGHT)
-    ratio = height / interval if interval else 1
-    min2 = int(floor(minimum*ratio))
-    max2 = int(ceil(maximum*ratio))
-    def clamp(x): return min(max(x, minimum), maximum)
-    def scaled(y): return int(round(clamp(y)*ratio) - min2)
+    ratio = height / interval if interval > 0 else 1
+
+    min2 = int(floor(minimum * ratio))
+    max2 = int(ceil(maximum * ratio))
+
+    def clamp(n):
+        return min(max(n, minimum), maximum)
+
+    def scaled(y):
+        return int(round(clamp(y) * ratio) - min2)
+
     rows = max2 - min2
-    width = max(len(s) for s in series) + offset
-    result = [[' ']*width for _ in range(rows+1)]
-    # Y-axis labels
-    for y in range(min2, max2+1):
-        label = cfg.get('format',PLOT_FORMAT).format(maximum - ((y-min2)*interval/(rows if rows else 1)))
+
+    width = 0
+    for i in range(0, len(series)):
+        width = max(width, len(series[i]))
+    width += offset
+
+    placeholder = cfg.get('format', "{:8.1f} ")
+
+    # Build grid
+    result = [[' '] * width for i in range(rows + 1)]
+
+    # axis and labels
+    for y in range(min2, max2 + 1):
+        label = placeholder.format(maximum - ((y - min2) * interval / (rows if rows else 1)))
         pos = max(offset - len(label), 0)
-        line_idx = y - min2
-        for idx,ch in enumerate(label):
-            if pos+idx < width:
-                result[line_idx][pos+idx] = ch
-        result[line_idx][offset-1] = symbols[0] if y==0 else symbols[1]
-    # First point marker
-    try:
-        if not isnan(series[0][0]):
-            result[rows-scaled(series[0][0])][offset-1] = symbols[0]
-    except:
-        pass
-    # Plot lines
-    for s in series:
-        for x in range(len(s)-1):
-            d0 = s[x]; d1 = s[x+1]
+        for idx, ch in enumerate(label):
+            if pos + idx < width:
+                result[y - min2][pos + idx] = ch
+        result[y - min2][offset - 1] = symbols[0] if y == 0 else symbols[1]
+
+    # Plot the line(s)
+    for i in range(0, len(series)):
+        for x in range(0, len(series[i]) - 1):
+            d0 = series[i][x + 0]
+            d1 = series[i][x + 1]
+
             if isnan(d0) and isnan(d1):
                 continue
-            if isnan(d0):
-                result[rows-scaled(d1)][x+offset] = symbols[2]; continue
-            if isnan(d1):
-                result[rows-scaled(d0)][x+offset] = symbols[3]; continue
-            y0 = scaled(d0); y1 = scaled(d1)
-            if y0 == y1:
-                result[rows-y0][x+offset] = symbols[4]
+
+            if isnan(d0) and _isnum(d1):
+                result[rows - scaled(d1)][x + offset] = symbols[2]
                 continue
-            result[rows-y1][x+offset] = symbols[5] if y0>y1 else symbols[6]
-            result[rows-y0][x+offset] = symbols[7] if y0>y1 else symbols[8]
-            for yy in range(min(y0,y1)+1, max(y0,y1)):
-                result[rows-yy][x+offset] = symbols[9]
-    # Dotted mean line
-    mean_val = sum(flat)/len(flat)
+
+            if _isnum(d0) and isnan(d1):
+                result[rows - scaled(d0)][x + offset] = symbols[3]
+                continue
+
+            y0 = scaled(d0)
+            y1 = scaled(d1)
+            if y0 == y1:
+                result[rows - y0][x + offset] = symbols[4]
+                continue
+
+            result[rows - y1][x + offset] = symbols[5] if y0 > y1 else symbols[6]
+            result[rows - y0][x + offset] = symbols[7] if y0 > y1 else symbols[8]
+
+            start = min(y0, y1) + 1
+            end = max(y0, y1)
+            for y in range(start, end):
+                result[rows - y][x + offset] = symbols[9]
+
+    # dotted mean line (mean of actual numeric values)
+    mean_val = sum(numeric) / len(numeric)
     try:
         mean_scaled = scaled(mean_val)
-        mean_row = max(0, min(rows, rows-mean_scaled))
+        mean_row = rows - mean_scaled
+        mean_row = max(0, min(rows, mean_row))
         for c in range(offset, width):
             if result[mean_row][c] == ' ':
                 result[mean_row][c] = '┄'
-    except:
+    except Exception:
         pass
-    return "\n".join("".join(row).rstrip() for row in result)
+
+    return '\n'.join([''.join(row).rstrip() for row in result])
+
 
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
     """Combine ASCII components into the final README markdown (inside a <pre> block)."""
@@ -443,73 +493,85 @@ def main():
 
     contrib_grid = build_contrib_grid(repo_weekly, repo_order)
 
-    # Build aggregated weekly totals for all repos
-    weekly_totals = [0.0]*WEEKS
-    for weeks in repo_weekly.values():
+        # --- IMPORTANT: determine the left label width (based on headers and plot labels) ---
+    # base label width from heatmap (repo name area)
+    base_label_w = max(10, max((len(r) for r in repo_order), default=10))
+    base_label_w = min(base_label_w, 28)
+
+    # Build weekly totals (public + restricted)
+    weekly_totals: List[float] = [0.0] * WEEKS
+    for name in repo_order:
+        weeks = repo_weekly.get(name, [0] * WEEKS)
         if len(weeks) < WEEKS:
-            weeks = [0]*(WEEKS-len(weeks)) + weeks
+            weeks = [0] * (WEEKS - len(weeks)) + weeks
         for i, v in enumerate(weeks):
             weekly_totals[i] += float(v)
 
-    # Build the line chart series (2 columns per week)
-    if not weekly_totals or all(v==0 for v in weekly_totals):
-        ascii_plot = "(no activity data)"
+    # Determine numeric formatting for plot labels (so we can reserve enough left space)
+    if not any(weekly_totals):
+        scaled_series = [0.0] * (WEEKS * 2)
+        scale_suffix = ""
+        fmt_w = 7; dec_places = 1
+        fmt_template = f"{{:{fmt_w}.{dec_places}f}} "
+        offset_label_len = len(fmt_template.format(0.0))
     else:
+        # duplicate each week to match heatmap spacing (2 chars per week)
         series_points = []
         for w in weekly_totals:
-            series_points += [w, w]  # duplicate for 2 columns/week
-        mean = sum(series_points)/len(series_points)
-        centered = [x - mean for x in series_points]
-        max_abs = max(abs(x) for x in centered)
-        # Scale units to K/M if needed
-        if max_abs >= 1_000_000:
-            scale, suffix = 1_000_000.0, "M"
-        elif max_abs >= 1_000:
-            scale, suffix = 1_000.0, "K"
+            series_points.append(w)
+            series_points.append(w)
+        max_val = max(series_points)
+        if max_val >= 1_000_000:
+            scale = 1_000_000.0; scale_suffix = "M"; dec_places = 1
+        elif max_val >= 1_000:
+            scale = 1_000.0; scale_suffix = "K"; dec_places = 1
         else:
-            scale, suffix = 1.0, ""
-        scaled_series = [x/scale for x in centered]
+            scale = 1.0; scale_suffix = ""; dec_places = 1
+        # IMPORTANT: do NOT subtract the mean — plot actual (non-negative) totals
+        scaled_series = [x / scale for x in series_points]
+        fmt_w = 7
+        fmt_template = f"{{:{fmt_w}.{dec_places}f}} "
+        offset_label_len = len(fmt_template.format(max(scaled_series or [0.0])))
+
+    # Final left label width: ensure enough room for both heatmap repo names and plot labels
+    final_label_w = max(base_label_w, max(6, min(28, offset_label_len - 1)))
+
+    # Rebuild heatmap with the forced left-label width so it lines up with the plot
+    contrib_grid = build_contrib_grid(repo_weekly, repo_order, label_w_override=final_label_w)
+
+    # --- Build the line chart ---
+    if not any(weekly_totals):
+        ascii_plot = "(no activity data)"
+    else:
+        # scaled_series already computed (actual totals duplicated per week, not mean-centered)
+        # Ensure length fits 2*WEEKS
         target_len = WEEKS * 2
         if len(scaled_series) != target_len:
             if len(scaled_series) > target_len:
                 scaled_series = scaled_series[-target_len:]
             else:
-                scaled_series = [0.0]*(target_len-len(scaled_series)) + scaled_series
+                scaled_series = ([0.0] * (target_len - len(scaled_series))) + scaled_series
 
-        # Adjust format to fit width
-        fmt_w, fmt_p = 7, 1
-        label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
-        offset_len = len(label_fmt.format(0.0))
-        req_w = offset_len + len(scaled_series) + 1
-        while req_w > ascii_width and fmt_p > 0:
-            fmt_p -= 1
-            label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
-            offset_len = len(label_fmt.format(0.0))
-            req_w = offset_len + len(scaled_series) + 1
-        while req_w > ascii_width and fmt_w > 4:
-            fmt_w -= 1
-            label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
-            offset_len = len(label_fmt.format(0.0))
-            req_w = offset_len + len(scaled_series) + 1
-        if req_w > ascii_width:
-            max_pts = max(6, ascii_width - offset_len - 1)
-            scaled_series = scaled_series[-max_pts:]
-            req_w = offset_len + len(scaled_series) + 1
+        # Build label format and offset; offset must be (final_label_w + 1) so weeks start right after heatmap's name + space
+        offset_for_plot = final_label_w + 1
+        cfg = {"height": PLOT_HEIGHT, "format": fmt_template, "offset": offset_for_plot}
+        ascii_plot_body = plot_with_mean(scaled_series, cfg)
 
-        cfg = {"height": PLOT_HEIGHT, "format": label_fmt, "offset": offset_len}
-        ascii_body = plot_with_mean(scaled_series, cfg)
-        # Append x-axis (month initials)
-        axis_labels = []
+        # Build X-axis labels (one label per week, repeated as 'char + space' to match 2 chars/week)
         now = datetime.now(timezone.utc)
+        axis_cells = []
         for i in range(WEEKS):
             if i % 4 == 0:
-                dt = now - timedelta(days=(WEEKS-1-i)*7)
-                axis_labels.append(dt.strftime("%b")[0])
+                dt = now - timedelta(days=(WEEKS - 1 - i) * 7)
+                axis_cells.append(dt.strftime("%b")[0])
             else:
-                axis_labels.append(" ")
-        axis_line = " " * offset_len + "".join(ch+" " for ch in axis_labels)
-        ascii_plot = f"Activity (weekly commits / {suffix}; 2 cols = 1 week; dotted = mean):\n" \
-                     + ascii_body + "\n" + axis_line
+                axis_cells.append(" ")
+        # axis_line must start at the same offset used for plot
+        axis_line = " " * offset_for_plot + ''.join(ch + " " for ch in axis_cells)
+
+        # NOTE: user requested removing the header line for the plot
+        ascii_plot = ascii_plot_body + "\n" + axis_line
+
 
     # Write the README
     readme = build_readme(ascii_table, contrib_grid, ascii_plot)
