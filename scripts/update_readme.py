@@ -335,7 +335,7 @@ def plot_with_mean(series, cfg=None) -> str:
     # Y-axis labels
     for y in range(min2, max2+1):
         label = cfg.get('format',PLOT_FORMAT).format(maximum - ((y-min2)*interval/(rows if rows else 1)))
-        pos = max(offset - len(label + 2), 0) #not sure if this will work
+        pos = max(offset - len(label), 0)
         line_idx = y - min2
         for idx,ch in enumerate(label):
             if pos+idx < width:
