@@ -34,9 +34,11 @@ SESSION.headers.update({
     "User-Agent": f"update-readme-script ({USERNAME})"
 })
 
+
 def auth_token() -> Optional[str]:
     """Get GitHub token from environment if available."""
     return os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+
 
 def gh_get(url: str, params: dict|None=None, token: Optional[str]=None, timeout: int=30) -> requests.Response:
     """Send a GET request with optional GitHub token header."""
@@ -46,6 +48,7 @@ def gh_get(url: str, params: dict|None=None, token: Optional[str]=None, timeout:
     resp = SESSION.get(url, headers=headers, params=params or {}, timeout=timeout)
     resp.raise_for_status()
     return resp
+
 
 def _get_paginated(url: str, params: dict|None=None, token: Optional[str]=None) -> List[dict]:
     """Retrieve all pages from a GitHub API endpoint that uses pagination."""
@@ -70,6 +73,7 @@ def _get_paginated(url: str, params: dict|None=None, token: Optional[str]=None) 
             break
     return out
 
+
 def fetch_repos_for_user(token: Optional[str] = None) -> List[dict]:
     """Fetch all repos for the user (owner), sorted by recent update."""
     if token:
@@ -80,6 +84,7 @@ def fetch_repos_for_user(token: Optional[str] = None) -> List[dict]:
         url = f"{GITHUB_API}/users/{USERNAME}/repos"
         params = {"sort": "updated", "direction": "desc"}
     return _get_paginated(url, params=params, token=token)
+
 
 def _retry_stats_get(url: str, token: Optional[str]=None) -> Optional[requests.Response]:
     """
@@ -99,6 +104,7 @@ def _retry_stats_get(url: str, token: Optional[str]=None) -> Optional[requests.R
             continue
         return r
     return None
+
 
 def repo_commit_activity(owner: str, repo: str, token: Optional[str]=None) -> List[int]:
     """
@@ -120,6 +126,7 @@ def repo_commit_activity(owner: str, repo: str, token: Optional[str]=None) -> Li
             pass
     # In case of error or no data, return zeros
     return [0] * WEEKS
+
 
 def get_commit_count(owner: str, repo: str, token: Optional[str]=None) -> int:
     """
@@ -152,6 +159,7 @@ def get_commit_count(owner: str, repo: str, token: Optional[str]=None) -> int:
         pass
     return 0
 
+
 def get_branch_count(owner: str, repo: str, token: Optional[str]=None) -> int:
     """Count branches by paginating the branches endpoint."""
     url = f"{GITHUB_API}/repos/{owner}/{repo}/branches"
@@ -176,6 +184,7 @@ def get_branch_count(owner: str, repo: str, token: Optional[str]=None) -> int:
         pass
     return 0
 
+
 def fetch_languages(owner: str, repo: str, token: Optional[str]=None) -> Dict[str,int]:
     """Fetch language byte counts for a repo."""
     url = f"{GITHUB_API}/repos/{owner}/{repo}/languages"
@@ -184,6 +193,7 @@ def fetch_languages(owner: str, repo: str, token: Optional[str]=None) -> Dict[st
         return r.json() or {}
     except requests.HTTPError:
         return {}
+
 
 def make_ascii_table_with_links(rows: List[dict], max_width: Optional[int] = None) -> tuple[str,int,int]:
     """
@@ -265,6 +275,7 @@ def make_ascii_table_with_links(rows: List[dict], max_width: Optional[int] = Non
     table_height = len(lines)
     return table_str, table_width, table_height
 
+
 def build_contrib_grid(repo_weekly: Dict[str, List[int]], repo_order: List[str]) -> str:
     """
     Build a heatmap of weekly commits per repo (ASCII art).
@@ -310,6 +321,7 @@ def build_contrib_grid(repo_weekly: Dict[str, List[int]], repo_order: List[str])
     lines.append(axis_line)
     return "\n".join(lines)
 
+
 def expand_weeks_to_days(weekly: List[float]) -> List[float]:
     """Expand weekly data to daily (uniformly) for finer plots (not used in final code)."""
     days: List[float] = []
@@ -317,6 +329,7 @@ def expand_weeks_to_days(weekly: List[float]) -> List[float]:
         per_day = (w / 7.0) if w is not None else 0.0
         days.extend([per_day] * 7)
     return days
+
 
 def aggregate_daily_bytes(repos_weeks_bytes: Dict[str, List[float]]) -> List[float]:
     """Aggregate multiple repos' weekly data into one daily series (not used in final code)."""
@@ -330,12 +343,14 @@ def aggregate_daily_bytes(repos_weeks_bytes: Dict[str, List[float]]) -> List[flo
             agg[i] += v
     return agg
 
+
 def _isnum(n):
     """Helper to check if a value can be treated as a number."""
     try:
         return not isnan(float(n))
     except Exception:
         return False
+
 
 def plot_with_mean(series, cfg=None) -> str:
     """
@@ -418,8 +433,13 @@ def plot_with_mean(series, cfg=None) -> str:
         pass
     return "\n".join("".join(row).rstrip() for row in result)
 
+
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
-    """Combine all parts into the final README string (wrapped in a <pre> block)."""
+    """
+    Combine all parts into the final README string (wrapped in a <pre> block).
+    This function MUST return a string. The previous SyntaxError came from
+    adjacent string expressions without an operator; we explicitly concatenate here.
+    """
     header = (
         "<pre>\n"
         "                           ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸   ┏━┓┏━╸┏━┓┏━┓   ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻                           \n"
@@ -427,13 +447,13 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
         "                           ╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹    ╹┗╸┗━╸╹  ┗━┛   ╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹                            \n"
         "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔\n\n"
     )
-    # return (
-    #     header
-    #     f"{ascii_table}\n\n\n"
-    #     f"{contrib_grid}\n\n\n"
-    #     f"{ascii_plot}\n"
-    #     "</pre>\n"
-    # )
+    # Ensure inputs are strings (defensive)
+    ascii_table = ascii_table or ""
+    contrib_grid = contrib_grid or ""
+    ascii_plot = ascii_plot or ""
+    body = f"{ascii_table}\n\n\n{contrib_grid}\n\n\n{ascii_plot}\n</pre>\n"
+    return header + body
+
 
 def main() -> None:
     token = auth_token()
@@ -595,6 +615,9 @@ def main() -> None:
         ascii_plot = label_line + "\n" + ascii_plot_body + "\n" + axis_line
     # Build full README content and write to file
     readme = build_readme(ascii_table, contrib_grid, ascii_plot)
+    # Defensive: ensure readme is a string
+    if readme is None:
+        readme = ""
     with open("README.md", "w", encoding="utf-8") as fh:
         fh.write(readme)
     print("README.md updated.")
