@@ -1,45 +1,38 @@
 #!/usr/bin/env python3
 """
-scripts/update_readme.py
-
-Gather GitHub repo activity and update README with:
- 1. A table of top repos (and aggregated private repos)
- 2. A heatmap of weekly commit activity per repo
- 3. A line chart of total commits over time
-
-We use only ASCII/text art so it fits in a GitHub README.
+Enhanced update_readme.py with fixes for private repos, heatmap data, and chart width.
 """
-
-from __future__ import annotations
 import os, sys, time, re
 from datetime import datetime, timezone, timedelta
 from math import ceil, floor, isnan
-from typing import Dict, List, Optional
-import requests
+from typing import Dict, List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import requests
 
-# --- Configuration ---
-USERNAME = "chasenunez"     # GitHub username/owner
-TOP_N = 10                  # Number of top repos to display (including "restricted" if any)
-WEEKS = 42                  # How many weeks of history to include (columns in heatmap)
-MAX_COLUMNS = 110           # Maximum allowed width of output in characters
-SHADES = [" ", "░", "▒", "▓", "█"]  # Heatmap intensity glyphs low->high
-PLOT_HEIGHT = 10            # Vertical resolution of line chart
-# ----------------------
-
+# ---------- Configuration ----------
+USERNAME = "chasenunez"
+TOP_N = 10            # Number of top repositories to include (including private)
+WEEKS = 42            # Number of weeks to show in charts
+MAX_WIDTH = 110       # Max characters wide for all figures (table, heatmap, plot)
+RESTRICTED_NAME = "restricted"
+AVG_BYTES_PER_LINE = 40.0
+PLOT_HEIGHT = 10
+PLOT_FORMAT = "{:8.1f} "
+SHADES = [" ", "░", "▒", "▓", "█"]  # For heat map (low→high intensity)
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
 SESSION.headers.update({
     "Accept": "application/vnd.github.v3+json",
-    "User-Agent": f"update-readme-script ({USERNAME})"
+    "User-Agent": f"update-readme-script ({USERNAME})",
 })
-
+# -----------------------------------
 
 def auth_token() -> Optional[str]:
+    """Get GitHub token from environment (PAT)."""
     return os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
-
-def gh_get(url: str, params: dict|None=None, token: Optional[str]=None, timeout: int=30) -> requests.Response:
+def gh_get(url: str, params: dict=None, token: str=None, timeout: int=30) -> requests.Response:
+    """Helper to make GET requests with optional token auth."""
     headers = {}
     if token:
         headers["Authorization"] = f"token {token}"
@@ -47,17 +40,17 @@ def gh_get(url: str, params: dict|None=None, token: Optional[str]=None, timeout:
     resp.raise_for_status()
     return resp
 
-
-def _get_paginated(url: str, params: dict|None=None, token: Optional[str]=None) -> List[dict]:
-    out: List[dict] = []
+def _get_paginated(url: str, params: dict=None, token: str=None) -> List[dict]:
+    """Handle GitHub pagination (per_page up to 100)."""
+    items = []
     params = dict(params or {})
     params.setdefault("per_page", 100)
     next_url = url
     while next_url:
         r = gh_get(next_url, params=params if next_url == url else None, token=token)
-        page = r.json() or []
-        if isinstance(page, list):
-            out.extend(page)
+        data = r.json() or []
+        if isinstance(data, list):
+            items.extend(data)
         else:
             break
         link = r.headers.get("Link", "")
@@ -67,20 +60,24 @@ def _get_paginated(url: str, params: dict|None=None, token: Optional[str]=None) 
             params = None
         else:
             break
-    return out
+    return items
 
-
-def fetch_repos_for_user(token: Optional[str] = None) -> List[dict]:
+def fetch_repos_for_user(token: str=None) -> List[dict]:
+    """
+    Fetch all repositories visible to the user.
+    Using /user/repos (authenticated) returns both public and private repos:contentReference[oaicite:2]{index=2}.
+    """
     if token:
         url = f"{GITHUB_API}/user/repos"
-        params = {"sort": "updated", "direction": "desc", "affiliation": "owner"}
+        params = {"sort": "updated", "direction": "desc"}
     else:
+        # Without auth, only public repos
         url = f"{GITHUB_API}/users/{USERNAME}/repos"
         params = {"sort": "updated", "direction": "desc"}
     return _get_paginated(url, params=params, token=token)
 
-
-def _retry_stats_get(url: str, token: Optional[str]=None) -> Optional[requests.Response]:
+def _retry_stats_get(url: str, token: str=None) -> Optional[requests.Response]:
+    """Retry wrapper for /stats endpoints (which may return 202 if data is not cached)."""
     attempt = 0
     while attempt < 3:
         try:
@@ -94,40 +91,36 @@ def _retry_stats_get(url: str, token: Optional[str]=None) -> Optional[requests.R
         return r
     return None
 
-
-def repo_commit_activity(owner: str, repo: str, token: Optional[str]=None) -> List[int]:
+def repo_commit_activity(owner: str, repo: str, token: str=None) -> List[int]:
+    """
+    Get weekly commit counts for the repo (last up to 52 weeks):contentReference[oaicite:3]{index=3}.
+    Returns a list of length WEEKS (oldest->newest).
+    """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/commit_activity"
     r = _retry_stats_get(url, token=token)
-    if r:
-        try:
-            data = r.json()
-            if isinstance(data, list) and data:
-                weeks = [int(w.get("total", 0)) for w in data]
-                if len(weeks) >= WEEKS:
-                    return weeks[-WEEKS:]
-                return [0] * (WEEKS - len(weeks)) + weeks
-        except Exception:
-            pass
+    if r is not None:
+        data = r.json()
+        if isinstance(data, list):
+            weeks = [int(item.get("total", 0)) for item in data]
+            if len(weeks) >= WEEKS:
+                return weeks[-WEEKS:]
+            # Pad front with zeros if fewer weeks returned
+            return [0]*(WEEKS - len(weeks)) + weeks
     return [0] * WEEKS
 
-
-def get_commit_count(owner: str, repo: str, token: Optional[str]=None) -> int:
+def get_commit_count(owner: str, repo: str, token: str=None) -> int:
+    """Get total commits on default branch by using per_page=1 and reading Link header."""
     url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
-    params = {"per_page": 1}
     try:
-        r = gh_get(url, params=params, token=token)
+        r = gh_get(url, params={"per_page":1}, token=token)
     except requests.HTTPError as e:
-        if getattr(e.response, "status_code", None) == 409:
-            return 0
+        # e.g. empty repo (409) or not found
         return 0
     link = r.headers.get("Link", "")
     if link:
-        m = re.search(r'[&?]page=(\d+)>;\s*rel="last"', link)
+        m = re.search(r'[&?]page=(\d+)>; rel="last"', link)
         if m:
-            try:
-                return int(m.group(1))
-            except ValueError:
-                pass
+            return int(m.group(1))
     try:
         commits = r.json()
         if isinstance(commits, list):
@@ -136,22 +129,18 @@ def get_commit_count(owner: str, repo: str, token: Optional[str]=None) -> int:
         pass
     return 0
 
-
-def get_branch_count(owner: str, repo: str, token: Optional[str]=None) -> int:
+def get_branch_count(owner: str, repo: str, token: str=None) -> int:
+    """Count branches similarly by reading Link header."""
     url = f"{GITHUB_API}/repos/{owner}/{repo}/branches"
-    params = {"per_page": 1}
     try:
-        r = gh_get(url, params=params, token=token)
+        r = gh_get(url, params={"per_page":1}, token=token)
     except requests.HTTPError:
         return 0
     link = r.headers.get("Link", "")
     if link:
-        m = re.search(r'[&?]page=(\d+)>;\s*rel="last"', link)
+        m = re.search(r'[&?]page=(\d+)>; rel="last"', link)
         if m:
-            try:
-                return int(m.group(1))
-            except ValueError:
-                pass
+            return int(m.group(1))
     try:
         data = r.json()
         if isinstance(data, list):
@@ -160,8 +149,8 @@ def get_branch_count(owner: str, repo: str, token: Optional[str]=None) -> int:
         pass
     return 0
 
-
-def fetch_languages(owner: str, repo: str, token: Optional[str]=None) -> Dict[str,int]:
+def fetch_languages(owner: str, repo: str, token: str=None) -> Dict[str,int]:
+    """Get languages used in repo (bytes per language)."""
     url = f"{GITHUB_API}/repos/{owner}/{repo}/languages"
     try:
         r = gh_get(url, token=token)
@@ -169,248 +158,131 @@ def fetch_languages(owner: str, repo: str, token: Optional[str]=None) -> Dict[st
     except requests.HTTPError:
         return {}
 
-
-def make_ascii_table_with_links(rows: List[dict], max_width: Optional[int] = None) -> tuple[str,int,int]:
-    cols = ["Repository", "Main Language", "Total Bytes", "Total Commits",
-            "Date of Last Commit", "Branches"]
+def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int=None) -> Tuple[str,int,int]:
+    """
+    Build an ASCII table (with Markdown links in repo names).
+    Optionally cap the repository name column to max_repo_name_width characters.
+    Returns (table_str, table_width, table_height).
+    """
+    cols = ["Repository", "Main Language", "Total Bytes", "Total Commits", "Last Commit Date", "Branches"]
     data_rows = []
     for r in rows:
         data_rows.append([
-            r.get("name_text", ""),
-            r.get("language", ""),
-            str(r.get("size", "")),
-            str(r.get("commits", "")),
-            r.get("last_commit", ""),
-            str(r.get("branches", ""))
+            r.get("name_text",""),
+            r.get("language",""),
+            str(r.get("size","0")),
+            str(r.get("commits","0")),
+            r.get("last_commit",""),
+            str(r.get("branches","0"))
         ])
-    col_widths = [len(c) for c in cols]
+    # Compute column widths
+    widths = [len(c) for c in cols]
     for row in data_rows:
         for i, cell in enumerate(row):
-            col_widths[i] = max(col_widths[i], len(cell))
-    col_widths = [w + 2 for w in col_widths]
-    ncols = len(col_widths)
-    table_width = sum(col_widths) + (ncols + 1)
-    if max_width and table_width > max_width:
-        excess = table_width - max_width
-        min_first = 10 + 2
-        reduce_amt = min(excess, col_widths[0] - min_first)
-        if reduce_amt > 0:
-            col_widths[0] -= reduce_amt
-            table_width = sum(col_widths) + (ncols + 1)
-    top_line = "+" + "+".join("-" * w for w in col_widths) + "+"
-    header_cells = []
-    for i, c in enumerate(cols):
-        inner = col_widths[i] - 2
-        header_cells.append(" " + c.center(inner) + " ")
-    header_line = "|" + "|".join(header_cells) + "|"
-    lines = [top_line, header_line, top_line]
-
+            widths[i] = max(widths[i], len(cell))
+    widths = [w+2 for w in widths]
+    # Cap first column if needed
+    if max_repo_name_width and widths:
+        inner0 = widths[0] - 2
+        if inner0 > max_repo_name_width:
+            widths[0] = max_repo_name_width + 2
+    # Build table lines
+    top_line = "+" + "+".join("-"*w for w in widths) + "+"
+    lines = [top_line]
+    header = []
+    for i,c in enumerate(cols):
+        header.append(" " + c.center(widths[i]-2) + " ")
+    lines.append("|" + "|".join(header) + "|")
+    lines.append(top_line)
+    # Rows
     for r in rows:
-        name = r.get("name_text", "")
-        url = r.get("name_url", "")
-        inner_w0 = col_widths[0] - 2
-        if len(name) > inner_w0:
-            vis_name = name[:inner_w0 - 1] + "…"
-        else:
-            vis_name = name
-        left_pad = (inner_w0 - len(vis_name)) // 2
-        right_pad = inner_w0 - len(vis_name) - left_pad
-        repo_cell = " " * left_pad + f'<a href="{url}">{vis_name}</a>' + " " * right_pad
-
-        other_vals = [
-            r.get("language", ""),
-            str(r.get("size", "")),
-            str(r.get("commits", "")),
-            r.get("last_commit", ""),
-            str(r.get("branches", ""))
-        ]
-        other_cells = []
-        for i, val in enumerate(other_vals, start=1):
-            w = col_widths[i] - 2
-            pad_left = (w - len(val)) // 2
-            pad_right = w - len(val) - pad_left
-            other_cells.append(" " + " " * pad_left + val + " " * pad_right + " ")
-        cells = [repo_cell] + other_cells
-        line = "|" + "|".join(cells) + "|"
-        lines.append(line)
+        cells = []
+        vis_name = r.get("name_text","")
+        url = r.get("name_url","")
+        inner0 = widths[0] - 2
+        # Truncate visible repo name if needed
+        if len(vis_name) > inner0:
+            vis_name = vis_name[:inner0-1] + "…"
+        # Pad name into column
+        name_padded = vis_name.ljust(inner0)
+        repo_cell = " " + name_padded + " "
+        # Replace visible text with Markdown link
+        if url:
+            repo_cell = repo_cell.replace(vis_name, f'<a href="{url}">{vis_name}</a>')
+        cells.append(repo_cell)
+        # Other columns
+        for i,val in enumerate([r.get("language",""),
+                                str(r.get("size","0")),
+                                str(r.get("commits","0")),
+                                r.get("last_commit",""),
+                                str(r.get("branches","0"))], start=1):
+            w = widths[i] - 2
+            cells.append(" " + val.center(w) + " ")
+        lines.append("|" + "|".join(cells) + "|")
         lines.append(top_line)
-
     table_str = "\n".join(lines)
-    table_height = len(lines)
-    return table_str, table_width, table_height
+    return table_str, len(top_line), len(lines)
 
-
-def build_contrib_grid(repo_weekly: Dict[str, List[int]], repo_order: List[str], label_w_override: Optional[int] = None) -> str:
+def build_contrib_grid(repo_weekly: Dict[str,List[int]], repo_order: List[str]) -> str:
+    """
+    Build an ASCII heat map (rows = repos, cols = weeks) using SHADES.
+    Each row is scaled so that its max maps to '█'.
+    """
     label_w = max(10, max((len(r) for r in repo_order), default=10))
-    if label_w_override is not None:
-        label_w = max(6, min(28, label_w_override))
-    else:
-        label_w = min(label_w, 28)
-    cols = WEEKS
+    label_w = min(label_w, 28)
     lines = []
-    now = datetime.now(timezone.utc)
     for repo in repo_order:
-        weeks = repo_weekly.get(repo, [0] * cols)
-        if len(weeks) < cols:
-            weeks = [0] * (cols - len(weeks)) + weeks
+        weeks = repo_weekly.get(repo, [0]*WEEKS)
+        if len(weeks) < WEEKS:
+            weeks = [0]*(WEEKS-len(weeks)) + weeks
         max_val = max(weeks) or 1
-        row_cells = []
+        cells = []
         for w in weeks:
-            ratio = w / max_val if max_val > 0 else 0.0
-            idx = int(round(ratio * (len(SHADES) - 1)))
-            idx = max(0, min(len(SHADES) - 1, idx))
-            row_cells.append(SHADES[idx])
-        vis_name = repo
-        if len(vis_name) > label_w:
-            vis_name = vis_name[: label_w - 1] + "…"
+            ratio = w / max_val if max_val else 0
+            idx = int(round(ratio*(len(SHADES)-1)))
+            idx = max(0, min(len(SHADES)-1, idx))
+            cells.append(SHADES[idx])
+        name = repo
+        if len(name) > label_w:
+            name = name[:label_w-1] + "…"
         else:
-            vis_name = vis_name.ljust(label_w)
-        # each week is one character (no spaces) to match the plot columns
-        lines.append(f"{vis_name}{''.join(row_cells)}")
-    legend = " " * label_w + " " + " ".join(SHADES[1:]) + "  (low→high)"
+            name = name.ljust(label_w)
+        lines.append(f"{name} {' '.join(cells)}")
+    # Legend and time axis (month initials every 4 weeks)
+    legend = " "*label_w + " " + " ".join(SHADES[1:]) + "  (low→high)"
     lines.append(legend)
-
+    now = datetime.now(timezone.utc)
     axis_cells = []
-    for i in range(cols):
+    for i in range(WEEKS):
         if i % 4 == 0:
-            days_back = (cols - 1 - i) * 7
-            dt = now - timedelta(days=days_back)
+            dt = now - timedelta(days=(WEEKS-1-i)*7)
             axis_cells.append(dt.strftime("%b")[0])
         else:
             axis_cells.append(" ")
-    axis_line = " " * label_w + ''.join(axis_cells)
+    axis_line = " "*label_w + " " + " ".join(axis_cells)
     lines.append(axis_line)
     return "\n".join(lines)
 
-
-def _isnum(n):
-    try:
-        return not isnan(float(n))
-    except Exception:
-        return False
-
-
-def plot_with_mean(series, cfg=None) -> str:
-    if not series:
-        return ''
-    if not isinstance(series[0], list):
-        if all(isnan(n) for n in series):
-            return ''
-        else:
-            series = [series]
-    cfg = cfg or {}
-    flattened = [j for sub in series for j in sub]
-    numeric = [x for x in flattened if _isnum(x)]
-    if not numeric:
-        return ''
-    minimum = cfg.get('min', min(numeric))
-    maximum = cfg.get('max', max(numeric))
-    symbols = cfg.get('symbols', ['┼','┤','╶','╴','─','╰','╭','╮','╯','│'])
-    if minimum > maximum:
-        raise ValueError("Min cannot exceed max for plot.")
-    interval = maximum - minimum
-    offset = cfg.get('offset', max(8, len(cfg.get('format', "{:8.1f} ").format(maximum))))
-    height = cfg.get('height', PLOT_HEIGHT)
-    ratio = height / interval if interval > 0 else 1
-    min2 = int(floor(minimum * ratio))
-    max2 = int(ceil(maximum * ratio))
-    def clamp(y):
-        return min(max(y, minimum), maximum)
-    def scaled(y):
-        return int(round(clamp(y) * ratio) - min2)
-    rows = max2 - min2
-    width = max(len(s) for s in series) + offset
-    placeholder = cfg.get('format', "{:8.1f} ")
-    result = [[' '] * width for _ in range(rows + 1)]
-    for y in range(min2, max2 + 1):
-        label = placeholder.format(maximum - ((y - min2) * interval / (rows if rows else 1)))
-        pos = max(offset - len(label), 0)
-        for idx, ch in enumerate(label):
-            if pos + idx < width:
-                result[y - min2][pos + idx] = ch
-        result[y - min2][offset - 1] = symbols[0] if y == 0 else symbols[1]
-    for series_i in series:
-        for x in range(len(series_i) - 1):
-            d0, d1 = series_i[x], series_i[x+1]
-            if not _isnum(d0) and not _isnum(d1):
-                continue
-            if not _isnum(d0) and _isnum(d1):
-                result[rows - scaled(d1)][x + offset] = symbols[2]; continue
-            if _isnum(d0) and not _isnum(d1):
-                result[rows - scaled(d0)][x + offset] = symbols[3]; continue
-            y0, y1 = scaled(d0), scaled(d1)
-            if y0 == y1:
-                result[rows - y0][x + offset] = symbols[4]
-            else:
-                result[rows - y1][x + offset] = symbols[5] if y0 > y1 else symbols[6]
-                result[rows - y0][x + offset] = symbols[7] if y0 > y1 else symbols[8]
-                for y in range(min(y0, y1)+1, max(y0, y1)):
-                    result[rows - y][x + offset] = symbols[9]
-    mean_val = sum(numeric) / len(numeric)
-    try:
-        mean_scaled = scaled(mean_val)
-        mean_row = rows - mean_scaled
-        mean_row = max(0, min(rows, mean_row))
-        for c in range(offset, width):
-            if result[mean_row][c] == ' ':
-                result[mean_row][c] = '┄'
-    except Exception:
-        pass
-    return "\n".join("".join(row).rstrip() for row in result)
-
-
-def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
-    header = (
-        "<pre>\n"
-        "                           ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸   ┏━┓┏━╸┏━┓┏━┓   ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻                           \n"
-        "                           ┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃    ┣┳┛┣╸ ┣━┛┃ ┃   ┣━┫┃   ┃ ┃┃┏┛┃ ┃ ┗┳┛                           \n"
-        "                           ╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹    ╹┗╸┗━╸╹  ┗━┛   ╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹                            \n"
-        "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔\n\n"
-    )
-    ascii_table = ascii_table or ""
-    contrib_grid = contrib_grid or ""
-    ascii_plot = ascii_plot or ""
-    body = f"{ascii_table}\n\n\n{contrib_grid}\n\n\n{ascii_plot}\n</pre>\n"
-    return header + body
-
-
-def main() -> None:
-    token = auth_token()
-    try:
-        all_repos = fetch_repos_for_user(token=token)
-    except Exception as e:
-        print("Failed to fetch repositories:", e, file=sys.stderr)
-        sys.exit(1)
-
-    public_repos = [r for r in all_repos if not r.get("private")]
-    private_repos = [r for r in all_repos if r.get("private")]
-
-    if private_repos and token:
-        count_public = max(0, TOP_N - 1)
-    else:
-        count_public = TOP_N
-    top_public = public_repos[:count_public]
-
+def build_rows_for_table(repos: List[dict], token: str=None) -> List[dict]:
+    """Construct the rows for the summary table (public repos only)."""
     rows = []
-    for repo in top_public:
-        owner = repo["owner"]["login"]
-        name = repo["name"]
-        html_url = repo.get("html_url", f"https://github.com/{owner}/{name}")
+    for repo in repos:
+        owner = repo["owner"]["login"]; name = repo["name"]
+        html_url = repo.get("html_url","")
         langs = fetch_languages(owner, name, token)
         total_bytes = sum(langs.values()) if langs else 0
-        if langs and total_bytes > 0:
-            top_lang, top_bytes = sorted(langs.items(), key=lambda x: x[1], reverse=True)[0]
-            pct = (top_bytes / total_bytes) * 100 if total_bytes else 0
+        lang_label = "Unknown (0%)"
+        if langs and total_bytes>0:
+            top_lang, top_bytes = max(langs.items(), key=lambda x: x[1])
+            pct = (top_bytes/total_bytes)*100
             lang_label = f"{top_lang} ({pct:.0f}%)"
-        else:
-            lang_label = "Unknown (0%)"
-        commits = get_commit_count(owner, name, token=token)
-        branches = get_branch_count(owner, name, token=token)
-        last_commit = repo.get("pushed_at", "")
+        commits = get_commit_count(owner, name, token)
+        branches = get_branch_count(owner, name, token)
+        last = repo.get("pushed_at","")
         try:
-            if last_commit:
-                last_commit = last_commit.rstrip("Z")
-                last_commit = datetime.fromisoformat(last_commit).strftime("%Y-%m-%d")
+            if last:
+                last = last.rstrip("Z")
+                last = datetime.fromisoformat(last).strftime("%Y-%m-%d")
         except Exception:
             pass
         rows.append({
@@ -419,105 +291,231 @@ def main() -> None:
             "language": lang_label,
             "size": total_bytes,
             "commits": commits,
-            "last_commit": last_commit,
+            "last_commit": last,
             "branches": branches
         })
+    return rows
 
-    ascii_table, table_width, table_height = make_ascii_table_with_links(rows, max_width=MAX_COLUMNS)
-    print(f"Table built: width={table_width}, height={table_height}")
+def plot_with_mean(series, cfg=None) -> str:
+    """ASCII line plot of a series (or multiple series) with a dotted mean line."""
+    if not series:
+        return ""
+    if not isinstance(series[0], list):
+        if all(isnan(x) for x in series):
+            return ""
+        series = [series]
+    # Flatten for scale calculations
+    flat = [x for s in series for x in s if not isnan(x)]
+    if not flat:
+        return ""
+    cfg = cfg or {}
+    minimum = cfg.get('min', min(flat))
+    maximum = cfg.get('max', max(flat))
+    symbols = cfg.get('symbols', ['┼','┤','╶','╴','─','╰','╭','╮','╯','│'])
+    interval = maximum - minimum
+    offset = cfg.get('offset', max(8, len(cfg.get('format',PLOT_FORMAT).format(maximum))))
+    height = cfg.get('height', PLOT_HEIGHT)
+    ratio = height / interval if interval else 1
+    min2 = int(floor(minimum*ratio))
+    max2 = int(ceil(maximum*ratio))
+    def clamp(x): return min(max(x, minimum), maximum)
+    def scaled(y): return int(round(clamp(y)*ratio) - min2)
+    rows = max2 - min2
+    width = max(len(s) for s in series) + offset
+    result = [[' ']*width for _ in range(rows+1)]
+    # Y-axis labels
+    for y in range(min2, max2+1):
+        label = cfg.get('format',PLOT_FORMAT).format(maximum - ((y-min2)*interval/(rows if rows else 1)))
+        pos = max(offset - len(label), 0)
+        line_idx = y - min2
+        for idx,ch in enumerate(label):
+            if pos+idx < width:
+                result[line_idx][pos+idx] = ch
+        result[line_idx][offset-1] = symbols[0] if y==0 else symbols[1]
+    # First point marker
+    try:
+        if not isnan(series[0][0]):
+            result[rows-scaled(series[0][0])][offset-1] = symbols[0]
+    except:
+        pass
+    # Plot lines
+    for s in series:
+        for x in range(len(s)-1):
+            d0 = s[x]; d1 = s[x+1]
+            if isnan(d0) and isnan(d1):
+                continue
+            if isnan(d0):
+                result[rows-scaled(d1)][x+offset] = symbols[2]; continue
+            if isnan(d1):
+                result[rows-scaled(d0)][x+offset] = symbols[3]; continue
+            y0 = scaled(d0); y1 = scaled(d1)
+            if y0 == y1:
+                result[rows-y0][x+offset] = symbols[4]
+                continue
+            result[rows-y1][x+offset] = symbols[5] if y0>y1 else symbols[6]
+            result[rows-y0][x+offset] = symbols[7] if y0>y1 else symbols[8]
+            for yy in range(min(y0,y1)+1, max(y0,y1)):
+                result[rows-yy][x+offset] = symbols[9]
+    # Dotted mean line
+    mean_val = sum(flat)/len(flat)
+    try:
+        mean_scaled = scaled(mean_val)
+        mean_row = max(0, min(rows, rows-mean_scaled))
+        for c in range(offset, width):
+            if result[mean_row][c] == ' ':
+                result[mean_row][c] = '┄'
+    except:
+        pass
+    return "\n".join("".join(row).rstrip() for row in result)
 
-    repo_names = [r["name_text"] for r in rows]
+def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
+    """Combine ASCII components into the final README markdown (inside a <pre> block)."""
+    return (
+        "<pre>\n"
+        f"{ascii_table}\n\n"
+        f"{contrib_grid}\n\n"
+        f"{ascii_plot}\n"
+        "</pre>\n"
+    )
+
+def main():
+    token = auth_token()
+    try:
+        all_repos = fetch_repos_for_user(token=token)
+    except Exception as e:
+        print("Failed to fetch repositories:", e, file=sys.stderr)
+        sys.exit(1)
+
+    # Sort repos by updated time descending
+    all_repos.sort(key=lambda x: x.get("updated_at",""), reverse=True)
+    top_repos = all_repos[:TOP_N]
+    public_repos = [r for r in top_repos if not r.get("private")]
+    private_repos = [r for r in top_repos if r.get("private")]
+
+    # Build table from public repos
+    rows = build_rows_for_table(public_repos, token)
+    ascii_table, ascii_width, ascii_height = make_ascii_table_with_links(rows)
+
+    # If table too wide, truncate repo name column
+    if ascii_width > MAX_WIDTH:
+        top_line = ascii_table.splitlines()[0]
+        segments = top_line.strip('+').split('+')
+        col_widths = [len(seg) for seg in segments]
+        if col_widths:
+            orig_inner0 = col_widths[0] - 2
+            shrink = ascii_width - MAX_WIDTH
+            new_inner0 = max(orig_inner0 - shrink, 10)
+            ascii_table, ascii_width, ascii_height = make_ascii_table_with_links(rows, max_repo_name_width=new_inner0)
+
+    # Fetch weekly commit activity for each public repo in parallel
+    repos_to_query = [r["name_text"] for r in rows]
     repo_weekly: Dict[str, List[int]] = {}
-    print(f"Fetching commit_activity for {len(repo_names)} repos...")
+    print(f"Fetching commit_activity for {len(repos_to_query)} repos...")
     with ThreadPoolExecutor(max_workers=8) as executor:
-        futures = {executor.submit(repo_commit_activity, USERNAME, name, token): name for name in repo_names}
+        futures = {executor.submit(repo_commit_activity, USERNAME, repo, token): repo for repo in repos_to_query}
         for fut in as_completed(futures):
-            name = futures[fut]
+            repo = futures[fut]
             try:
                 weeks = fut.result() or [0]*WEEKS
-                if len(weeks) < WEEKS:
-                    weeks = [0] * (WEEKS - len(weeks)) + weeks
-                repo_weekly[name] = weeks
-                print(f"  commit_activity fetched for {name}")
-            except Exception as e:
-                print(f"  commit_activity failed for {name}: {e}", file=sys.stderr)
-                repo_weekly[name] = [0] * WEEKS
-
-    repo_order: List[str] = list(repo_names)
-    if private_repos and token:
-        print(f"Aggregating {len(private_repos)} private repos as 'restricted'...")
-        agg_weekly = [0] * WEEKS
-        for repo in private_repos:
-            owner = repo["owner"]["login"]
-            name = repo["name"]
-            weeks = repo_commit_activity(owner, name, token=token) or [0]*WEEKS
+            except Exception:
+                weeks = [0]*WEEKS
             if len(weeks) < WEEKS:
-                weeks = [0] * (WEEKS - len(weeks)) + weeks
-            for i, v in enumerate(weeks):
-                agg_weekly[i] += v
-        repo_weekly["restricted"] = agg_weekly
-        repo_order.append("restricted")
+                weeks = [0]*(WEEKS-len(weeks)) + weeks
+            repo_weekly[repo] = weeks
 
-    weekly_totals: List[float] = [0.0] * WEEKS
-    for name in repo_order:
-        weeks = repo_weekly.get(name, [0]*WEEKS)
+    # Aggregate private repos into one "restricted" series
+    if private_repos and token:
+        print(f"Aggregating {len(private_repos)} private repos into '{RESTRICTED_NAME}'")
+        agg_weeks = [0]*WEEKS
+        for repo in private_repos:
+            owner = repo["owner"]["login"]; name = repo["name"]
+            weeks = repo_commit_activity(owner, name, token)
+            if not weeks:
+                weeks = [0]*WEEKS
+            if len(weeks) < WEEKS:
+                weeks = [0]*(WEEKS-len(weeks)) + weeks
+            for i, val in enumerate(weeks):
+                agg_weeks[i] += val
+        repo_weekly[RESTRICTED_NAME] = agg_weeks
+        repo_order = repos_to_query + [RESTRICTED_NAME]
+    else:
+        repo_order = repos_to_query
+
+    contrib_grid = build_contrib_grid(repo_weekly, repo_order)
+
+    # Build aggregated weekly totals for all repos
+    weekly_totals = [0.0]*WEEKS
+    for weeks in repo_weekly.values():
         if len(weeks) < WEEKS:
-            weeks = [0]*(WEEKS - len(weeks)) + weeks
+            weeks = [0]*(WEEKS-len(weeks)) + weeks
         for i, v in enumerate(weeks):
             weekly_totals[i] += float(v)
 
-    # prepare scaled_series and offset label width BEFORE building heatmap so they align
-    if not any(weekly_totals):
-        offset_len = 9
-        scaled_series = [0.0] * WEEKS
-        scale_suffix = ""
-    else:
-        max_val = max(weekly_totals)
-        if max_val >= 1_000_000:
-            scale = 1_000_000.0; scale_suffix = "M"; dec_places = 1
-        elif max_val >= 1_000:
-            scale = 1_000.0; scale_suffix = "K"; dec_places = 1
-        else:
-            scale = 1.0; scale_suffix = ""; dec_places = 1
-        scaled_series = [v / scale for v in weekly_totals]
-        fmt_w = 7
-        fmt_template = f"{{:{fmt_w}.{dec_places}f}} "
-        # offset_len uses the formatted label length (ensures space for full y-axis labels)
-        offset_len = len(fmt_template.format(max(scaled_series or [0.0])))
-
-    label_w_for_heatmap = max(6, min(28, offset_len - 1))
-    contrib_grid = build_contrib_grid(repo_weekly, repo_order, label_w_override=label_w_for_heatmap)
-
-    if not any(weekly_totals):
+    # Build the line chart series (2 columns per week)
+    if not weekly_totals or all(v==0 for v in weekly_totals):
         ascii_plot = "(no activity data)"
     else:
-        offset_len_local = offset_len
-        required_width = offset_len_local + len(scaled_series)
-        if required_width > table_width:
-            max_points = max(6, table_width - offset_len_local - 1)
-            scaled_series = scaled_series[-max_points:]
-        label_format = fmt_template
-        cfg = {"height": PLOT_HEIGHT, "format": label_format, "offset": offset_len_local}
-        ascii_plot_body = plot_with_mean(scaled_series, cfg)
+        series_points = []
+        for w in weekly_totals:
+            series_points += [w, w]  # duplicate for 2 columns/week
+        mean = sum(series_points)/len(series_points)
+        centered = [x - mean for x in series_points]
+        max_abs = max(abs(x) for x in centered)
+        # Scale units to K/M if needed
+        if max_abs >= 1_000_000:
+            scale, suffix = 1_000_000.0, "M"
+        elif max_abs >= 1_000:
+            scale, suffix = 1_000.0, "K"
+        else:
+            scale, suffix = 1.0, ""
+        scaled_series = [x/scale for x in centered]
+        target_len = WEEKS * 2
+        if len(scaled_series) != target_len:
+            if len(scaled_series) > target_len:
+                scaled_series = scaled_series[-target_len:]
+            else:
+                scaled_series = [0.0]*(target_len-len(scaled_series)) + scaled_series
 
+        # Adjust format to fit width
+        fmt_w, fmt_p = 7, 1
+        label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
+        offset_len = len(label_fmt.format(0.0))
+        req_w = offset_len + len(scaled_series) + 1
+        while req_w > ascii_width and fmt_p > 0:
+            fmt_p -= 1
+            label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
+            offset_len = len(label_fmt.format(0.0))
+            req_w = offset_len + len(scaled_series) + 1
+        while req_w > ascii_width and fmt_w > 4:
+            fmt_w -= 1
+            label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
+            offset_len = len(label_fmt.format(0.0))
+            req_w = offset_len + len(scaled_series) + 1
+        if req_w > ascii_width:
+            max_pts = max(6, ascii_width - offset_len - 1)
+            scaled_series = scaled_series[-max_pts:]
+            req_w = offset_len + len(scaled_series) + 1
+
+        cfg = {"height": PLOT_HEIGHT, "format": label_fmt, "offset": offset_len}
+        ascii_body = plot_with_mean(scaled_series, cfg)
+        # Append x-axis (month initials)
+        axis_labels = []
         now = datetime.now(timezone.utc)
-        axis_cells = []
-        for i in range(len(scaled_series)):
-            weeks_back = (len(scaled_series) - 1 - i)
-            days_back = weeks_back * 7
-            dt = now - timedelta(days=days_back)
-            axis_cells.append(dt.strftime("%b")[0] if (i % 4 == 0) else " ")
-        axis_line = " " * offset_len_local + ''.join(axis_cells)
-        label_line = f"Activity (weekly commits{' /' + scale_suffix if scale_suffix else ''}; 1 col = 1 week; dotted = mean):"
-        ascii_plot = label_line + "\n" + ascii_plot_body + "\n" + axis_line
+        for i in range(WEEKS):
+            if i % 4 == 0:
+                dt = now - timedelta(days=(WEEKS-1-i)*7)
+                axis_labels.append(dt.strftime("%b")[0])
+            else:
+                axis_labels.append(" ")
+        axis_line = " " * offset_len + "".join(ch+" " for ch in axis_labels)
+        ascii_plot = f"Activity (weekly commits / {suffix}; 2 cols = 1 week; dotted = mean):\n" \
+                     + ascii_body + "\n" + axis_line
 
+    # Write the README
     readme = build_readme(ascii_table, contrib_grid, ascii_plot)
-    if readme is None:
-        readme = ""
     with open("README.md", "w", encoding="utf-8") as fh:
         fh.write(readme)
     print("README.md updated.")
-
 
 if __name__ == "__main__":
     main()
