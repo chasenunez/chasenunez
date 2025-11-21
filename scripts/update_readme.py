@@ -81,7 +81,7 @@ def fetch_repos_for_user(token: str=None) -> List[dict]:
 def _retry_stats_get(url: str, token: str=None) -> Optional[requests.Response]:
     """Retry wrapper for /stats endpoints (which may return 202 if data is not cached)."""
     attempt = 0
-    while attempt < 3:
+    while attempt < 5:
         try:
             r = gh_get(url, token=token)
         except requests.HTTPError:
@@ -385,10 +385,10 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
         f"                                  Most Recently Active Repositories                                 \n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"                                                                                                               
         f"{ascii_table}\n\n\n"
-        f"                          Commit Density For Recently Active Repositories                           \n\n"
+        f"                          Commit Density For Recently Active Repositories                           \n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"{contrib_grid}\n\n\n"
-        f"                       Weekly Commit Distribution Relative To Long-Term Mean                        \n\n"
+        f"                       Weekly Commit Distribution Relative To Long-Term Mean                        \n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"{ascii_plot}\n"
         "</pre>\n"
