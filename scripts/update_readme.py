@@ -381,6 +381,11 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
     """Combine ASCII components into the final README markdown (inside a <pre> block)."""
     return (
         "<pre>\n"
+        #f"Recent Repository Activity"
+        f"▗▄▄▖ ▗▄▄▄▖ ▗▄▄▖▗▄▄▄▖▗▖  ▗▖▗▄▄▄▖    ▗▄▄▖ ▗▄▄▄▖▗▄▄▖  ▗▄▖  ▗▄▄▖▗▄▄▄▖▗▄▄▄▖▗▄▖ ▗▄▄▖▗▖  ▗▖     ▗▄▖  ▗▄▄▖▗▄▄▄▖▗▄▄▄▖▗▖  ▗▖▗▄▄▄▖▗▄▄▄▖▗▖  ▗▖\n"
+        f"▐▌ ▐▌▐▌   ▐▌   ▐▌   ▐▛▚▖▐▌  █      ▐▌ ▐▌▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌     █    █ ▐▌ ▐▌▐▌ ▐▌▝▚▞▘     ▐▌ ▐▌▐▌     █    █  ▐▌  ▐▌  █    █   ▝▚▞▘ \n"
+        f"▐▛▀▚▖▐▛▀▀▘▐▌   ▐▛▀▀▘▐▌ ▝▜▌  █      ▐▛▀▚▖▐▛▀▀▘▐▛▀▘ ▐▌ ▐▌ ▝▀▚▖  █    █ ▐▌ ▐▌▐▛▀▚▖ ▐▌      ▐▛▀▜▌▐▌     █    █  ▐▌  ▐▌  █    █    ▐▌  \n"
+        f"▐▌ ▐▌▐▙▄▄▖▝▚▄▄▖▐▙▄▄▖▐▌  ▐▌  █      ▐▌ ▐▌▐▙▄▄▖▐▌   ▝▚▄▞▘▗▄▄▞▘▗▄█▄▖  █ ▝▚▄▞▘▐▌ ▐▌ ▐▌      ▐▌ ▐▌▝▚▄▄▖  █  ▗▄█▄▖ ▝▚▞▘ ▗▄█▄▖  █    ▐▌  \n"                                                                                                                         
         f"{ascii_table}\n\n"
         f"{contrib_grid}\n\n"
         f"{ascii_plot}\n"
