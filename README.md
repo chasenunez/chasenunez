@@ -7,55 +7,52 @@
 +--------------------+-------------------+-------------+---------------+---------------------+----------+
 |     Repository     |   Main Language   | Total Bytes | Total Commits | Date of Last Commit | Branches |
 +--------------------+-------------------+-------------+---------------+---------------------+----------+
-|     <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>     |   Python (100%)   |    27916    |      163      |      2025-11-20     |    1     |
+|     <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>        Python (100%)   |    25498    |      168      |     2025-11-21      |    1     |
 +--------------------+-------------------+-------------+---------------+---------------------+----------+
-|     <a href="https://github.com/chasenunez/asciichart">asciichart</a>     |    Python (44%)   |    23203    |      303      |      2025-11-18     |    1     |
+|     <a href="https://github.com/chasenunez/asciichart">asciichart</a>        Python (44%)    |    23203    |      303      |     2025-11-18      |    1     |
 +--------------------+-------------------+-------------+---------------+---------------------+----------+
-|      <a href="https://github.com/chasenunez/data_HUD">data_HUD</a>      |  JavaScript (69%) |    17069    |       58      |      2025-11-19     |    1     |
+|      <a href="https://github.com/chasenunez/data_HUD">data_HUD</a>       JavaScript (69%)  |    17069    |      58       |     2025-11-19      |    1     |
 +--------------------+-------------------+-------------+---------------+---------------------+----------+
-|  <a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>  |    HTML (100%)    |   19469805  |       18      |      2025-11-19     |    1     |
+|  <a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>      HTML (100%)    |  19469805   |      18       |     2025-11-19      |    1     |
 +--------------------+-------------------+-------------+---------------+---------------------+----------+
-|   <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>   |   Python (100%)   |     9464    |      121      |      2025-11-19     |    1     |
+|   <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>      Python (100%)   |    9464     |      121      |     2025-11-19      |    1     |
 +--------------------+-------------------+-------------+---------------+---------------------+----------+
-|   <a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>    |   Python (100%)   |    25489    |       48      |      2025-11-19     |    1     |
+|   <a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>       Python (100%)   |    25489    |      48       |     2025-11-19      |    1     |
 +--------------------+-------------------+-------------+---------------+---------------------+----------+
-|    <a href="https://github.com/chasenunez/byos_django">byos_django</a>     |    Python (87%)   |    38825    |       7       |      2025-04-28     |    1     |
+|    <a href="https://github.com/chasenunez/byos_django">byos_django</a>        Python (87%)    |    38825    |       7       |     2025-04-28      |    1     |
 +--------------------+-------------------+-------------+---------------+---------------------+----------+
-|       <a href="https://github.com/chasenunez/trmnlp">trmnlp</a>       |  JavaScript (47%) |    88360    |      134      |      2025-08-26     |    1     |
+|       <a href="https://github.com/chasenunez/trmnlp">trmnlp</a>        JavaScript (47%)  |    88360    |      134      |     2025-08-26      |    1     |
 +--------------------+-------------------+-------------+---------------+---------------------+----------+
-| <a href="https://github.com/chasenunez/contribution_chart">contribution_chart</a> | TypeScript (100%) |    181371   |      213      |      2025-09-13     |    1     |
-+--------------------+-------------------+-------------+---------------+---------------------+----------+
-|  <a href="https://github.com/chasenunez/recursive_shrink">recursive_shrink</a>  |    Shell (100%)   |     2036    |       7       |      2025-09-16     |    1     |
+| <a href="https://github.com/chasenunez/contribution_chart">contribution_chart</a>  TypeScript (100%) |   181371    |      213      |     2025-09-13      |    1     |
 +--------------------+-------------------+-------------+---------------+---------------------+----------+
 
 
-chasenunez                                                                                         █ ░
+chasenunez                                                                                         █ ▒
 asciichart             █                                                                              
-data_HUD                                                                                         █ ▓  
-envidat_entrails                                                                             ▒ ▒ █    
+data_HUD                                                                                              
+envidat_entrails                                                                                      
 DEVO_validator                                                             █ ░ ▒ ░                   ░
-DEVO_enricher                                                                      █                 ▒
+DEVO_enricher                                                                                         
 byos_django          █ ░                   ▓                                                          
 trmnlp                         ▒ ▒   █ ▒         ░         ▒   ░                                      
 contribution_chart           █                                     ░         ░   ░                    
-recursive_shrink                                                                 █                    
-restricted                                                                 ░ ░ ▒ █ ▓ ▒ ▓ █ ▒ ▓ ▒ ▓ ░ ░
-                   ░ ▒ ▓ █  (low->high)
+restricted                                                                     ▒ █                    
+                   ░ ▒ ▓ █  (low→high)
                    F       M       A       M       M       J       J       A       S       O       N  
 
 
-Activity (weekly bytes; 2 columns = 1 week; dotted line = long-term mean):
-Activity (weekly bytes / M; 2 cols = 1 week; dotted = mean):
-  169.7┤                                                                               ╭─╮
-  153.8┼                                                                               │ │
-  137.9┤                                                                               │ │
-  122.0┤                                                                               │ │
-  106.2┤                                                                               │ │
-   90.3┤                                                                               │ │
-   74.4┤                                                                               │ │
-   58.5┤                                                                               │ │
-   42.7┤                                                                               │ │
-   26.8┤       ╭─╮                                                                     │ │
-   10.9┼───────╯┄╰─────────────────────────────────────────────────────────────────────╯┄╰─┄
-   -5.0┤
+Activity (weekly commits; 1 col = 1 week; dotted = mean):
+  156.5┤
+  140.7┼                              ╭╮
+  125.0┤                              ││
+  109.3┤                              ││
+   93.6┤                              ││       ╭╮
+   77.8┤                              ││       ││
+   62.1┤                             ╭╯│       ││
+   46.4┤                           ╭╮│ │       ││
+   30.7┤                           │││ │       │╰
+   14.9┤        ╭╮                 │││ │       │
+   -0.8┤┄┄┄┄╭──╮│╰╮┄┄┄╭╮┄┄┄╭╮╭╮┄┄┄┄│╰╯┄│╭╮┄┄┄╭╮│┄┄
+  -16.5┤────╯  ╰╯ ╰───╯╰───╯╰╯╰────╯   ╰╯╰───╯╰╯
+         F       M       A       M       M       J       J       A       S       O       N  
 </pre>
