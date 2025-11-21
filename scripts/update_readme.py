@@ -382,7 +382,7 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
     return (
         "<pre>\n"
         #f"Recent Repository Activity"
-        f"                                    Ten Most Recently Active Repositories                                    \n\n"                                                                                                               
+        f"                                      Most Recently Active Repositories                                      \n\n"                                                                                                               
         f"{ascii_table}\n\n"
         f"                               Commit Density For Recently Active Repositories                               \n\n"
         f"{contrib_grid}\n\n"
