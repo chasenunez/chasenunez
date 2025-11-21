@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
 Enhanced update_readme.py with fixes for private repos, heatmap data, and chart width.
+Align heatmap and line chart x-axes by using a global left margin.
+Ensure line chart y-axis runs from 0 to max (no negative values).
 """
 import os, sys, time, re
 from datetime import datetime, timezone, timedelta
@@ -65,7 +67,7 @@ def _get_paginated(url: str, params: dict=None, token: str=None) -> List[dict]:
 def fetch_repos_for_user(token: str=None) -> List[dict]:
     """
     Fetch all repositories visible to the user.
-    Using /user/repos (authenticated) returns both public and private repos:contentReference[oaicite:2]{index=2}.
+    Using /user/repos (authenticated) returns both public and private repos.
     """
     if token:
         url = f"{GITHUB_API}/user/repos"
@@ -93,7 +95,7 @@ def _retry_stats_get(url: str, token: str=None) -> Optional[requests.Response]:
 
 def repo_commit_activity(owner: str, repo: str, token: str=None) -> List[int]:
     """
-    Get weekly commit counts for the repo (last up to 52 weeks):contentReference[oaicite:3]{index=3}.
+    Get weekly commit counts for the repo (last up to 52 weeks).
     Returns a list of length WEEKS (oldest->newest).
     """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/commit_activity"
@@ -223,13 +225,20 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int=None)
     table_str = "\n".join(lines)
     return table_str, len(top_line), len(lines)
 
-def build_contrib_grid(repo_weekly: Dict[str,List[int]], repo_order: List[str]) -> str:
+def build_contrib_grid(repo_weekly: Dict[str,List[int]], repo_order: List[str], label_w: Optional[int]=None) -> Tuple[str,int]:
     """
     Build an ASCII heat map (rows = repos, cols = weeks) using SHADES.
     Each row is scaled so that its max maps to '█'.
+    Returns (grid_string, label_w_used).
+    If label_w is provided, use it; otherwise compute the label width (min 10, max 28).
     """
-    label_w = max(10, max((len(r) for r in repo_order), default=10))
-    label_w = min(label_w, 28)
+    # compute label width if not provided
+    if label_w is None:
+        label_w = max(10, max((len(r) for r in repo_order), default=10))
+        label_w = min(label_w, 28)
+    else:
+        # ensure within reasonable bounds
+        label_w = max(10, min(label_w, 28))
     lines = []
     for repo in repo_order:
         weeks = repo_weekly.get(repo, [0]*WEEKS)
@@ -261,7 +270,7 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]], repo_order: List[str]) 
             axis_cells.append(" ")
     axis_line = " "*label_w + " " + " ".join(axis_cells)
     lines.append(axis_line)
-    return "\n".join(lines)
+    return "\n".join(lines), label_w
 
 def build_rows_for_table(repos: List[dict], token: str=None) -> List[dict]:
     """Construct the rows for the summary table (public repos only)."""
@@ -441,7 +450,9 @@ def main():
     else:
         repo_order = repos_to_query
 
-    contrib_grid = build_contrib_grid(repo_weekly, repo_order)
+    # --- ALIGNMENT PREP: compute native heatmap label width (without yet rendering)
+    native_label_w = max(10, max((len(r) for r in repo_order), default=10))
+    native_label_w = min(native_label_w, 28)
 
     # Build aggregated weekly totals for all repos
     weekly_totals = [0.0]*WEEKS
@@ -454,51 +465,66 @@ def main():
     # Build the line chart series (2 columns per week)
     if not weekly_totals or all(v==0 for v in weekly_totals):
         ascii_plot = "(no activity data)"
+        # With no activity, still build the heatmap with the native label width computed above
+        contrib_grid, used_label_w = build_contrib_grid(repo_weekly, repo_order, label_w=native_label_w)
     else:
+        # create duplicated columns (2 columns per week)
         series_points = []
         for w in weekly_totals:
             series_points += [w, w]  # duplicate for 2 columns/week
-        mean = sum(series_points)/len(series_points)
-        centered = [x - mean for x in series_points]
-        max_abs = max(abs(x) for x in centered)
+
+        # Plot absolute counts from 0..max (no centering)
+        raw_max = max(series_points) if series_points else 0.0
         # Scale units to K/M if needed
-        if max_abs >= 1_000_000:
+        if raw_max >= 1_000_000:
             scale, suffix = 1_000_000.0, "M"
-        elif max_abs >= 1_000:
+        elif raw_max >= 1_000:
             scale, suffix = 1_000.0, "K"
         else:
             scale, suffix = 1.0, ""
-        scaled_series = [x/scale for x in centered]
-        target_len = WEEKS * 2
-        if len(scaled_series) != target_len:
-            if len(scaled_series) > target_len:
-                scaled_series = scaled_series[-target_len:]
-            else:
-                scaled_series = [0.0]*(target_len-len(scaled_series)) + scaled_series
+        scaled_series = [x/scale for x in series_points]
+        maximum_scaled = max(scaled_series) if scaled_series else 0.0
+        if maximum_scaled <= 0:
+            maximum_scaled = 1.0
 
-        # Adjust format to fit width
+        # Figure out numeric label format so that y-axis labels fit
         fmt_w, fmt_p = 7, 1
         label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
-        offset_len = len(label_fmt.format(0.0))
+        # Compute offset_len from the *maximum* label, to ensure space for largest label
+        offset_len = len(label_fmt.format(maximum_scaled))
         req_w = offset_len + len(scaled_series) + 1
+
+        # Try to reduce precision/width to fit ascii_table width (ascii_width)
+        # We'll compute left later considering heatmap; for now use ascii_width as constraint
         while req_w > ascii_width and fmt_p > 0:
             fmt_p -= 1
             label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
-            offset_len = len(label_fmt.format(0.0))
+            offset_len = len(label_fmt.format(maximum_scaled))
             req_w = offset_len + len(scaled_series) + 1
         while req_w > ascii_width and fmt_w > 4:
             fmt_w -= 1
             label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
-            offset_len = len(label_fmt.format(0.0))
+            offset_len = len(label_fmt.format(maximum_scaled))
             req_w = offset_len + len(scaled_series) + 1
         if req_w > ascii_width:
+            # Trim rightmost points to fit
             max_pts = max(6, ascii_width - offset_len - 1)
             scaled_series = scaled_series[-max_pts:]
             req_w = offset_len + len(scaled_series) + 1
 
-        cfg = {"height": PLOT_HEIGHT, "format": label_fmt, "offset": offset_len}
+        # Now compute the global left margin to align heatmap and plot:
+        # heatmap first data column index would be (label_w + 1)
+        # Ensure left >= offset_len and left >= native_label_w + 1
+        left = max(offset_len, native_label_w + 1)
+        # Build the heatmap using label_w = left - 1 so first data column lines up with left
+        used_label_w = left - 1
+        contrib_grid, _ = build_contrib_grid(repo_weekly, repo_order, label_w=used_label_w)
+
+        # Prepare plot config, forcing min=0 and max=maximum_scaled
+        cfg = {"height": PLOT_HEIGHT, "format": label_fmt, "offset": left, "min": 0.0, "max": maximum_scaled}
         ascii_body = plot_with_mean(scaled_series, cfg)
-        # Append x-axis (month initials)
+
+        # Append x-axis (month initials). We need axis to match duplicated columns (one char + space per week -> 2 chars)
         axis_labels = []
         now = datetime.now(timezone.utc)
         for i in range(WEEKS):
@@ -507,9 +533,13 @@ def main():
                 axis_labels.append(dt.strftime("%b")[0])
             else:
                 axis_labels.append(" ")
-        axis_line = " " * offset_len + "".join(ch+" " for ch in axis_labels)
+        axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
         ascii_plot = f"Activity (weekly commits / {suffix}; 2 cols = 1 week; dotted = mean):\n" \
                      + ascii_body + "\n" + axis_line
+
+    # If ascii_plot was the no-activity case, we already built contrib_grid above.
+    if 'contrib_grid' not in locals():
+        contrib_grid, used_label_w = build_contrib_grid(repo_weekly, repo_order, label_w=native_label_w)
 
     # Write the README
     readme = build_readme(ascii_table, contrib_grid, ascii_plot)
