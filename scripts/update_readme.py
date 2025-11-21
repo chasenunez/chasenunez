@@ -14,7 +14,7 @@ import requests
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
 TOP_N = 10            # Number of top repositories to include (including private)
-WEEKS = 52            # Number of weeks to show in charts
+WEEKS = 42            # Number of weeks to show in charts
 MAX_WIDTH = 110       # Max characters wide for all figures (table, heatmap, plot)
 RESTRICTED_NAME = "restricted"
 AVG_BYTES_PER_LINE = 40.0
@@ -534,7 +534,6 @@ def main():
             else:
                 axis_labels.append(" ")
         axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
-        ascii_plot = f"Activity (weekly commits / {suffix}; 2 cols = 1 week; dotted = mean):\n" \
                      + ascii_body + "\n" + axis_line
 
     # If ascii_plot was the no-activity case, we already built contrib_grid above.
