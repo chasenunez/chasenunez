@@ -427,13 +427,13 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
         "                           ╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹    ╹┗╸┗━╸╹  ┗━┛   ╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹                            \n"
         "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔\n\n"
     )
-    return (
-        header
-        f"{ascii_table}\n\n\n"
-        f"{contrib_grid}\n\n\n"
-        f"{ascii_plot}\n"
-        "</pre>\n"
-    )
+    # return (
+    #     header
+    #     f"{ascii_table}\n\n\n"
+    #     f"{contrib_grid}\n\n\n"
+    #     f"{ascii_plot}\n"
+    #     "</pre>\n"
+    # )
 
 def main() -> None:
     token = auth_token()
