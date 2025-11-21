@@ -14,7 +14,7 @@ import requests
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
 TOP_N = 10            # Number of top repositories to include (including private)
-WEEKS = 42            # Number of weeks to show in charts
+WEEKS = 52            # Number of weeks to show in charts
 MAX_WIDTH = 110       # Max characters wide for all figures (table, heatmap, plot)
 RESTRICTED_NAME = "restricted"
 AVG_BYTES_PER_LINE = 40.0
