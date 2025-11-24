@@ -396,7 +396,6 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
         a = "Most Recently Active Repositories"
         b = "Commit Density For Recently Active Repositories"
         c = "Weekly Commit Distribution Relative To Long-Term Mean"
-    """Combine ASCII components into the final README markdown (inside a <pre> block)."""
     return (
         "<pre>\n"
         #print(f"{a: ^{MAX_WIDTH}}\n")
