@@ -288,8 +288,10 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]], repo_order: List[str], 
     axis_line = " " * label_w + " " + " ".join(axis_cells)
     lines.append(axis_line)
     # Legend and time axis (month initials every 4 weeks)
-    legend = " "*label_w + " " + " ".join(SHADES) + "  (low→high)"
-    lines.append(legend)
+    legend = "low "*label_w + " " + " ".join(SHADES) + "  high"
+    legend_centered = legend_text.center(MAX_WIDTH)
+    lines.append("") #adding some space
+    lines.append(legend_centered)
     return "\n".join(lines), label_w
 
 def build_rows_for_table(repos: List[dict], token: str=None) -> List[dict]:
