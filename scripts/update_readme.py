@@ -399,9 +399,7 @@ def plot_with_mean(series, cfg=None) -> str:
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
     """Combine ASCII components into the final README markdown (inside a <pre> block)."""
     return (
-
         "<pre>\n"
-        #print(f"{a: ^{MAX_WIDTH}}\n")
         f"{HEADERA: {MAX_WIDTH}}\n"
         f"{LINE:━{MAX_WIDTH}}\n\n"                                                                                                               
         f"{ascii_table}\n\n\n"
