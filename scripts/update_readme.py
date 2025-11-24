@@ -393,18 +393,21 @@ def plot_with_mean(series, cfg=None) -> str:
     return "\n".join("".join(row).rstrip() for row in result)
 
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
+        a = "Most Recently Active Repositories"
+        b = "Commit Density For Recently Active Repositories"
+        c = "Weekly Commit Distribution Relative To Long-Term Mean"
     """Combine ASCII components into the final README markdown (inside a <pre> block)."""
     return (
         "<pre>\n"
-        #f"Recent Repository Activity"
-        f"{"Most Recently Active Repositories": ^MAX_WIDTH}\n"
-        f"{:━^MAX_WIDTH}\n\n"                                                                                                               
+        #print(f"{a: ^{MAX_WIDTH}}\n")
+        f"{a: {MAX_WIDTH}}\n"
+        f"{:━{MAX_WIDTH}}\n\n"                                                                                                               
         f"{ascii_table}\n\n\n"
-        f"{"Commit Density For Recently Active Repositories": ^MAX_WIDTH}\n"
-        f"{:━^MAX_WIDTH}\n\n" 
+        f"{b: {MAX_WIDTH}}\n"
+        f"{:━{MAX_WIDTH}}\n\n" 
         f"{contrib_grid}\n\n\n"
-        f"{"Weekly Commit Distribution Relative To Long-Term Mean": ^MAX_WIDTH}\n"
-        f"{:━^MAX_WIDTH}\n\n"
+        f"{c: {MAX_WIDTH}}\n"
+        f"{:━{MAX_WIDTH}}\n\n"
         f"{ascii_plot}\n"
         "</pre>\n"
     )
