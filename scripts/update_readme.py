@@ -24,7 +24,7 @@ RESTRICTED_NAME = "restricted"
 AVG_BYTES_PER_LINE = 40.0
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
-SHADES = ["▁", "░", "▒", "▓", "█"]  # For heat map (low→high intensity)
+SHADES = ["□", "░", "▒", "▓", "█"]  # For heat map (low→high intensity)
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
 SESSION.headers.update({
