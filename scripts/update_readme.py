@@ -13,6 +13,9 @@ import requests
 
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
+HEADERA = "Most Recently Active Repositories"
+HEADERB = "Commit Density For Recently Active Repositories"
+HEADERC = "Weekly Commit Distribution Relative To Long-Term Mean"
 TOP_N = 10            # Number of top repositories to include (including private)
 WEEKS = 42            # Number of weeks to show in charts
 MAX_WIDTH = 110       # Max characters wide for all figures (table, heatmap, plot)
@@ -393,19 +396,18 @@ def plot_with_mean(series, cfg=None) -> str:
     return "\n".join("".join(row).rstrip() for row in result)
 
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
-        a = "Most Recently Active Repositories"
-        b = "Commit Density For Recently Active Repositories"
-        c = "Weekly Commit Distribution Relative To Long-Term Mean"
+    """Combine ASCII components into the final README markdown (inside a <pre> block)."""
     return (
+
         "<pre>\n"
         #print(f"{a: ^{MAX_WIDTH}}\n")
-        f"{a: {MAX_WIDTH}}\n"
+        f"{HEADERA: {MAX_WIDTH}}\n"
         f"{:━{MAX_WIDTH}}\n\n"                                                                                                               
         f"{ascii_table}\n\n\n"
-        f"{b: {MAX_WIDTH}}\n"
+        f"{HEADERB: {MAX_WIDTH}}\n"
         f"{:━{MAX_WIDTH}}\n\n" 
         f"{contrib_grid}\n\n\n"
-        f"{c: {MAX_WIDTH}}\n"
+        f"{HEADERC: {MAX_WIDTH}}\n"
         f"{:━{MAX_WIDTH}}\n\n"
         f"{ascii_plot}\n"
         "</pre>\n"
