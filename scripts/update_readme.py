@@ -282,14 +282,14 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]], repo_order: List[str], 
         else:
             name = name.ljust(label_w)
         lines.append(f"{name} {' '.join(cells)}")
-    # Legend and time axis (month initials every 4 weeks)
-    legend = " "*label_w + " " + " ".join(SHADES) + "  (low→high)"
-    lines.append(legend)
     now = datetime.now(timezone.utc)
      # old code that used i % 4 == 0 ...
     axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
     axis_line = " " * label_w + " " + " ".join(axis_cells)
     lines.append(axis_line)
+    # Legend and time axis (month initials every 4 weeks)
+    legend = " "*label_w + " " + " ".join(SHADES) + "  (low→high)"
+    lines.append(legend)
     return "\n".join(lines), label_w
 
 def build_rows_for_table(repos: List[dict], token: str=None) -> List[dict]:
