@@ -252,25 +252,21 @@ def fetch_languages(owner: str, repo: str, token: str=None) -> Dict[str,int]:
 
 from typing import List, Tuple
 
-# Global max total table width (including outer borders)
-MAX_WIDTH = 100  # adjust as needed
-
 def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = None) -> Tuple[str,int,int]:
     """
-    Build a double-line box-drawing table (with HTML links in repo names).
-    The table's TOTAL width (including outer borders) will be adjusted toward MAX_WIDTH
-    while ensuring columns fit content where possible. When shrinking is necessary
-    the Repository column is truncated first (with an ellipsis).
+    Build a double-line box-drawing table. The first column width is fixed to
+    the longest repository visible name (or capped by max_repo_name_width).
+    NOTE: this version uses plain visible repo names (no HTML anchors) so
+    monospace alignment matches raw characters exactly.
     Returns (table_str, table_width, table_height).
     """
-    # Column headers
     cols = ["Repository", "Main Language", "Total Bytes", "Total Commits", "Last Commit Date", "Branches"]
 
-    # Prepare data rows (parallel structure to input 'rows')
+    # Extract visible values
     data_rows = []
     for r in rows:
         data_rows.append([
-            r.get("name_text", ""),
+            r.get("name_text", ""),            # visible repository name
             r.get("language", ""),
             str(r.get("size", "0")),
             str(r.get("commits", "0")),
@@ -278,204 +274,170 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
             str(r.get("branches", "0"))
         ])
 
-    # Compute minimum inner widths (content area, without padding)
-    inner_widths = [len(c) for c in cols]
-    for row in data_rows:
-        for i, cell in enumerate(row):
+    # Determine inner widths: content area only (no padding)
+    # Start from header widths
+    inner_widths = [len(h) for h in cols]
+
+    # Update by content
+    for dr in data_rows:
+        for i, cell in enumerate(dr):
             inner_widths[i] = max(inner_widths[i], len(cell))
 
-    # apply optional cap for repository name column
-    if max_repo_name_width and len(inner_widths) > 0:
-        inner_widths[0] = min(inner_widths[0], max_repo_name_width)
+    # Ensure the first column uses the longest repository name (user requested)
+    if data_rows:
+        longest_repo = max(len(dr[0]) for dr in data_rows)
+        inner_widths[0] = max(inner_widths[0], longest_repo)
 
-    # cell padding (1 left + 1 right)
+    # Apply optional cap for repo column
+    if max_repo_name_width is not None:
+        inner_widths[0] = min(inner_widths[0], max(1, max_repo_name_width))
+
+    # Add padding: 1 left + 1 right
     PAD = 2
-    widths = [w + PAD for w in inner_widths]  # visible cell widths including padding
+    widths = [w + PAD for w in inner_widths]
 
-    # helpers for total width calc:
+    # Helpers for total width (vertical borders between columns add (ncols+1) chars)
     def total_table_width(col_widths: List[int]) -> int:
-        # sum of column widths + (ncols + 1) vertical border characters
         return sum(col_widths) + (len(col_widths) + 1)
 
     target_total = MAX_WIDTH if MAX_WIDTH and MAX_WIDTH > 0 else total_table_width(widths)
     current_total = total_table_width(widths)
 
-    # minimum widths (inner width at least 1 char)
-    min_inner_widths = [max(1, len(h)) for h in cols]
-    min_widths = [m + PAD for m in min_inner_widths]
+    # Minimum allowed inner width per column (at least 1 char)
+    min_inner = [max(1, len(h)) for h in cols]
+    min_widths = [m + PAD for m in min_inner]
 
-    # If we're under target_total, distribute extra width left->right
+    # Expand left->right if under target
     if current_total < target_total:
         extra = target_total - current_total
-        idx = 0
+        i = 0
         n = len(widths)
         while extra > 0 and n > 0:
-            widths[idx % n] += 1
+            widths[i % n] += 1
             extra -= 1
-            idx += 1
-    # If we're over target_total, shrink columns (repo first)
+            i += 1
+    # Shrink (prefer repo column first) if over target
     elif current_total > target_total:
         excess = current_total - target_total
 
-        def reduce_col(i, amount):
+        def reduce_col(idx, amount):
             nonlocal excess
-            can_reduce = widths[i] - min_widths[i]
-            take = min(can_reduce, amount)
-            widths[i] -= take
+            can = widths[idx] - min_widths[idx]
+            take = min(can, amount)
+            widths[idx] -= take
             excess -= take
             return take
 
-        # Reduce repository column first (index 0)
         if len(widths) > 0:
             reduce_col(0, excess)
 
-        # Then reduce other columns left->right
-        for i in range(1, len(widths)):
+        for idx in range(1, len(widths)):
             if excess <= 0:
                 break
-            reduce_col(i, excess)
+            reduce_col(idx, excess)
 
-        # If still excess (MAX_WIDTH too small), force minimal allowed (pad + 1 inner char)
         if excess > 0:
-            for i in range(len(widths)):
+            # final sweep: force to PAD + 1 inner char if needed
+            for idx in range(len(widths)):
                 if excess <= 0:
                     break
                 allowed_min = PAD + 1
-                can_reduce = widths[i] - allowed_min
-                if can_reduce > 0:
-                    take = min(can_reduce, excess)
-                    widths[i] -= take
+                can = widths[idx] - allowed_min
+                if can > 0:
+                    take = min(can, excess)
+                    widths[idx] -= take
                     excess -= take
-        # (excess should now be 0 or unavoidable if MAX_WIDTH extremely small)
+        # if excess still > 0, MAX_WIDTH is too small; we accept the result as-is
 
-    # recompute inner widths after final adjustments
+    # Recompute inner widths
     inner_widths = [w - PAD for w in widths]
 
-    # helper: truncate repository name with ellipsis if needed
-    def clip_repo_name(name: str, inner0: int) -> str:
-        if len(name) <= inner0:
-            return name
-        if inner0 <= 0:
+    # Helper to clip with ellipsis
+    def clip(text: str, inner: int) -> str:
+        if len(text) <= inner:
+            return text
+        if inner <= 0:
             return ""
-        if inner0 == 1:
-            return name[:1]
-        return name[:max(1, inner0-1)] + "…"
+        if inner == 1:
+            return text[:1]
+        return text[:max(1, inner-1)] + "…"
 
-    # double-line glyphs (single consistent set)
-    D_H = '═'
-    D_V = '║'
-    TL = '╔'
-    TR = '╗'
-    BL = '╚'
-    BR = '╝'
-    TSEP = '╦'   # top separators between columns
-    MSEP = '╬'   # middle separators (between rows)
-    BSEP = '╩'   # bottom separators between columns
-    LSEP = '╠'   # left mid junction
-    RSEP = '╣'   # right mid junction
+    # Double-line glyphs (consistent everywhere)
+    D_H = '═'; D_V = '║'
+    TL = '╔'; TR = '╗'; BL = '╚'; BR = '╝'
+    TSEP = '╦'; MSEP = '╬'; BSEP = '╩'; LSEP = '╠'; RSEP = '╣'
 
-    # Build top line: ╔═══╦═══╗
-    def build_top_line() -> str:
+    def build_top() -> str:
         parts = [TL]
         for i, w in enumerate(widths):
             parts.append(D_H * w)
             parts.append(TSEP if i < len(widths)-1 else TR)
         return "".join(parts)
 
-    # Build header/data row separator (middle): ╠═══╬═══╣
-    def build_mid_line() -> str:
+    def build_mid() -> str:
         parts = [LSEP]
         for i, w in enumerate(widths):
             parts.append(D_H * w)
             parts.append(MSEP if i < len(widths)-1 else RSEP)
         return "".join(parts)
 
-    # Build bottom line: ╚═══╩═══╝
-    def build_bottom_line() -> str:
+    def build_bottom() -> str:
         parts = [BL]
         for i, w in enumerate(widths):
             parts.append(D_H * w)
             parts.append(BSEP if i < len(widths)-1 else BR)
         return "".join(parts)
 
-    top_line = build_top_line()
-    header_sep_line = build_mid_line()
-    row_sep_line = build_mid_line()   # same style for all interior separators
-    bottom_line = build_bottom_line()
+    top_line = build_top()
+    mid_line = build_mid()
+    bottom_line = build_bottom()
+
+    # Join cells with double verticals, ensuring the produced string length equals sum(widths)+ncols+1
+    def join_cells(cell_texts: List[str]) -> str:
+        parts = [D_V]
+        for i, txt in enumerate(cell_texts):
+            parts.append(txt)
+            parts.append(D_V)
+        return "".join(parts)
 
     lines = []
     lines.append(top_line)
 
-    # build header row (centered)
+    # Header row (center each header to its inner width)
     header_cells = []
-    for i, col in enumerate(cols):
-        inner = inner_widths[i]
-        header_text = col.center(inner)
-        header_cells.append(" " + header_text + " ")
+    for i, h in enumerate(cols):
+        header_cells.append(" " + h.center(inner_widths[i]) + " ")
+    lines.append(join_cells(header_cells))
+    lines.append(mid_line)
 
-    def join_cells_with_double_vertical(cell_texts: List[str]) -> str:
-        # surround with double verticals
-        parts = [D_V]
-        for i, cell in enumerate(cell_texts):
-            parts.append(cell)
-            parts.append(D_V)
-        return "".join(parts)
-
-    lines.append(join_cells_with_double_vertical(header_cells))
-    lines.append(header_sep_line)
-
-    # build data rows
-    for idx_row, orig in enumerate(rows):
-        # original dict used for url and display name
-        name_text = orig.get("name_text", "")
-        name_url = orig.get("name_url", "")
+    # Data rows: use visible names only and pad/truncate to fixed inner widths
+    for orig in rows:
+        # find matching prepared data row by visible name (safer than assuming order)
+        name = orig.get("name_text", "")
+        # clip and left-pad/ljust to inner width
         inner0 = inner_widths[0]
-        clipped = clip_repo_name(name_text, inner0)
-        # Build repo cell: if URL present, embed as HTML anchor
-        if name_url:
-            # Keep visible text as clipped, but wrap in anchor tag
-            link = f'<a href="{name_url}">{clipped}</a>'
-            cell0 = " " + link.ljust(inner0) + " "
-        else:
-            cell0 = " " + clipped.ljust(inner0) + " "
-
-        other_cells = [cell0]
-        # fill other columns from data_rows (which were created earlier and match order)
-        # find corresponding prepared row (by matching name_text) - safer than assuming order
-        match_row = None
+        clipped = clip(name, inner0)
+        repo_cell = " " + clipped.ljust(inner0) + " "
+        # other columns: use prepared values (centered)
+        # find the data row
+        match = None
         for dr in data_rows:
-            if dr[0] == name_text:
-                match_row = dr
+            if dr[0] == name:
+                match = dr
                 break
-        if match_row is None:
-            # fallback: empty values
-            match_row = [""] * len(cols)
-
-        # append other columns, centered
+        if match is None:
+            match = [""] * len(cols)
+        other_cells = [repo_cell]
         for i in range(1, len(cols)):
-            inner = inner_widths[i]
-            val = match_row[i]
-            other_cells.append(" " + val.center(inner) + " ")
+            other_cells.append(" " + match[i].center(inner_widths[i]) + " ")
+        lines.append(join_cells(other_cells))
+        lines.append(mid_line)
 
-        # join and append row
-        lines.append(join_cells_with_double_vertical(other_cells))
-
-        # append a row separator after each data row except we'll replace the final one with bottom_line later
-        lines.append(row_sep_line)
-
-    # if no data rows, replace last separator (which is header_sep) with bottom_line (already header_sep appended earlier)
-    if len(rows) == 0:
-        # replace the header_sep_line with bottom_line
-        if lines and lines[-1] == header_sep_line:
-            lines[-1] = bottom_line
-        else:
-            lines.append(bottom_line)
+    # Replace final mid_line with bottom_line
+    if lines[-1] == mid_line:
+        lines[-1] = bottom_line
     else:
-        # replace final row_sep_line with bottom_line
-        if lines and lines[-1] == row_sep_line:
-            lines[-1] = bottom_line
-        else:
-            lines.append(bottom_line)
+        lines.append(bottom_line)
 
     table_str = "\n".join(lines)
     return table_str, len(top_line), len(lines)
