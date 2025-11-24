@@ -256,34 +256,31 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
     """
     Build a double-line box-drawing table. The first column width is fixed to
     the longest repository visible name (or capped by max_repo_name_width).
-    NOTE: this version uses plain visible repo names (no HTML anchors) so
-    monospace alignment matches raw characters exactly.
+    Repository names are rendered as HTML anchors (clickable) but widths are
+    computed from the plain visible text so monospace alignment stays correct.
     Returns (table_str, table_width, table_height).
     """
     cols = ["Repository", "Main Language", "Total Bytes", "Total Commits", "Last Commit Date", "Branches"]
 
-    # Extract visible values
+    # Prepare visible-only data for width calculations
     data_rows = []
     for r in rows:
         data_rows.append([
-            r.get("name_text", ""),            # visible repository name
+            r.get("name_text", ""),
             r.get("language", ""),
             str(r.get("size", "0")),
             str(r.get("commits", "0")),
             r.get("last_commit", ""),
-            str(r.get("branches", "0"))
+            str(r.get("branches", "0")),
         ])
 
-    # Determine inner widths: content area only (no padding)
-    # Start from header widths
+    # Compute inner widths (plain visible characters only)
     inner_widths = [len(h) for h in cols]
-
-    # Update by content
     for dr in data_rows:
         for i, cell in enumerate(dr):
             inner_widths[i] = max(inner_widths[i], len(cell))
 
-    # Ensure the first column uses the longest repository name (user requested)
+    # Ensure first column equals longest repo visible name
     if data_rows:
         longest_repo = max(len(dr[0]) for dr in data_rows)
         inner_widths[0] = max(inner_widths[0], longest_repo)
@@ -292,22 +289,19 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
     if max_repo_name_width is not None:
         inner_widths[0] = min(inner_widths[0], max(1, max_repo_name_width))
 
-    # Add padding: 1 left + 1 right
     PAD = 2
     widths = [w + PAD for w in inner_widths]
 
-    # Helpers for total width (vertical borders between columns add (ncols+1) chars)
     def total_table_width(col_widths: List[int]) -> int:
         return sum(col_widths) + (len(col_widths) + 1)
 
     target_total = MAX_WIDTH if MAX_WIDTH and MAX_WIDTH > 0 else total_table_width(widths)
     current_total = total_table_width(widths)
 
-    # Minimum allowed inner width per column (at least 1 char)
     min_inner = [max(1, len(h)) for h in cols]
     min_widths = [m + PAD for m in min_inner]
 
-    # Expand left->right if under target
+    # expand/shrink logic (same policy as before)
     if current_total < target_total:
         extra = target_total - current_total
         i = 0
@@ -316,10 +310,8 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
             widths[i % n] += 1
             extra -= 1
             i += 1
-    # Shrink (prefer repo column first) if over target
     elif current_total > target_total:
         excess = current_total - target_total
-
         def reduce_col(idx, amount):
             nonlocal excess
             can = widths[idx] - min_widths[idx]
@@ -327,17 +319,13 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
             widths[idx] -= take
             excess -= take
             return take
-
         if len(widths) > 0:
             reduce_col(0, excess)
-
         for idx in range(1, len(widths)):
             if excess <= 0:
                 break
             reduce_col(idx, excess)
-
         if excess > 0:
-            # final sweep: force to PAD + 1 inner char if needed
             for idx in range(len(widths)):
                 if excess <= 0:
                     break
@@ -347,12 +335,9 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
                     take = min(can, excess)
                     widths[idx] -= take
                     excess -= take
-        # if excess still > 0, MAX_WIDTH is too small; we accept the result as-is
 
-    # Recompute inner widths
     inner_widths = [w - PAD for w in widths]
 
-    # Helper to clip with ellipsis
     def clip(text: str, inner: int) -> str:
         if len(text) <= inner:
             return text
@@ -362,26 +347,26 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
             return text[:1]
         return text[:max(1, inner-1)] + "…"
 
-    # Double-line glyphs (consistent everywhere)
+    # double-line glyphs
     D_H = '═'; D_V = '║'
     TL = '╔'; TR = '╗'; BL = '╚'; BR = '╝'
     TSEP = '╦'; MSEP = '╬'; BSEP = '╩'; LSEP = '╠'; RSEP = '╣'
 
-    def build_top() -> str:
+    def build_top():
         parts = [TL]
         for i, w in enumerate(widths):
             parts.append(D_H * w)
             parts.append(TSEP if i < len(widths)-1 else TR)
         return "".join(parts)
 
-    def build_mid() -> str:
+    def build_mid():
         parts = [LSEP]
         for i, w in enumerate(widths):
             parts.append(D_H * w)
             parts.append(MSEP if i < len(widths)-1 else RSEP)
         return "".join(parts)
 
-    def build_bottom() -> str:
+    def build_bottom():
         parts = [BL]
         for i, w in enumerate(widths):
             parts.append(D_H * w)
@@ -392,34 +377,37 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
     mid_line = build_mid()
     bottom_line = build_bottom()
 
-    # Join cells with double verticals, ensuring the produced string length equals sum(widths)+ncols+1
     def join_cells(cell_texts: List[str]) -> str:
         parts = [D_V]
-        for i, txt in enumerate(cell_texts):
+        for txt in cell_texts:
             parts.append(txt)
             parts.append(D_V)
         return "".join(parts)
 
-    lines = []
-    lines.append(top_line)
+    lines = [top_line]
 
-    # Header row (center each header to its inner width)
+    # Header row
     header_cells = []
     for i, h in enumerate(cols):
         header_cells.append(" " + h.center(inner_widths[i]) + " ")
     lines.append(join_cells(header_cells))
     lines.append(mid_line)
 
-    # Data rows: use visible names only and pad/truncate to fixed inner widths
+    # Data rows: compute visible text, then render anchor-wrapped string padded to same visible width
     for orig in rows:
-        # find matching prepared data row by visible name (safer than assuming order)
         name = orig.get("name_text", "")
-        # clip and left-pad/ljust to inner width
+        url = orig.get("name_url", "")
         inner0 = inner_widths[0]
         clipped = clip(name, inner0)
-        repo_cell = " " + clipped.ljust(inner0) + " "
-        # other columns: use prepared values (centered)
-        # find the data row
+        # Create anchor-wrapped name but pad according to visible length (clipped)
+        if url:
+            anchor = f'<a href="{url}">{clipped}</a>'
+            padding = " " * (inner0 - len(clipped))
+            repo_cell = " " + anchor + padding + " "
+        else:
+            repo_cell = " " + clipped.ljust(inner0) + " "
+
+        # build other columns centered
         match = None
         for dr in data_rows:
             if dr[0] == name:
@@ -427,13 +415,15 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
                 break
         if match is None:
             match = [""] * len(cols)
+
         other_cells = [repo_cell]
         for i in range(1, len(cols)):
             other_cells.append(" " + match[i].center(inner_widths[i]) + " ")
+
         lines.append(join_cells(other_cells))
         lines.append(mid_line)
 
-    # Replace final mid_line with bottom_line
+    # final line -> bottom
     if lines[-1] == mid_line:
         lines[-1] = bottom_line
     else:
@@ -444,19 +434,23 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
 
 
 
-def build_contrib_grid(repo_weekly: Dict[str,List[int]], repo_order: List[str], label_w: Optional[int]=None) -> Tuple[str,int]:
+
+def build_contrib_grid(repo_weekly: Dict[str,List[int]],
+                       repo_order: List[str],
+                       label_w: Optional[int]=None,
+                       repo_urls: Optional[Dict[str,str]]=None) -> Tuple[str,int]:
     """
-    Build an ASCII heat map (rows = repos, cols = weeks) using SHADES.
-    Each row is scaled so that its max maps to '█'.
+    Build ASCII heat map (rows = repos, cols = weeks) using SHADES.
+    If repo_urls is provided (mapping repo_name -> url), the repo label will be rendered
+    as an HTML anchor (<a href="...">name</a>) while alignment is calculated from the
+    visible name only.
     Returns (grid_string, label_w_used).
-    If label_w is provided, use it; otherwise compute the label width (min 10, max 28).
     """
     # compute label width if not provided
     if label_w is None:
         label_w = max(10, max((len(r) for r in repo_order), default=10))
         label_w = min(label_w, 28)
     else:
-        # ensure within reasonable bounds
         label_w = max(10, min(label_w, 28))
     lines = []
     for repo in repo_order:
@@ -470,24 +464,31 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]], repo_order: List[str], 
             idx = int(round(ratio*(len(SHADES)-1)))
             idx = max(0, min(len(SHADES)-1, idx))
             cells.append(SHADES[idx])
+        # label visible text (clip/pad to label_w)
         name = repo
         if len(name) > label_w:
-            name = name[:label_w-1] + "…"
+            visible = name[:label_w-1] + "…"
         else:
-            name = name.ljust(label_w)
-        lines.append(f"{name} {' '.join(cells)}")
-    now = datetime.now(timezone.utc)
-     # old code that used i % 4 == 0 ...
+            visible = name.ljust(label_w)
+        # If url present, wrap visible text in anchor and then pad so the total *visible* width remains label_w
+        if repo_urls and repo in repo_urls and repo_urls[repo]:
+            url = repo_urls[repo]
+            anchor = f'<a href="{url}">{visible.rstrip()}</a>'
+            # compute padding that keeps visible width label_w (visible.rstrip() might be shorter due to rstrip)
+            pad_len = label_w - len(visible.rstrip())
+            padding = " " * pad_len
+            label_render = anchor + padding
+        else:
+            label_render = visible
+        lines.append(f"{label_render} {' '.join(cells)}")
     axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
     axis_line = " " * label_w + " " + " ".join(axis_cells)
     lines.append(axis_line)
-    # Legend and time axis (month initials every 4 weeks)
-    legend = " "*label_w + "low " + " ".join(SHADES) + "  high"
-    legend_centered = legend.center(MAX_WIDTH)
-    lines.append("") #adding some space
-    #lines.append(legend_centered)
+    legend = " " * label_w + "low " + " ".join(SHADES) + "  high"
+    lines.append("")
     lines.append(legend)
     return "\n".join(lines), label_w
+
 
 def build_rows_for_table(repos: List[dict], token: str=None) -> List[dict]:
     """Construct the rows for the summary table (public repos only)."""
@@ -626,18 +627,19 @@ def main():
 
     # Build table from public repos
     rows = build_rows_for_table(public_repos, token)
+    # build map repo_name -> html url (used by heatmap rendering)
+    repo_urls = {r["name_text"]: r.get("name_url", "") for r in rows}
+
     ascii_table, ascii_width, ascii_height = make_ascii_table_with_links(rows)
 
     # If table too wide, truncate repo name column
     if ascii_width > MAX_WIDTH:
-        top_line = ascii_table.splitlines()[0]
-        segments = top_line.strip('+').split('+')
-        col_widths = [len(seg) for seg in segments]
-        if col_widths:
-            orig_inner0 = col_widths[0] - 2
-            shrink = ascii_width - MAX_WIDTH
-            new_inner0 = max(orig_inner0 - shrink, 10)
-            ascii_table, ascii_width, ascii_height = make_ascii_table_with_links(rows, max_repo_name_width=new_inner0)
+        # compute current visible repo max length and reduce it by the overflow amount
+        visible_max = max((len(r["name_text"]) for r in rows), default=10)
+        shrink = ascii_width - MAX_WIDTH
+        # new_inner0 is visible content width for repo column (not including padding)
+        new_inner0 = max(10, visible_max - shrink)
+        ascii_table, ascii_width, ascii_height = make_ascii_table_with_links(rows, max_repo_name_width=new_inner0)
 
     # Fetch weekly commit activity for each public repo in parallel
     repos_to_query = [r["name_text"] for r in rows]
@@ -689,7 +691,7 @@ def main():
     if not weekly_totals or all(v==0 for v in weekly_totals):
         ascii_plot = "(no activity data)"
         # With no activity, still build the heatmap with the native label width computed above
-        contrib_grid, used_label_w = build_contrib_grid(repo_weekly, repo_order, label_w=native_label_w)
+        contrib_grid, used_label_w = build_contrib_grid(repo_weekly, repo_order, label_w=native_label_w, repo_urls=repo_urls)
     else:
         # create duplicated columns (2 columns per week)
         series_points = []
@@ -741,7 +743,7 @@ def main():
         left = max(offset_len, native_label_w + 1)
         # Build the heatmap using label_w = left - 1 so first data column lines up with left
         used_label_w = left - 1
-        contrib_grid, _ = build_contrib_grid(repo_weekly, repo_order, label_w=used_label_w)
+        contrib_grid, _ = build_contrib_grid(repo_weekly, repo_order, label_w=used_label_w, repo_urls=repo_urls)
 
         # Prepare plot config, forcing min=0 and max=maximum_scaled
         cfg = {"height": PLOT_HEIGHT, "format": label_fmt, "offset": left, "min": 0.0, "max": maximum_scaled}
