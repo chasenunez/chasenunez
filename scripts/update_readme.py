@@ -16,6 +16,7 @@ USERNAME = "chasenunez"
 HEADERA = "Most Recently Active Repositories"
 HEADERB = "Commit Density For Recently Active Repositories"
 HEADERC = "Weekly Commit Distribution Relative To Long-Term Mean"
+LINE = "━"
 TOP_N = 10            # Number of top repositories to include (including private)
 WEEKS = 42            # Number of weeks to show in charts
 MAX_WIDTH = 110       # Max characters wide for all figures (table, heatmap, plot)
@@ -402,13 +403,13 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
         "<pre>\n"
         #print(f"{a: ^{MAX_WIDTH}}\n")
         f"{HEADERA: {MAX_WIDTH}}\n"
-        f"{:━{MAX_WIDTH}}\n\n"                                                                                                               
+        f"{LINE:━{MAX_WIDTH}}\n\n"                                                                                                               
         f"{ascii_table}\n\n\n"
         f"{HEADERB: {MAX_WIDTH}}\n"
-        f"{:━{MAX_WIDTH}}\n\n" 
+        f"{LINE:━{MAX_WIDTH}}\n\n" 
         f"{contrib_grid}\n\n\n"
         f"{HEADERC: {MAX_WIDTH}}\n"
-        f"{:━{MAX_WIDTH}}\n\n"
+        f"{LINE:━{MAX_WIDTH}}\n\n"
         f"{ascii_plot}\n"
         "</pre>\n"
     )
