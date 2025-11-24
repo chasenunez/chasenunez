@@ -291,7 +291,8 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]], repo_order: List[str], 
     legend = " "*label_w + "low " + " ".join(SHADES) + "  high"
     legend_centered = legend.center(MAX_WIDTH)
     lines.append("") #adding some space
-    lines.append(legend_centered)
+    #lines.append(legend_centered)
+    lines.append(legend)
     return "\n".join(lines), label_w
 
 def build_rows_for_table(repos: List[dict], token: str=None) -> List[dict]:
