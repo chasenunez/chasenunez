@@ -401,13 +401,13 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
     return (
         "<pre>\n"
         f"{HEADERA: ^{MAX_WIDTH}}\n"
-        f"{LINE:━{MAX_WIDTH}}\n\n"                                                                                                               
+        f"{LINE:━^{MAX_WIDTH}}\n\n"                                                                                                               
         f"{ascii_table}\n\n\n"
         f"{HEADERB: ^{MAX_WIDTH}}\n"
-        f"{LINE:━{MAX_WIDTH}}\n\n" 
+        f"{LINE:━^{MAX_WIDTH}}\n\n" 
         f"{contrib_grid}\n\n\n"
         f"{HEADERC: ^{MAX_WIDTH}}\n"
-        f"{LINE:━{MAX_WIDTH}}\n\n"
+        f"{LINE:━^{MAX_WIDTH}}\n\n"
         f"{ascii_plot}\n"
         "</pre>\n"
     )
