@@ -20,7 +20,7 @@ RESTRICTED_NAME = "restricted"
 AVG_BYTES_PER_LINE = 40.0
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
-SHADES = ["░", "▒", "▓", "█"]  # For heat map (low→high intensity)
+SHADES = ["▁", "░", "▒", "▓", "█"]  # For heat map (low→high intensity)
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
 SESSION.headers.update({
@@ -397,14 +397,14 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
     return (
         "<pre>\n"
         #f"Recent Repository Activity"
-        f"                                  Most Recently Active Repositories                                 \n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"                                                                                                               
+        f"{Most Recently Active Repositories: ^MAX_WIDTH}\n"
+        f"{:━^MAX_WIDTH}\n\n"                                                                                                               
         f"{ascii_table}\n\n\n"
-        f"                          Commit Density For Recently Active Repositories                           \n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"{Commit Density For Recently Active Repositories: ^MAX_WIDTH}\n"
+        f"{:━^MAX_WIDTH}\n\n" 
         f"{contrib_grid}\n\n\n"
-        f"                       Weekly Commit Distribution Relative To Long-Term Mean                        \n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{Weekly Commit Distribution Relative To Long-Term Mean: ^MAX_WIDTH}\n"
+        f"{:━^MAX_WIDTH}\n\n"
         f"{ascii_plot}\n"
         "</pre>\n"
     )
