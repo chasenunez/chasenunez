@@ -250,107 +250,108 @@ def fetch_languages(owner: str, repo: str, token: str=None) -> Dict[str,int]:
 #     table_str = "\n".join(lines)
 #     return table_str, len(top_line), len(lines)
 
-from typing import List, Tuple #this is a beast. There is probably a better way to do this, but I couldn't think of it.
+from typing import List, Tuple
+
+# Global max total table width (including outer borders)
+MAX_WIDTH = 100  # adjust as needed
 
 def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = None) -> Tuple[str,int,int]:
     """
-    Build a box-drawing ASCII table (with Markdown/HTML links in repo names).
-    The table's TOTAL width (including outer borders) will be MAX_WIDTH (global).
-    If content requires more space than MAX_WIDTH, the function will first truncate the
-    Repository column (with an ellipsis) and then other columns down to a reasonable minimum.
+    Build a double-line box-drawing table (with HTML links in repo names).
+    The table's TOTAL width (including outer borders) will be adjusted toward MAX_WIDTH
+    while ensuring columns fit content where possible. When shrinking is necessary
+    the Repository column is truncated first (with an ellipsis).
     Returns (table_str, table_width, table_height).
     """
     # Column headers
     cols = ["Repository", "Main Language", "Total Bytes", "Total Commits", "Last Commit Date", "Branches"]
-    # Prepare data rows
+
+    # Prepare data rows (parallel structure to input 'rows')
     data_rows = []
     for r in rows:
         data_rows.append([
-            r.get("name_text",""),
-            r.get("language",""),
-            str(r.get("size","0")),
-            str(r.get("commits","0")),
-            r.get("last_commit",""),
-            str(r.get("branches","0"))
+            r.get("name_text", ""),
+            r.get("language", ""),
+            str(r.get("size", "0")),
+            str(r.get("commits", "0")),
+            r.get("last_commit", ""),
+            str(r.get("branches", "0"))
         ])
 
-    # Basic widths = max(header, content) for each column (inner width = content width)
+    # Compute minimum inner widths (content area, without padding)
     inner_widths = [len(c) for c in cols]
     for row in data_rows:
         for i, cell in enumerate(row):
             inner_widths[i] = max(inner_widths[i], len(cell))
-    # Add horizontal padding: 1 space left + 1 space right -> +2 per column when rendering cell content
-    pad = 2
-    widths = [w + pad for w in inner_widths]  # visible cell width including padding
 
-    # If user supplied max_repo_name_width, cap first column inner width (content only)
-    if max_repo_name_width and widths:
-        inner0 = widths[0] - pad
-        if inner0 > max_repo_name_width:
-            widths[0] = max_repo_name_width + pad
-            inner_widths[0] = max_repo_name_width
+    # apply optional cap for repository name column
+    if max_repo_name_width and len(inner_widths) > 0:
+        inner_widths[0] = min(inner_widths[0], max_repo_name_width)
 
-    # Table total width calculation helper (outer borders add 2 chars: left and right)
-    def total_table_width(col_widths):
-        return sum(col_widths) + (len(col_widths) + 1)  # each column separated by 1 vertical char, plus two outer borders
+    # cell padding (1 left + 1 right)
+    PAD = 2
+    widths = [w + PAD for w in inner_widths]  # visible cell widths including padding
 
-    # Ensure totals align to MAX_WIDTH: we will expand or shrink columns while keeping content fit
-    # MINIMUM inner width for a column (content area) is max(len(header), 1)
-    min_inner = [max(1, len(c)) for c in cols]
-    min_widths = [m + pad for m in min_inner]
+    # helpers for total width calc:
+    def total_table_width(col_widths: List[int]) -> int:
+        # sum of column widths + (ncols + 1) vertical border characters
+        return sum(col_widths) + (len(col_widths) + 1)
 
+    target_total = MAX_WIDTH if MAX_WIDTH and MAX_WIDTH > 0 else total_table_width(widths)
     current_total = total_table_width(widths)
-    target_total = MAX_WIDTH if MAX_WIDTH and MAX_WIDTH > 0 else current_total
 
-    # If current total less than target, pad columns to reach target (distribute extra space)
+    # minimum widths (inner width at least 1 char)
+    min_inner_widths = [max(1, len(h)) for h in cols]
+    min_widths = [m + PAD for m in min_inner_widths]
+
+    # If we're under target_total, distribute extra width left->right
     if current_total < target_total:
         extra = target_total - current_total
-        # Distribute extra to columns from left to right (favor Repository first)
-        i = 0
+        idx = 0
         n = len(widths)
-        while extra > 0:
-            widths[i % n] += 1
+        while extra > 0 and n > 0:
+            widths[idx % n] += 1
             extra -= 1
-            i += 1
-    # If current total greater than target, we need to shrink columns (prefer to shrink Repository first)
+            idx += 1
+    # If we're over target_total, shrink columns (repo first)
     elif current_total > target_total:
         excess = current_total - target_total
-        # Attempt to reduce Repository inner width first (keep at least 1 char + ellipsis support)
-        def reduce_col(idx, amount):
+
+        def reduce_col(i, amount):
             nonlocal excess
-            # ensure we do not go below min_widths[idx]
-            can_reduce = widths[idx] - min_widths[idx]
+            can_reduce = widths[i] - min_widths[i]
             take = min(can_reduce, amount)
-            widths[idx] -= take
+            widths[i] -= take
             excess -= take
             return take
 
-        # Reduce repo column aggressively first
+        # Reduce repository column first (index 0)
         if len(widths) > 0:
             reduce_col(0, excess)
-        # If still excess, reduce other columns left->right
+
+        # Then reduce other columns left->right
         for i in range(1, len(widths)):
             if excess <= 0:
                 break
             reduce_col(i, excess)
-        # If still excess after that (rare), force minimal widths (may still be > target if MAX_WIDTH too small)
+
+        # If still excess (MAX_WIDTH too small), force minimal allowed (pad + 1 inner char)
         if excess > 0:
-            # try a final sweep to reduce to 1 inner char if possible
             for i in range(len(widths)):
                 if excess <= 0:
                     break
-                allowed_min = pad + 1
+                allowed_min = PAD + 1
                 can_reduce = widths[i] - allowed_min
                 if can_reduce > 0:
                     take = min(can_reduce, excess)
                     widths[i] -= take
                     excess -= take
-        # After reductions, we must handle that repo visible names may need truncation
+        # (excess should now be 0 or unavoidable if MAX_WIDTH extremely small)
 
-    # At this point widths are set. Derive inner widths (content area) again
-    inner_widths = [w - pad for w in widths]
+    # recompute inner widths after final adjustments
+    inner_widths = [w - PAD for w in widths]
 
-    # A helper to truncate visible repo name with ellipsis if needed
+    # helper: truncate repository name with ellipsis if needed
     def clip_repo_name(name: str, inner0: int) -> str:
         if len(name) <= inner0:
             return name
@@ -358,218 +359,127 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
             return ""
         if inner0 == 1:
             return name[:1]
-        # reserve 1 char for ellipse
         return name[:max(1, inner0-1)] + "…"
 
-    # Box-drawing glyph sets (we'll use three visual weights)
-    glyph = {
-        'double': {
-            'h': '═', 'v': '║',
-            'tl': '╔', 'tr': '╗', 'bl': '╚', 'br': '╝',
-            'tsep': '╦', 'msep': '╬', 'bsep': '╩', 'lsep': '╠', 'rsep': '╣'
-        },
-        'heavy': {
-            'h': '━', 'v': '┃',
-            'tl': '┏', 'tr': '┓', 'bl': '┗', 'br': '┛',
-            'tsep': '┳', 'msep': '╋', 'bsep': '┻', 'lsep': '┣', 'rsep': '┫'
-        },
-        'light': {
-            'h': '─', 'v': '│',
-            'tl': '┌', 'tr': '┐', 'bl': '└', 'br': '┘',
-            'tsep': '┬', 'msep': '┼', 'bsep': '┴', 'lsep': '├', 'rsep': '┤'
-        },
-        # Some mixed junctions (double <-> heavy/light). This set is not exhaustive but covers many junctions.
-        'mix': {
-            # double horizontal meets heavy vertical (top border mixing)
-            ('double_h', 'heavy_v'): '╤',
-            ('double_h', 'light_v'): '╦',
-            # double bottom meets heavy vertical
-            ('double_b', 'heavy_v'): '╧',
-            ('double_b', 'light_v'): '╩',
-            # heavy horizontal meets double vertical (rare)
-            ('heavy_h', 'double_v'): '╟',
-            # heavy horizontal meets light vertical
-            ('heavy_h', 'light_v'): '┯',
-            # light horizontal meets double vertical
-            ('light_h', 'double_v'): '╨',
-            # light horizontal meets heavy vertical
-            ('light_h', 'heavy_v'): '┠',
-            # cross mixes -- fallback
-            ('double_h', 'double_v'): '╬',
-            ('heavy_h', 'heavy_v'): '╋',
-            ('light_h', 'light_v'): '┼',
-        }
-    }
+    # double-line glyphs (single consistent set)
+    D_H = '═'
+    D_V = '║'
+    TL = '╔'
+    TR = '╗'
+    BL = '╚'
+    BR = '╝'
+    TSEP = '╦'   # top separators between columns
+    MSEP = '╬'   # middle separators (between rows)
+    BSEP = '╩'   # bottom separators between columns
+    LSEP = '╠'   # left mid junction
+    RSEP = '╣'   # right mid junction
 
-    # Which vertical separators are "heavy"? left-most column verticals should be heavy.
-    # Outer left and right vertical borders are double.
-    # Internal vertical separators (between non-left columns) are light.
-    # So vertical style per separator index (there are len(cols)+1 separators: left outer, between 0-1, between 1-2, ..., right outer)
-    vert_styles = []
-    ncols = len(cols)
-    for sep_idx in range(ncols + 1):
-        if sep_idx == 0 or sep_idx == ncols:
-            vert_styles.append('double')  # outer
-        elif sep_idx == 1:
-            vert_styles.append('heavy')   # between repo and next -> left-most column uses heavy separator
-        else:
-            vert_styles.append('light')   # interior separators
-
-    # Horizontal styles for each horizontal line:
-    # - top outer: double
-    # - header top (line between top outer and header cell top): we'll use heavy for header cell top/bottom but the very top remains double
-    # - header bottom (separator after header row): heavy
-    # - rows separators (between data rows): light
-    # - bottom outer: double
-    # We'll need: top_line (double), header_sep (heavy), row_sep (light), bottom_line (double)
-    # Helper to build a horizontal border line (top/header_sep/row_sep/bottom)
-    def build_horizontal_line(h_style_key: str) -> str:
-        """
-        h_style_key in {'top', 'header', 'row', 'bottom'}
-        returns a full string line including outer border characters
-        """
-        if h_style_key == 'top' or h_style_key == 'bottom':
-            h_style = 'double'
-            left_corner = glyph['double']['tl'] if h_style_key == 'top' else glyph['double']['bl']
-            right_corner = glyph['double']['tr'] if h_style_key == 'top' else glyph['double']['br']
-            between_default = glyph['double']['tsep'] if h_style_key == 'top' else glyph['double']['bsep']
-            h_char = glyph['double']['h']
-        elif h_style_key == 'header':
-            h_style = 'heavy'
-            left_corner = glyph['double']['lsep']  # mixing double outer with heavy header; pick a reasonable char
-            right_corner = glyph['double']['rsep']
-            between_default = glyph['heavy']['tsep']  # use heavy separators for header internal
-            h_char = glyph['heavy']['h']
-            # But we want leftmost (outer-left vs heavy vertical) mixing: handle per junction below
-        else:  # 'row' internal
-            h_style = 'light'
-            left_corner = glyph['light']['lsep']
-            right_corner = glyph['light']['rsep']
-            between_default = glyph['light']['tsep']
-            h_char = glyph['light']['h']
-
-        parts = []
-        # left-most corner
-        parts.append(left_corner)
-        # For each column, append horizontal run and then appropriate junction depending on the vertical style at that separator
-        for col_idx, w in enumerate(widths):
-            parts.append(h_char * w)
-            # determine the vertical style for the separator after this column (sep index = col_idx+1)
-            sep_idx = col_idx + 1
-            vstyle = vert_styles[sep_idx]  # 'double'/'heavy'/'light'
-            # Determine junction char between current horizontal style and vertical style vstyle.
-            # We'll try to look up in mix map; if not present, fallback to style's default separators.
-            key = (f"{h_style}_h", f"{vstyle}_v")
-            junction = None
-            if key in glyph['mix']:
-                junction = glyph['mix'][key]
-            else:
-                # fallback heuristics
-                if h_style == 'double' and vstyle == 'double':
-                    junction = glyph['double']['tsep'] if h_style_key == 'top' else (glyph['double']['bsep'] if h_style_key == 'bottom' else glyph['double']['msep'])
-                elif h_style == 'heavy' and vstyle == 'heavy':
-                    junction = glyph['heavy']['tsep']
-                elif h_style == 'light' and vstyle == 'light':
-                    junction = glyph['light']['tsep']
-                else:
-                    # mixed: pick a reasonable visual: if vertical is double prefer double junction, if vertical heavy prefer heavy junction
-                    if vstyle == 'double':
-                        junction = glyph['double']['tsep']
-                    elif vstyle == 'heavy':
-                        junction = glyph['heavy']['tsep']
-                    else:
-                        junction = glyph['light']['tsep']
-            parts.append(junction)
-        # join all parts into a line
+    # Build top line: ╔═══╦═══╗
+    def build_top_line() -> str:
+        parts = [TL]
+        for i, w in enumerate(widths):
+            parts.append(D_H * w)
+            parts.append(TSEP if i < len(widths)-1 else TR)
         return "".join(parts)
 
-    # Build the top line, header separator, row separator, bottom line
-    top_line = build_horizontal_line('top')
-    header_sep_line = build_horizontal_line('header')
-    row_sep_line = build_horizontal_line('row')
-    bottom_line = build_horizontal_line('bottom')
+    # Build header/data row separator (middle): ╠═══╬═══╣
+    def build_mid_line() -> str:
+        parts = [LSEP]
+        for i, w in enumerate(widths):
+            parts.append(D_H * w)
+            parts.append(MSEP if i < len(widths)-1 else RSEP)
+        return "".join(parts)
+
+    # Build bottom line: ╚═══╩═══╝
+    def build_bottom_line() -> str:
+        parts = [BL]
+        for i, w in enumerate(widths):
+            parts.append(D_H * w)
+            parts.append(BSEP if i < len(widths)-1 else BR)
+        return "".join(parts)
+
+    top_line = build_top_line()
+    header_sep_line = build_mid_line()
+    row_sep_line = build_mid_line()   # same style for all interior separators
+    bottom_line = build_bottom_line()
 
     lines = []
     lines.append(top_line)
 
-    # Build header row (centered text)
+    # build header row (centered)
     header_cells = []
     for i, col in enumerate(cols):
         inner = inner_widths[i]
         header_text = col.center(inner)
         header_cells.append(" " + header_text + " ")
-    # Build header line using vertical separators with styles:
-    def build_row_line(cell_texts: List[str], is_header=False, leftmost_heavy=True) -> str:
-        parts = []
-        # left outer vertical border (double)
-        parts.append(glyph['double']['v'])
+
+    def join_cells_with_double_vertical(cell_texts: List[str]) -> str:
+        # surround with double verticals
+        parts = [D_V]
         for i, cell in enumerate(cell_texts):
             parts.append(cell)
-            sep_idx = i + 1
-            vstyle = vert_styles[sep_idx]
-            # choose vertical glyph
-            if vstyle == 'double':
-                parts.append(glyph['double']['v'])
-            elif vstyle == 'heavy':
-                parts.append(glyph['heavy']['v'])
-            else:
-                parts.append(glyph['light']['v'])
+            parts.append(D_V)
         return "".join(parts)
 
-    lines.append(build_row_line(header_cells, is_header=True))
+    lines.append(join_cells_with_double_vertical(header_cells))
     lines.append(header_sep_line)
 
-    # Build data rows
-    for r in data_rows:
-        # prepare repo name (may contain link)
-        vis_name = r[0]
-        url = ""
-        # The original code allowed r.get("name_url","") in input rows list-of-dicts; here we don't have that in data_rows, so we need to
-        # rely on the original rows list. We'll extract url from rows by index: find same r in rows list by matching name_text if available.
-        # Simpler: if original rows are the same order as data_rows, we can use rows list directly.
-        # Find original row index by matching name_text
-        matching_url = ""
-        for orig in rows:
-            if orig.get("name_text","") == r[0]:
-                matching_url = orig.get("name_url","")
-                break
+    # build data rows
+    for idx_row, orig in enumerate(rows):
+        # original dict used for url and display name
+        name_text = orig.get("name_text", "")
+        name_url = orig.get("name_url", "")
         inner0 = inner_widths[0]
-        clipped = clip_repo_name(r[0], inner0)
-        # Build repo cell text and replace visible repo substring with link if present
-        repo_display = clipped.ljust(inner0)
-        if matching_url:
-            # We replace raw visible text only; keep the padding around it.
-            # For simplicity place the link where the visible text is (no padding inside link)
-            link_text = f'<a href="{matching_url}">{clipped}</a>'
-            # Pad link to cell width if link is shorter/longer than inner0
-            # Note: HTML link length may be longer than inner0; visually it will be fine in rendered Markdown but we keep padding by characters.
-            # We'll center/left-pad the link similarly to previous behavior (left aligned)
-            cell0 = " " + link_text.ljust(inner0) + " "
+        clipped = clip_repo_name(name_text, inner0)
+        # Build repo cell: if URL present, embed as HTML anchor
+        if name_url:
+            # Keep visible text as clipped, but wrap in anchor tag
+            link = f'<a href="{name_url}">{clipped}</a>'
+            cell0 = " " + link.ljust(inner0) + " "
         else:
-            cell0 = " " + repo_display + " "
-        # Other columns centered
-        other_cells = []
-        other_cells.append(cell0)
-        for i, val in enumerate(r[1:], start=1):
-            w = inner_widths[i]
-            other_cells.append(" " + val.center(w) + " ")
+            cell0 = " " + clipped.ljust(inner0) + " "
 
-        # Build the row line with correct vertical separators
-        lines.append(build_row_line(other_cells))
+        other_cells = [cell0]
+        # fill other columns from data_rows (which were created earlier and match order)
+        # find corresponding prepared row (by matching name_text) - safer than assuming order
+        match_row = None
+        for dr in data_rows:
+            if dr[0] == name_text:
+                match_row = dr
+                break
+        if match_row is None:
+            # fallback: empty values
+            match_row = [""] * len(cols)
 
-        # after each data row, append a row separator (light) unless it's the last row, where we'll put bottom at the end
-        # choose row_sep_line between rows
-        # For better visuals, use light separators between data rows; heavy/light mixing handled by build_horizontal_line
+        # append other columns, centered
+        for i in range(1, len(cols)):
+            inner = inner_widths[i]
+            val = match_row[i]
+            other_cells.append(" " + val.center(inner) + " ")
+
+        # join and append row
+        lines.append(join_cells_with_double_vertical(other_cells))
+
+        # append a row separator after each data row except we'll replace the final one with bottom_line later
         lines.append(row_sep_line)
 
-    # Replace the final trailing row separator with bottom_line (swap last element)
-    if lines[-1] == row_sep_line:
-        lines[-1] = bottom_line
+    # if no data rows, replace last separator (which is header_sep) with bottom_line (already header_sep appended earlier)
+    if len(rows) == 0:
+        # replace the header_sep_line with bottom_line
+        if lines and lines[-1] == header_sep_line:
+            lines[-1] = bottom_line
+        else:
+            lines.append(bottom_line)
     else:
-        lines.append(bottom_line)
+        # replace final row_sep_line with bottom_line
+        if lines and lines[-1] == row_sep_line:
+            lines[-1] = bottom_line
+        else:
+            lines.append(bottom_line)
 
     table_str = "\n".join(lines)
     return table_str, len(top_line), len(lines)
+
 
 
 def build_contrib_grid(repo_weekly: Dict[str,List[int]], repo_order: List[str], label_w: Optional[int]=None) -> Tuple[str,int]:
