@@ -590,8 +590,7 @@ def plot_with_mean(series, cfg=None) -> str:
         mean_row = max(0, min(rows, rows-mean_scaled))
         for c in range(offset, width):
             if result[mean_row][c] == ' ':
-                result[mean_row][c] = '- - '
-                #result[mean_row][c] = '┉'
+                result[mean_row][c] = '╴'
     except:
         pass
     return "\n".join("".join(row).rstrip() for row in result)
