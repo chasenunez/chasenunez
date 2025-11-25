@@ -13,9 +13,9 @@ import requests
 
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
-HEADERA = "Most Recently Active Repositories"
-HEADERB = "Commit Density For Recently Active Repositories"
-HEADERC = "Weekly Commit Distribution Relative To Long-Term Mean"
+HEADERA = "Recently Active Repositories"
+HEADERB = "Weekly Commit Intensity Among Recently Active Repositories"
+HEADERC = "Weekly Commits Relative To Yearly Average"
 LINE = "━"
 TOP_N = 10            # Number of top repositories to include (including private)
 WEEKS = 42            # Number of weeks to show in charts
