@@ -16,15 +16,18 @@ USERNAME = "chasenunez"
 HEADERA = "Recently Active Repositories"
 HEADERB = "Weekly Commit Intensity Among Recently Active Repositories"
 HEADERC = "Weekly Commits Relative To Rolling Annual Average"
-LINE = "═"
-TOP_N = 15            # Number of top repositories to include (including private)
+LINE = "━"
+TOP_N = 10            # Number of top repositories to include (including private)
 WEEKS = 42            # Number of weeks to show in charts
 MAX_WIDTH = 110       # Max characters wide for all figures (table, heatmap, plot)
-RESTRICTED_NAME = "restricted_access"
+RESTRICTED_NAME = "restricted"
 AVG_BYTES_PER_LINE = 40 
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
-SHADES = ["⠁","⠃","⠇","⠏","⠟","⠿","⡿","⣿"]
+
+
+SHADES = ["🬇","🬢","🬣","🬰","🬪","🬥","🬺","🬴","█"]
+#SHADES = ["⠁","⠃","⠇","⠏","⠟","⠿","⡿","⣿"]
 #SHADES = ["□", "░", "▒", "▓", "█"]  # For heat map (low→high intensity)
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
