@@ -2,7 +2,7 @@
                           Weekly Commit Intensity Among Recently Active Repositories                          
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-<a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                                                                                              
+<a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                                                                                         ⣿ ⡿ ⠿
 <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>                                                                                    
 <a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>                                                                    ⠁ ⣿ ⠁               ⠇ ⠁
 <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>                                                             ⣿ ⠃ ⠏ ⠃ ⠁                 ⠃  
@@ -10,7 +10,7 @@
 <a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>                                                                             ⠟ ⠇ ⣿   ⠁ ⠁
 <a href="https://github.com/chasenunez/asciichart">asciichart</a>             ⣿                                                                                
 <a href="https://github.com/chasenunez/data_HUD">data_HUD</a>                                                                                         ⣿ ⡿    
-⠗⠑⠎⠞⠗⠊⠉⠞⠑⠙                                                                                             ⣿
+⠗⠑⠎⠞⠗⠊⠉⠞⠑⠙                                                                         ⠟ ⠇ ⠟ ⡿ ⠏ ⠟ ⠏ ⠟ ⠇ ⠇ ⣿
                      F     M       A         M       J       J         A       S       O         N      
 
                     low   ⠁ ⠃ ⠇ ⠏ ⠟ ⠿ ⡿ ⣿  high
@@ -20,17 +20,17 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
-                63.0┼                                                           ╭─╮
-                56.7┤                                                           │ │
-                50.4┤                                                     ╭─╮   │ │
-                44.1┤                                                     │ │   │ │
-                37.8┤                                                     │ │   │ │             ╭─╮
-                31.5┤                                                     │ │   │ ╰─╮           │ │
-                25.2┤                                                     │ │ ╭─╯   │           │ ╰─╮
-                18.9┤                                                     │ │ │     │           │   ╰─╮
-                12.6┤                                                     │ ╰─╯     │           │     ╰─
-                 6.3┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴│╴╴╴╴╴╴╴╴╴│╴╭───╮╴╭───╯╴╴╴╴╴╴╴╴
-                 0.0┼─────────────────────────────────────────────────────╯         ╰─╯   ╰─╯
+               302.0┼                                                                                 ╭─
+               271.8┤                                                                                 │
+               241.6┤                                                                                 │
+               211.4┤                                                                             ╭───╯
+               181.2┤                                                                   ╭─╮     ╭─╯
+               151.0┤                                                             ╭─╮   │ │ ╭─╮ │
+               120.8┤                                                             │ │ ╭─╯ │ │ │ │
+                90.6┤                                                             │ │ │   ╰─╯ ╰─╯
+                60.4┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╭─╮╴╴╴╭─╯╴╰─╯╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴
+                30.2┤                                                     │ │ ╭─╯
+                 0.0┼─────────────────────────────────────────────────────╯ ╰─╯
                      F     M       A         M       J       J         A       S       O         N       
 
 
@@ -40,7 +40,7 @@
 ╔════════════════════════╦═══════════════════╦══════════════╦════════════════╦═══════════════════╦═══════════╗
 ║       Repository       ║   Main Language   ║ Total Bytes  ║ Total Commits  ║  Last Commit Date ║  Branches ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║   Python (100%)   ║    27342     ║      315       ║     2025-11-26    ║     1     ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║   Python (100%)   ║    27342     ║      316       ║     2025-11-26    ║     1     ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
 ║ <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>   ║     HTML (84%)    ║   3036378    ║       80       ║     2025-11-26    ║     2     ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
