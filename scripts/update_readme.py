@@ -24,10 +24,7 @@ RESTRICTED_NAME = "restricted"
 AVG_BYTES_PER_LINE = 40 
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
-
-
-SHADES = ["🬇","🬢","🬣","🬰","🬪","🬥","🬺","🬴","█"]
-#SHADES = ["⠁","⠃","⠇","⠏","⠟","⠿","⡿","⣿"]
+SHADES = [" ","⠁","⠃","⠇","⠏","⠟","⠿","⡿","⣿"]
 #SHADES = ["□", "░", "▒", "▓", "█"]  # For heat map (low→high intensity)
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
