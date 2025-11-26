@@ -1,6 +1,6 @@
 <pre>
                           Weekly Commit Intensity Among Recently Active Repositories                          
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━═━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>           ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
 <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a> ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
@@ -8,43 +8,43 @@
 <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>       ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⣿ ⠃ ⠏ ⠇ ⠃ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠃ ⠁
 <a href="https://github.com/chasenunez/logue">logue</a>                ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
 <a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>     ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠟ ⠏ ⣿ ⠁ ⠃ ⠃
-<a href="https://github.com/chasenunez/asciichart">asciichart</a>           ⠁ ⣿ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
+<a href="https://github.com/chasenunez/asciichart">asciichart</a>           ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
 <a href="https://github.com/chasenunez/data_HUD">data_HUD</a>             ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⣿ ⡿ ⠁ ⠁
 <a href="https://github.com/chasenunez/byos_django">byos_django</a>          ⣿ ⠇ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠿ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
-<a href="https://github.com/chasenunez/trmnlp">trmnlp</a>               ⠁ ⠁ ⠁ ⠁ ⠁ ⠏ ⠏ ⠁ ⣿ ⠏ ⠁ ⠁ ⠃ ⠁ ⠇ ⠃ ⠁ ⠁ ⠁ ⠏ ⠁ ⠇ ⠁ ⠁ ⠁ ⠁ ⠁ ⠃ ⠃ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
-<a href="https://github.com/chasenunez/contribution_chart">contribution_chart</a>   ⠁ ⠁ ⠁ ⠁ ⣿ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠃ ⠁ ⠁ ⠁ ⠁ ⠃ ⠁ ⠃ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
-<a href="https://github.com/chasenunez/recursive_shrink">recursive_shrink</a>     ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⣿ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
-restricted_access    ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠟ ⠇ ⠟ ⡿ ⠏ ⠿ ⠏ ⠿ ⠇ ⠏ ⣿
+<a href="https://github.com/chasenunez/trmnlp">trmnlp</a>               ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
+<a href="https://github.com/chasenunez/contribution_chart">contribution_chart</a>   ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
+<a href="https://github.com/chasenunez/recursive_shrink">recursive_shrink</a>     ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
+restricted_access    ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠟ ⠇ ⠟ ⡿ ⠏ ⠿ ⠟ ⠿ ⠏ ⠏ ⣿
                      F     M       A         M       J       J         A       S       O         N      
 
                     low ⠁ ⠃ ⠇ ⠏ ⠟ ⠿ ⡿ ⣿  high
 
 
-                                  Weekly Commits Relative To Yearly Average                                   
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                              Weekly Commits Relative To Rolling Annual Average                               
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━═━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
-               206.0┼                                                                                 ╭─
-               185.4┤                                                                           ╭─╮   │
-               164.8┤                                                                   ╭─╮     │ │   │
-               144.2┤                                                             ╭─╮   │ │ ╭─╮ │ │   │
-               123.6┤                                                             │ │ ╭─╯ │ │ │ │ │   │
-               103.0┤                                                             │ │ │   ╰─╯ ╰─╯ ╰───╯
-                82.4┤                                                             │ │ │
-                61.8┤                                                     ╭─╮     │ ╰─╯
-                41.2┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴│╴│╴╴╴╭─╯╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴
-                20.6┤       ╭─────╮ ╭───╮                 ╭─╮             │ ╰───╯
-                 0.0┼───────╯     ╰─╯   ╰─────────────────╯ ╰─────────────╯
+               200.0┼                                                                                 ╭─
+               180.0┤                                                                           ╭─╮   │
+               160.0┤                                                             ╭─╮   ╭─╮     │ │   │
+               140.0┤                                                             │ │   │ │ ╭─╮ │ │   │
+               120.0┤                                                             │ │ ╭─╯ │ │ │ │ │   │
+               100.0┤                                                             │ │ │   ╰─╯ ╰─╯ ╰───╯
+                80.0┤                                                             │ ╰─╯
+                60.0┤                                                     ╭─╮     │
+                40.0┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴│╴│╴╴╴╴╴│╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴
+                20.0┤                                                     │ ╰─────╯
+                 0.0┼─────────────────────────────────────────────────────╯
                      F     M       A         M       J       J         A       S       O         N       
 
 
                                          Recently Active Repositories                                         
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━═━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ╔═══════════════════════╦════════════════════╦══════════════╦════════════════╦═══════════════════╦═══════════╗
 ║       Repository      ║   Main Language    ║ Total Bytes  ║ Total Commits  ║  Last Commit Date ║  Branches ║
 ╠═══════════════════════╬════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>            ║   Python (100%)    ║    30006     ║      299       ║     2025-11-26    ║     1     ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>            ║   Python (100%)    ║    27310     ║      302       ║     2025-11-26    ║     1     ║
 ╠═══════════════════════╬════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
 ║ <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>  ║     HTML (84%)     ║   3036378    ║       80       ║     2025-11-26    ║     2     ║
 ╠═══════════════════════╬════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
