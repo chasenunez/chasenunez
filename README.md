@@ -6,7 +6,7 @@
 <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a> ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
 <a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>        ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠃ ⣿ ⠃ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠏ ⠃
 <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>       ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⣿ ⠃ ⠏ ⠇ ⠃ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠃ ⠁
-<a href="https://github.com/chasenunez/logue">logue</a>                ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⣿ ⠁ ⠁ ⠃ ⠃ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
+<a href="https://github.com/chasenunez/logue">logue</a>                ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
 <a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>     ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠟ ⠏ ⣿ ⠁ ⠃ ⠃
 <a href="https://github.com/chasenunez/asciichart">asciichart</a>           ⠁ ⣿ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
 <a href="https://github.com/chasenunez/data_HUD">data_HUD</a>             ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⣿ ⡿ ⠁ ⠁
@@ -14,7 +14,7 @@
 <a href="https://github.com/chasenunez/trmnlp">trmnlp</a>               ⠁ ⠁ ⠁ ⠁ ⠁ ⠏ ⠏ ⠁ ⣿ ⠏ ⠁ ⠁ ⠃ ⠁ ⠇ ⠃ ⠁ ⠁ ⠁ ⠏ ⠁ ⠇ ⠁ ⠁ ⠁ ⠁ ⠁ ⠃ ⠃ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
 <a href="https://github.com/chasenunez/contribution_chart">contribution_chart</a>   ⠁ ⠁ ⠁ ⠁ ⣿ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠃ ⠁ ⠁ ⠁ ⠁ ⠃ ⠁ ⠃ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
 <a href="https://github.com/chasenunez/recursive_shrink">recursive_shrink</a>     ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⣿ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
-restricted_access    ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⣿ ⠁ ⠁ ⠃ ⠿
+restricted_access    ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠟ ⠇ ⠟ ⡿ ⠏ ⠿ ⠏ ⠿ ⠇ ⠏ ⣿
                      F     M       A         M       J       J         A       S       O         N      
 
                     low ⠁ ⠃ ⠇ ⠏ ⠟ ⠿ ⡿ ⣿  high
@@ -24,17 +24,17 @@ restricted_access    ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
-                73.0┼                                                           ╭─╮
-                65.7┤                                                           │ │
-                58.4┤                                                     ╭─╮   │ │
-                51.1┤                                                     │ │   │ │
-                43.8┤                                                     │ │   │ │
-                36.5┤                                                     │ │   │ │             ╭─╮
-                29.2┤               ╭─╮                                   │ │   │ ╰─╮           │ ╰─╮
-                21.9┤               │ │                                   │ │ ╭─╯   │           │   ╰─╮
-                14.6┤╴╴╴╴╴╴╴╭─────╮╴│╴╰─╮╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╭─╮╴╴╴╴╴╴╴╴╴╴╴╴╴│╴╰─╯╴╴╴╴╴│╴╴╴╴╴╴╴╴╴╭─╯╴╴╴╴╴╰─╴
-                 7.3┤       │     │ │   │   ╭─╮ ╭─╮       │ │ ╭─╮         │         │ ╭───╮ ╭─╯
-                 0.0┼───────╯     ╰─╯   ╰───╯ ╰─╯ ╰───────╯ ╰─╯ ╰─────────╯         ╰─╯   ╰─╯
+               206.0┼                                                                                 ╭─
+               185.4┤                                                                           ╭─╮   │
+               164.8┤                                                                   ╭─╮     │ │   │
+               144.2┤                                                             ╭─╮   │ │ ╭─╮ │ │   │
+               123.6┤                                                             │ │ ╭─╯ │ │ │ │ │   │
+               103.0┤                                                             │ │ │   ╰─╯ ╰─╯ ╰───╯
+                82.4┤                                                             │ │ │
+                61.8┤                                                     ╭─╮     │ ╰─╯
+                41.2┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴│╴│╴╴╴╭─╯╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴
+                20.6┤       ╭─────╮ ╭───╮                 ╭─╮             │ ╰───╯
+                 0.0┼───────╯     ╰─╯   ╰─────────────────╯ ╰─────────────╯
                      F     M       A         M       J       J         A       S       O         N       
 
 
@@ -44,7 +44,7 @@ restricted_access    ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁ ⠁
 ╔═══════════════════════╦════════════════════╦══════════════╦════════════════╦═══════════════════╦═══════════╗
 ║       Repository      ║   Main Language    ║ Total Bytes  ║ Total Commits  ║  Last Commit Date ║  Branches ║
 ╠═══════════════════════╬════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>            ║   Python (100%)    ║    30006     ║      298       ║     2025-11-26    ║     1     ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>            ║   Python (100%)    ║    30006     ║      299       ║     2025-11-26    ║     1     ║
 ╠═══════════════════════╬════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
 ║ <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>  ║     HTML (84%)     ║   3036378    ║       80       ║     2025-11-26    ║     2     ║
 ╠═══════════════════════╬════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
