@@ -2,35 +2,35 @@
                           Weekly Commit Intensity Among Recently Active Repositories                          
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-<a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                                                                                         ⣿ ⡿ ⠿
-<a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>                                                                                    
-<a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>                                                                    ⠁ ⣿ ⠁               ⠇ ⠁
-<a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>                                                             ⣿ ⠃ ⠏ ⠃ ⠁                 ⠃  
-<a href="https://github.com/chasenunez/logue">logue</a>                                                                            ⣿     ⠁ ⠃              
-<a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>                                                                             ⠟ ⠇ ⣿   ⠁ ⠁
-<a href="https://github.com/chasenunez/asciichart">asciichart</a>             ⣿                                                                                
-<a href="https://github.com/chasenunez/data_HUD">data_HUD</a>                                                                                         ⣿ ⡿    
-restricted                                                                         ⠟ ⠇ ⠟ ⡿ ⠏ ⠿ ⠏ ⠟ ⠇ ⠇ ⣿
+<a href="https://github.com/chasenunez/chasenunez">chasenunez</a>           _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a> _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>        _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>       _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ⣿ ⠃ ⠏ ⠃ ⠁ _ _ _ _ _ _ _ _ ⠃ _
+<a href="https://github.com/chasenunez/logue">logue</a>                _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ⣿ _ _ ⠁ ⠃ _ _ _ _ _ _ _
+<a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>     _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ⠟ ⠇ ⣿ _ ⠁ ⠁
+<a href="https://github.com/chasenunez/asciichart">asciichart</a>           _ ⣿ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<a href="https://github.com/chasenunez/data_HUD">data_HUD</a>             _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ⣿ ⡿ _ _
+restricted           _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ⣿
                      F     M       A         M       J       J         A       S       O         N      
 
-                    low   ⠁ ⠃ ⠇ ⠏ ⠟ ⠿ ⡿ ⣿  high
+                    low _ ⠁ ⠃ ⠇ ⠏ ⠟ ⠿ ⡿ ⣿  high
 
 
                               Weekly Commits Relative To Rolling Annual Average                               
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
-               289.0┼                                                                                 ╭─
-               260.1┤                                                                                 │
-               231.2┤                                                                                 │
-               202.3┤                                                                             ╭───╯
-               173.4┤                                                                   ╭─╮     ╭─╯
-               144.5┤                                                             ╭─╮   │ │ ╭─╮ │
-               115.6┤                                                             │ │ ╭─╯ │ │ │ │
-                86.7┤                                                           ╭─╯ │ │   ╰─╯ ╰─╯
-                57.8┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╭─╮╴╴╴│╴╴╴╰─╯╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴
-                28.9┤                                                     │ │ ╭─╯
-                 0.0┼─────────────────────────────────────────────────────╯ ╰─╯
+                61.0┼                                                           ╭─╮
+                54.9┤                                                     ╭─╮   │ │
+                48.8┤                                                     │ │   │ │
+                42.7┤                                                     │ │   │ │
+                36.6┤                                                     │ │   │ │             ╭─╮
+                30.5┤                                                     │ │   │ │             │ │
+                24.4┤                                                     │ │ ╭─╯ │             │ ╰─╮
+                18.3┤                                                     │ │ │   │             │   │
+                12.2┤                                                     │ ╰─╯   │             │   ╰───
+                 6.1┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴│╴╴╴╴╴╴╴╰─╮╴╭───╮╴╭─╮╴│╴╴╴╴╴╴╴╴
+                 0.0┼─────────────────────────────────────────────────────╯         ╰─╯   ╰─╯ ╰─╯
                      F     M       A         M       J       J         A       S       O         N       
 
 
@@ -40,7 +40,7 @@ restricted                                                                      
 ╔════════════════════════╦═══════════════════╦══════════════╦════════════════╦═══════════════════╦═══════════╗
 ║       Repository       ║   Main Language   ║ Total Bytes  ║ Total Commits  ║  Last Commit Date ║  Branches ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║   Python (100%)   ║    27307     ║      306       ║     2025-11-26    ║     1     ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║   Python (100%)   ║    27307     ║      308       ║     2025-11-26    ║     1     ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
 ║ <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>   ║     HTML (84%)    ║   3036378    ║       80       ║     2025-11-26    ║     2     ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
