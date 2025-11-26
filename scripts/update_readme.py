@@ -15,13 +15,13 @@ import requests
 USERNAME = "chasenunez"
 HEADERA = "Recently Active Repositories"
 HEADERB = "Weekly Commit Intensity Among Recently Active Repositories"
-HEADERC = "Weekly Commits Relative To Yearly Average"
-LINE = "━"
+HEADERC = "Weekly Commits Relative To Rolling Annual Average"
+LINE = "═"
 TOP_N = 15            # Number of top repositories to include (including private)
 WEEKS = 42            # Number of weeks to show in charts
 MAX_WIDTH = 110       # Max characters wide for all figures (table, heatmap, plot)
 RESTRICTED_NAME = "restricted_access"
-AVG_BYTES_PER_LINE = 100.0 #40 
+AVG_BYTES_PER_LINE = 40 
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
 SHADES = ["⠁","⠃","⠇","⠏","⠟","⠿","⡿","⣿"]
