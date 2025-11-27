@@ -415,7 +415,7 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
             label_render = anchor + padding
         else:
             label_render = visible
-        lines.append(f"{label_render}┤ {' '.join(cells)}")
+        lines.append(f"{label_render} ┤ {' '.join(cells)}")
     axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
     axis_line = " " * label_w + " " + " ".join(axis_cells)
     lines.append(axis_line)
@@ -648,7 +648,7 @@ def main():
 
         # Figure out numeric label format so that y-axis labels fit
         fmt_w, fmt_p = 7, 1
-        label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
+        label_fmt = f"{{:{fmt_w}.{fmt_p}f }} "
         # Compute offset_len from the *maximum* label, to ensure space for largest label
         offset_len = len(label_fmt.format(maximum_scaled))
         req_w = offset_len + len(scaled_series) + 1
