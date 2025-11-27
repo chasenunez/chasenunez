@@ -414,7 +414,7 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
             padding = " " * pad_len
             label_render = padding + anchor
         else:
-            label_render = visible
+            label_render = padding + visible
         lines.append(f"{label_render}┤ {' '.join(cells)}")
     axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
     axis_line = " " * label_w + " " + " ".join(axis_cells)
