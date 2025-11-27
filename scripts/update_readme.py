@@ -407,8 +407,8 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
             visible = name.rjust(label_w)
         # If url present, wrap visible text in anchor and then pad so the total *visible* width remains label_w
         if repo_urls and repo in repo_urls and repo_urls[repo]:
-            url = #repo_urls[repo] #reincorperate if you can figuer out why the buffer space is also being hyperlinked. a problem for later. 
-            anchor = f'<a href="{url}">{visible.rstrip()}</a>'
+            url = repo_urls[repo]
+            anchor = f'{visible.rstrip()}'#f'<a href="{url}">{visible.rstrip()}</a>'
             # compute padding that keeps visible width label_w (visible.rstrip() might be shorter due to rstrip)
             pad_len = label_w - len(visible.rstrip())
             padding = " " * pad_len
