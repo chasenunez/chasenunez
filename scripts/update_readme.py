@@ -412,7 +412,7 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
             # compute padding that keeps visible width label_w (visible.rstrip() might be shorter due to rstrip)
             pad_len = label_w - len(visible.rstrip())
             padding = " " * pad_len
-            label_render = anchor + padding
+            label_render = padding + anchor
         else:
             label_render = visible
         lines.append(f"{label_render}┤ {' '.join(cells)}")
