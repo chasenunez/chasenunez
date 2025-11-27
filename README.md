@@ -1,20 +1,20 @@
 <pre>
-                            Top 10 Recently Active Repos With Weekly Commit Volume                            
+                  Recently Active Repos With Weekly Commit Volume Relative To Annual Average                  
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
-               216.0┼                                                                                 ╭─
-               194.4┤                                                                                 │
-               172.8┤                                                                   ╭─╮     ╭─╮   │
-               151.2┤                                                             ╭─╮   │ │ ╭─╮ │ │   │
-               129.6┤                                                             │ │ ╭─╯ │ │ │ │ │   │
-               108.0┤                                                             │ │ │   ╰─╯ │ │ │ ╭─╯
-                86.4┤                                                             │ │ │       ╰─╯ ╰─╯
-                64.8┤                                                           ╭─╯ ╰─╯
-                43.2┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╭─╮╴╴╴│╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴
-                21.6┤                                                     │ ╰───╯
-                 0.0┼─────────────────────────────────────────────────────╯
-<a href="https://github.com/chasenunez/chasenunez">chasenunez</a>          ┤                                                                                    
+               332.0┼                                                                                 ╭─
+               298.8┤                                                                                 │
+               265.6┤                                                                                 │
+               232.4┤                                                                                 │
+               199.2┤                                                                             ╭───╯
+               166.0┤                                                             ╭─╮   ╭─╮     ╭─╯
+               132.8┤                                                             │ │ ╭─╯ │ ╭─╮ │
+                99.6┤                                                             │ │ │   ╰─╯ ╰─╯
+                66.4┤                                                     ╭─╮   ╭─╯ ╰─╯
+                33.2┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴│╴│╴╭─╯╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴
+                 0.0┼─────────────────────────────────────────────────────╯ ╰─╯
+<a href="https://github.com/chasenunez/chasenunez">chasenunez</a>          ┤                                                                               ⣿ ⡿ ⣿
 <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>┤                                                                                    
 <a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>       ┤                                                             ⠁ ⣿ ⠁               ⠇ ⠁
 <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>      ┤                                                       ⣿ ⠃ ⠏ ⠃ ⠁                 ⠃  
@@ -28,13 +28,13 @@ restricted          ┤                                                         
                     low   ⠁ ⠃ ⠇ ⠏ ⠟ ⠿ ⡿ ⣿  high
 
 
-                                         Recently Active Repositories                                         
+                                Detailed Composition Of Recently Active Repos                                 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ╔════════════════════════╦═══════════════════╦══════════════╦════════════════╦═══════════════════╦═══════════╗
 ║       Repository       ║   Main Language   ║ Total Bytes  ║ Total Commits  ║  Last Commit Date ║  Branches ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║   Python (100%)   ║    27278     ║      340       ║     2025-11-27    ║     1     ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║   Python (100%)   ║    27315     ║      342       ║     2025-11-27    ║     1     ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
 ║ <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>   ║     HTML (84%)    ║   3036378    ║       80       ║     2025-11-26    ║     2     ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
