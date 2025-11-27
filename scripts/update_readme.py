@@ -537,7 +537,7 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
         
         f"{HEADERC: ^{MAX_WIDTH}}\n"
         f"{LINE:━^{MAX_WIDTH}}\n\n"
-        f"{ascii_plot}"
+        f"{ascii_plot}\n"
         f"{contrib_grid}\n\n\n"
         f"{HEADERA: ^{MAX_WIDTH}}\n"
         f"{LINE:━^{MAX_WIDTH}}\n\n"                                                                                                               
