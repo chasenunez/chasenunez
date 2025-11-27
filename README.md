@@ -2,7 +2,7 @@
                           Weekly Commit Intensity Among Recently Active Repositories                          
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-<a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                                                                                              
+<a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                                                                                         ⣿ ⡿ ⠿
 <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>                                                                                    
 <a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>                                                                    ⠁ ⣿ ⠁               ⠇ ⠁
 <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>                                                             ⣿ ⠃ ⠏ ⠃ ⠁                 ⠃  
@@ -10,8 +10,8 @@
 <a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>                                                                             ⠟ ⠇ ⣿   ⠁ ⠁
 <a href="https://github.com/chasenunez/asciichart">asciichart</a>             ⣿                                                                                
 <a href="https://github.com/chasenunez/data_HUD">data_HUD</a>                                                                                         ⣿ ⡿    
-restricted                                                                         ⠟ ⠇ ⠟ ⠿ ⠏ ⠟ ⠏ ⠟ ⠇ ⠇ ⣿
-                     F     M       A         M       J       J         A       S       O         N      
+restricted                                                                         ⠟ ⠇ ⠟ ⠿ ⠏ ⠟ ⠇ ⠟ ⠇ ⠇ ⣿
+                     F     M       A       M         J       J         A       S       O         N      
 
                     low   ⠁ ⠃ ⠇ ⠏ ⠟ ⠿ ⡿ ⣿  high
 
@@ -20,18 +20,18 @@ restricted                                                                      
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
-               213.0┼                                                                                 ╭─
-               191.7┤                                                                                 │
-               170.4┤                                                                   ╭─╮     ╭─╮   │
-               149.1┤                                                             ╭─╮   │ │ ╭─╮ │ │   │
-               127.8┤                                                             │ │ ╭─╯ │ │ │ │ │   │
-               106.5┤                                                             │ │ │   ╰─╯ │ │ ╰───╯
-                85.2┤                                                           ╭─╯ │ │       ╰─╯
-                63.9┤                                                           │   ╰─╯
-                42.6┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╭─╮╴╴╴│╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴
-                21.3┤                                                     │ ╰───╯
-                 0.0┼─────────────────────────────────────────────────────╯
-                     F     M       A         M       J       J         A       S       O         N       
+               307.0┼                                                                                 ╭─
+               276.3┤                                                                                 │
+               245.6┤                                                                                 │
+               214.9┤                                                                             ╭───╯
+               184.2┤                                                                   ╭─╮     ╭─╯
+               153.5┤                                                             ╭─╮   │ │ ╭─╮ │
+               122.8┤                                                             │ │ ╭─╯ │ │ │ │
+                92.1┤                                                             │ │ │   ╰─╯ ╰─╯
+                61.4┤                                                     ╭─╮   ╭─╯ ╰─╯
+                30.7┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴│╴│╴╭─╯╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴
+                 0.0┼─────────────────────────────────────────────────────╯ ╰─╯
+                     F     M       A       M         J       J         A       S       O         N       
 
 
                                          Recently Active Repositories                                         
@@ -40,7 +40,7 @@ restricted                                                                      
 ╔════════════════════════╦═══════════════════╦══════════════╦════════════════╦═══════════════════╦═══════════╗
 ║       Repository       ║   Main Language   ║ Total Bytes  ║ Total Commits  ║  Last Commit Date ║  Branches ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║   Python (100%)   ║    27342     ║      318       ║     2025-11-26    ║     1     ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║   Python (100%)   ║    27342     ║      319       ║     2025-11-26    ║     1     ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
 ║ <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>   ║     HTML (84%)    ║   3036378    ║       80       ║     2025-11-26    ║     2     ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
