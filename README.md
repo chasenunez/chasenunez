@@ -3,25 +3,25 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
-               334.0┼                                                                                 ╭─
-               300.6┤                                                                                 │
-               267.2┤                                                                                 │
-               233.8┤                                                                                 │
-               200.4┤                                                                             ╭───╯
-               167.0┤                                                             ╭─╮   ╭─╮     ╭─╯
-               133.6┤                                                             │ │ ╭─╯ │ ╭─╮ │
-               100.2┤                                                             │ │ │   ╰─╯ ╰─╯
-                66.8┤                                                     ╭─╮   ╭─╯ ╰─╯
-                33.4┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴│╴│╴╭─╯╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴
+               336.0┼                                                                                 ╭─
+               302.4┤                                                                                 │
+               268.8┤                                                                                 │
+               235.2┤                                                                                 │
+               201.6┤                                                                             ╭───╯
+               168.0┤                                                                   ╭─╮       │
+               134.4┤                                                             ╭─╮ ╭─╯ │ ╭─╮ ╭─╯
+               100.8┤                                                             │ │ │   ╰─╯ ╰─╯
+                67.2┤                                                     ╭─╮   ╭─╯ ╰─╯
+                33.6┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴│╴│╴╭─╯╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴
                  0.0┼─────────────────────────────────────────────────────╯ ╰─╯
-<a href="https://github.com/chasenunez/chasenunez">chasenunez</a>          ┤                                                                               ⣿ ⡿ ⣿
+          <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>┤                                                                               ⣿ ⡿ ⣿
 <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>┤                                                                                    
-<a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>       ┤                                                             ⠁ ⣿ ⠁               ⠇ ⠁
-<a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>      ┤                                                       ⣿ ⠃ ⠏ ⠃ ⠁                 ⠃  
-<a href="https://github.com/chasenunez/logue">logue</a>               ┤                                                             ⣿     ⠁ ⠃              
-<a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>    ┤                                                                         ⠟ ⠇ ⣿   ⠁ ⠁
-<a href="https://github.com/chasenunez/asciichart">asciichart</a>          ┤   ⣿                                                                                
-<a href="https://github.com/chasenunez/data_HUD">data_HUD</a>            ┤                                                                             ⣿ ⡿    
+       <a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>┤                                                             ⠁ ⣿ ⠁               ⠇ ⠁
+      <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>┤                                                       ⣿ ⠃ ⠏ ⠃ ⠁                 ⠃  
+               <a href="https://github.com/chasenunez/logue">logue</a>┤                                                             ⣿     ⠁ ⠃              
+    <a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>┤                                                                         ⠟ ⠇ ⣿   ⠁ ⠁
+          <a href="https://github.com/chasenunez/asciichart">asciichart</a>┤                                                                                    
+            <a href="https://github.com/chasenunez/data_HUD">data_HUD</a>┤                                                                                    
 restricted          ┤                                                               ⠟ ⠇ ⠏ ⠿ ⠏ ⠟ ⠇ ⠟ ⠇ ⠇ ⣿
                      F     M       A       M         J       J         A       S       O         N      
 
@@ -34,7 +34,7 @@ restricted          ┤                                                         
 ╔════════════════════════╦═══════════════════╦══════════════╦════════════════╦═══════════════════╦═══════════╗
 ║       Repository       ║   Main Language   ║ Total Bytes  ║ Total Commits  ║  Last Commit Date ║  Branches ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║   Python (100%)   ║    27282     ║      344       ║     2025-11-27    ║     1     ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║   Python (100%)   ║    27282     ║      346       ║     2025-11-27    ║     1     ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
 ║ <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>   ║     HTML (84%)    ║   3036378    ║       80       ║     2025-11-26    ║     2     ║
 ╠════════════════════════╬═══════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
