@@ -534,12 +534,11 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
     """Combine ASCII components into the final README markdown (inside a <pre> block)."""
     return (
         "<pre>\n"
-        f"{HEADERB: ^{MAX_WIDTH}}\n"
-        f"{LINE:━^{MAX_WIDTH}}\n\n" 
-        f"{contrib_grid}\n\n\n"
+        
         f"{HEADERC: ^{MAX_WIDTH}}\n"
         f"{LINE:━^{MAX_WIDTH}}\n\n"
-        f"{ascii_plot}\n\n\n"
+        f"{ascii_plot}"
+        f"{contrib_grid}\n\n\n"
         f"{HEADERA: ^{MAX_WIDTH}}\n"
         f"{LINE:━^{MAX_WIDTH}}\n\n"                                                                                                               
         f"{ascii_table}\n"
@@ -689,7 +688,7 @@ def main():
         # Keep the "one-char + space per week" layout:
         axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
 
-        ascii_plot = "\n" + ascii_body + "\n" + axis_line
+        ascii_plot = "\n" + ascii_body #+ "\n" + axis_line
 
     # If ascii_plot was the no-activity case, we already built contrib_grid above.
     if 'contrib_grid' not in locals():
