@@ -404,7 +404,7 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
         if len(name) > label_w:
             visible = name[:label_w-1] + "…"
         else:
-            visible = name.ljust(label_w)
+            visible = name.rjust(label_w)
         # If url present, wrap visible text in anchor and then pad so the total *visible* width remains label_w
         if repo_urls and repo in repo_urls and repo_urls[repo]:
             url = repo_urls[repo]
@@ -414,7 +414,7 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
             padding = " " * pad_len
             label_render = padding + anchor
         else:
-            label_render = padding + visible
+            label_render = visible
         lines.append(f"{label_render}┤ {' '.join(cells)}")
     axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
     axis_line = " " * label_w + " " + " ".join(axis_cells)
