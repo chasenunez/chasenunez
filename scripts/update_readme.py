@@ -15,7 +15,7 @@ import requests
 USERNAME = "chasenunez"
 HEADERA = "Detailed Composition Of Recently Active Repos"
 HEADERB = "Weekly Commit Intensity Among Recently Active Repositories"
-HEADERC = "Recently Active Repos With Weekly Commit Volume Relative To Annual Average"
+HEADERC = "Weekly Activity Breakdown & Annual Trends"
 LINE = "━"
 TOP_N = 10            # Number of top repositories to include (including private)
 WEEKS = 42            # Number of weeks to show in charts
