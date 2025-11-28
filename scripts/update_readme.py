@@ -24,7 +24,7 @@ RESTRICTED_NAME = "restricted"  #"⠗⠑⠎⠞⠗⠊⠉⠞⠑⠙"
 AVG_BYTES_PER_LINE = 40 
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
-SHADES = ["⠀","⠁","⠃","⠇","⠏","⠟","⠿","⡿","⣿"]
+SHADES = [" ","⠁","⠃","⠇","⠏","⠟","⠿","⡿","⣿"]
 #SHADES = ["□", "░", "▒", "▓", "█"]  # For heat map (low→high intensity)
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
@@ -524,7 +524,7 @@ def plot_with_mean(series, cfg=None) -> str:
         mean_scaled = scaled(mean_val)
         mean_row = max(0, min(rows, rows-mean_scaled))
         for c in range(offset, width):
-            if result[mean_row][c] == '⠀':
+            if result[mean_row][c] == ' ':
                 result[mean_row][c] = '╴'
     except:
         pass
