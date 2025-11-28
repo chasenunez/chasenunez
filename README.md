@@ -2,30 +2,30 @@
                                   Weekly Activity Breakdown & Annual Trends                                   
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-               369.0┼                                                                                 ╭─
-               332.1┤                                                                                 │
-               295.2┤                                                                                 │
-               258.3┤                                                                                 │
-               221.4┤                                                                               ╭─╯
-               184.5┤                                                                   ╭─╮       ╭─╯
-               147.6┤                                                             ╭─╮   │ │ ╭─╮ ╭─╯
-               110.7┤                                                             │ │ ╭─╯ ╰─╯ ╰─╯
-                73.8┤                                                           ╭─╯ ╰─╯
-                36.9┤╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╭─╮╴╭─╯╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴
-                 0.0┼─────────────────────────────────────────────────────╯ ╰─╯
+                47.0┼                                                           ╭─╮
+                42.3┤                                                           │ │
+                37.6┤                                                           │ │
+                32.9┤                                                           │ │
+                28.2┤                                                           │ │
+                23.5┤                                                           │ │
+                18.8┤                                                           │ │
+                14.1┤                                                           │ │
+                 9.4┤                                                           │ │     ╭─╮     ╭─╮
+                 4.7┤                                                           │ │   ╭─╯ │ ╭───╯ │   ╭─
+                 0.0┼───────────────────────────────────────────────────────────╯╴╰───╯╴╴╴╰─╯╴╴╴╴╴╰───╯╴╴
 
-                DEVO┤                                                                                   ⣿
-          chasenunez┤                                                                               ⡿ ⠿ ⣿
-eas-coding-workshops┤                                                                                    
-       DEVO_enricher┤                                                             ⠁ ⣿ ⠁               ⠇ ⠁
-      DEVO_validator┤                                                       ⣿ ⠃ ⠏ ⠃ ⠁                 ⠃  
-               logue┤                                                             ⣿     ⠁ ⠃              
-    envidat_entrails┤                                                                         ⠟ ⠇ ⣿   ⠁ ⠁
-          asciichart┤   ⣿                                                                                
-          restricted┤                                                               ⠟ ⠇ ⠏ ⠿ ⠏ ⠟ ⠇ ⠟ ⠇ ⠇ ⣿
+          chasenunez┤                                          
+                DEVO┤                                          
+eas-coding-workshops┤                                          
+       DEVO_enricher┤                                          
+      DEVO_validator┤                                          
+               logue┤                               ⣿   ⠁ ⠃       
+    envidat_entrails┤                                     ⠟ ⠇ ⣿  ⠁ ⠁
+          asciichart┤                                          
+          restricted┤                                          
                      F     M       A       M         J       J       A         S       O         N      
 
-                    low   ⠁ ⠃ ⠇ ⠏ ⠟ ⠿ ⡿ ⣿  high
+                    low  ⠁ ⠃ ⠇ ⠏ ⠟ ⠿ ⡿ ⣿  high
 
 
                                 Detailed Composition Of Recently Active Repos                                 
@@ -34,9 +34,9 @@ eas-coding-workshops┤
 ╔════════════════════════╦═════════════════╦═══════════════╦═════════════════╦═══════════════════╦═══════════╗
 ║       Repository       ║  Main Language  ║  Total Bytes  ║  Total Commits  ║  Last Commit Date ║  Branches ║
 ╠════════════════════════╬═════════════════╬═══════════════╬═════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/DEVO">DEVO</a>                   ║  Python (100%)  ║     29643     ║        11       ║     2025-11-28    ║     1     ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║  Python (100%)  ║     27303     ║       362       ║     2025-11-28    ║     1     ║
 ╠════════════════════════╬═════════════════╬═══════════════╬═════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║  Python (100%)  ║     27304     ║       360       ║     2025-11-28    ║     1     ║
+║ <a href="https://github.com/chasenunez/DEVO">DEVO</a>                   ║  Python (100%)  ║     29643     ║        13       ║     2025-11-28    ║     1     ║
 ╠════════════════════════╬═════════════════╬═══════════════╬═════════════════╬═══════════════════╬═══════════╣
 ║ <a href="https://github.com/livingingroups/eas-coding-workshops">eas-coding-workshops</a>   ║    HTML (84%)   ║    3036378    ║        80       ║     2025-11-26    ║     2     ║
 ╠════════════════════════╬═════════════════╬═══════════════╬═════════════════╬═══════════════════╬═══════════╣
