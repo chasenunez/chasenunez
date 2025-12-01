@@ -4,13 +4,11 @@ Enhanced update_readme.py with fixes for private repos, heatmap data, and chart 
 Align heatmap and line chart x-axes by using a global left margin.
 Ensure line chart y-axis runs from 0 to max (no negative values).
 """
-import os, sys, time, re
+import os, sys, time, re, requests, wcwidth, unicodedata
 from datetime import datetime, timezone, timedelta
 from math import ceil, floor, isnan
 from typing import Dict, List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import requests
-import wcwidth
 
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
@@ -368,80 +366,100 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
     table_str = "\n".join(lines)
     return table_str, len(top_line), len(lines)
 
+def wcswidth(s: str) -> int:
+    """Simple, dependency-free display width approximation.
+    - Combining marks -> width 0
+    - East-Asian Wide/Fullwidth -> width 2
+    - Everything else -> width 1
+    """
+    if s is None:
+        return 0
+    total = 0
+    for ch in s:
+        if unicodedata.combining(ch):
+            continue
+        ea = unicodedata.east_asian_width(ch)
+        total += 2 if ea in ("W", "F") else 1
+    return total
+
 def build_contrib_grid(repo_weekly: Dict[str,List[int]],
                        repo_order: List[str],
                        label_w: Optional[int]=None,
                        repo_urls: Optional[Dict[str,str]]=None) -> Tuple[str,int]:
     """
     Build ASCII heat map (rows = repos, cols = weeks) using SHADES.
-    This version measures display width (wcwidth) and enforces a fixed slot width
-    so each 'week' column lines up across rows and with the x axis.
+    Minimal, dependency-free display-width logic via wcswidth() above.
+    Ensures each week column uses a fixed 'slot' so rows and x-axis align.
     """
-    # compute label width if not provided
+    # label width handling (same policy as your original)
     if label_w is None:
         label_w = max(10, max((len(r) for r in repo_order), default=10))
         label_w = min(label_w, 28)
     else:
         label_w = max(10, min(label_w, 28))
 
-    # determine display width of each shade glyph and choose a slot width
-    glyph_widths = [wcwidth.wcswidth(s) for s in SHADES]
-    # replace -1 (unprintable) with 1
-    glyph_widths = [w if w > 0 else 1 for w in glyph_widths]
-    slot_w = max(1, max(glyph_widths))   # how many monospace columns a shade may occupy
-    # We'll render each week as: [symbol padded to slot_w] + single-space separator
-    sep = " "
+    # Determine slot width from SHADES using our wcswidth
+    glyph_widths = [wcswidth(s) for s in SHADES]
+    glyph_widths = [w if (isinstance(w, int) and w > 0) else 1 for w in glyph_widths]
+    slot_w = max(1, max(glyph_widths))  # number of monospace columns needed for the widest shade glyph
+
+    sep = " "  # separator between slots
 
     def render_slot(sym: str) -> str:
-        w = wcwidth.wcswidth(sym)
-        if w < 0:
+        """Render symbol padded to slot_w columns (visible width)."""
+        w = wcswidth(sym)
+        if not isinstance(w, int) or w < 0:
             w = 1
         pad = slot_w - w
         return sym + (" " * pad)
 
-    lines = []
+    lines: List[str] = []
     for repo in repo_order:
         weeks = repo_weekly.get(repo, [0]*WEEKS)
         if len(weeks) < WEEKS:
-            weeks = [0]*(WEEKS-len(weeks)) + weeks
+            weeks = [0] * (WEEKS - len(weeks)) + weeks
         max_val = max(weeks) or 1
-        cell_slots = []
+        cell_slots: List[str] = []
         for w in weeks:
             ratio = w / max_val if max_val else 0
-            idx = int(round(ratio*(len(SHADES)-1)))
-            idx = max(0, min(len(SHADES)-1, idx))
+            idx = int(round(ratio * (len(SHADES) - 1)))
+            idx = max(0, min(len(SHADES) - 1, idx))
             cell_slots.append(render_slot(SHADES[idx]))
+
         # label visible text (clip/pad to label_w)
         name = repo
         if len(name) > label_w:
             visible = name[:label_w-1] + "…"
         else:
             visible = name.rjust(label_w)
-        # If url present, wrap visible text in anchor and then pad so the total *visible* width remains label_w
+
+        # If url present, keep visible text width stable (we render plain visible text here)
         if repo_urls and repo in repo_urls and repo_urls[repo]:
-            url = repo_urls[repo]
-            # keep visible text (no tags) for width, but render anchor-less here if you want
-            anchor = f'{visible.rstrip()}'
-            pad_len = label_w - len(visible.rstrip())
+            anchor_text = visible.rstrip()
+            pad_len = label_w - len(anchor_text)
             padding = " " * pad_len
-            label_render = padding + anchor
+            label_render = padding + anchor_text
         else:
             label_render = visible
-        # join cells with a single separator so each week visually occupies slot_w + len(sep)
+
+        # join cells with separator so each week visually occupies slot_w + len(sep)
         row = f"{label_render}┤ " + sep.join(cell_slots)
         lines.append(row)
 
-    # axis: center each month initial inside slot_w and use same separator
+    # Build axis: use same slot_w spacing and separator
     axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
-    axis_slots = [(ch.center(slot_w)) for ch in axis_cells]
+    axis_slots = [ch.center(slot_w) for ch in axis_cells]
     axis_line = " " * label_w + " " + sep.join(axis_slots)
     lines.append(axis_line)
-    # legend: keep same spacing
-    legend_slots = [(s.center(slot_w)) for s in SHADES]
+
+    # Legend using same spacing
+    legend_slots = [s.center(slot_w) for s in SHADES]
     legend = " " * label_w + "low " + sep.join(legend_slots) + "  high"
     lines.append("")
     lines.append(legend)
+
     return "\n".join(lines), label_w
+
 
 
 
