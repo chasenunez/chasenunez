@@ -42,7 +42,6 @@ def month_initials_for_weeks(weeks: int, use_three_letter: bool=False) -> List[s
     labeled column (avoids multiple labels inside the same month).
     If use_three_letter=True we return e.g. "Mar"/"Apr", else a single initial "M"/"A".
     """
-    use_three_letter=True
     labels: List[str] = []
     now = datetime.now(timezone.utc)
     last_month = None
