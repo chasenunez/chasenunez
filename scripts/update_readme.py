@@ -727,7 +727,7 @@ def main():
         # Keep the "one-char + space per week" layout:
         axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
 
-        ascii_plot = "\n" + ascii_body + "\n" #+ axis_line
+        ascii_plot = "\n" + ascii_body + "\n" + axis_line
 
     # If ascii_plot was the no-activity case, we already built contrib_grid above.
     if 'contrib_grid' not in locals():
