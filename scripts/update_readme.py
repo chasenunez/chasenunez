@@ -12,8 +12,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
-DATECONSTRUCT = datetime.strptime(datetime.now(), "%A %d %B, %Y")
-TIMECONSTRUCT = datetime.strptime(datetime.now(), "%H:%M")
+DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
+TIMECONSTRUCT = datetime.now().strftime("%H:%M")
 HEADERA = "Detailed Composition Of Recently Active Repos"
 HEADERB = "Weekly Commit Intensity Among Recently Active Repositories"
 HEADERC = f"Annual(ish) Activity Breakdown as of {TIMECONSTRUCT} on {DATECONSTRUCT}"
