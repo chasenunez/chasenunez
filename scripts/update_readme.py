@@ -13,9 +13,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 def getTimeOfDay(TIMECONSTRUCT):
   if TIMECONSTRUCT >= 5 and TIMECONSTRUCT < 12:
     return "Morning"
-  else if TIMECONSTRUCT >= 12 and TIMECONSTRUCT < 18:
+  elif TIMECONSTRUCT >= 12 and TIMECONSTRUCT < 18:
     return "Afternoon"
-  else if TIMECONSTRUCT >= 18 and TIMECONSTRUCT < 21:
+  elif TIMECONSTRUCT >= 18 and TIMECONSTRUCT < 21:
     return "Evening"
   else:
     return "Night"
