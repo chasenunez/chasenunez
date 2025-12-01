@@ -35,7 +35,7 @@ SESSION.headers.update({
 })
 # -----------------------------------
 
-def month_initials_for_weeks(weeks: int, use_three_letter: bool=False) -> List[str]:
+def month_initials_for_weeks(weeks: int, use_three_letter: bool=True) -> List[str]:
     """
     Return a list of length `weeks` with month labels aligned to weekly columns.
     We place a label only when the calendar month changes compared to the last
