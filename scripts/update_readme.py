@@ -10,13 +10,25 @@ from math import ceil, floor, isnan
 from typing import Dict, List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+def getTimeOfDay(TIMECONSTRUCT):
+  if TIMECONSTRUCT >= 5 and TIMECONSTRUCT < 12:
+    return "Morning"
+  else if TIMECONSTRUCT >= 12 and TIMECONSTRUCT < 18:
+    return "Afternoon"
+  else if TIMECONSTRUCT >= 18 and TIMECONSTRUCT < 21:
+    return "Evening"
+  else:
+    return "Night"
+
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
+DAY = datetime.now().strftime("%B")
 DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
-TIMECONSTRUCT = datetime.now().strftime("%H:%M")
+TIMECONSTRUCT = datetime.now().strftime("%H")
+APPROXTIME = getTimeOfDay(TIMECONSTRUCT)
 HEADERA = "Detailed Composition Of Recently Active Repos"
 HEADERB = "Weekly Commit Intensity Among Recently Active Repositories"
-HEADERC = f"Annual(ish) Activity Breakdown as of {TIMECONSTRUCT} on {DATECONSTRUCT}"
+HEADERC = f"Annual(ish) Activity Breakdown as of {DAY} {APPROXTIME}"
 LINE = "━"
 TOP_N = 10            # Number of top repositories to include (including private)
 WEEKS = 42            # Number of weeks to show in charts
