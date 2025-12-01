@@ -23,7 +23,7 @@ eas-coding-workshops┤
     envidat_entrails┤                                                                       ⡝ ⡑ ⣿   ⡀ ⡀  
           asciichart┤ ⣿                                                                                  
           restricted┤                                                             ⡕ ⡁ ⡕ ⣝ ⡑ ⡝ ⡑ ⡝ ⡁ ⡑ ⣿ ⡀
-                     Feb   Mar         Apr       May       Jun         Jul       Aug       Sep         Oct       Nov       Dec
+                     F   M         A       M       J         J       A       S         O       N       D
 
                     low   ⡀ ⡁ ⡑ ⡕ ⡝ ⣝ ⣽ ⣿  high
 
@@ -34,7 +34,7 @@ eas-coding-workshops┤
 ╔════════════════════════╦═════════════════╦═══════════════╦═════════════════╦═══════════════════╦═══════════╗
 ║       Repository       ║  Main Language  ║  Total Bytes  ║  Total Commits  ║  Last Commit Date ║  Branches ║
 ╠════════════════════════╬═════════════════╬═══════════════╬═════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║  Python (100%)  ║     28602     ║       411       ║     2025-12-01    ║     1     ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>             ║  Python (100%)  ║     28576     ║       413       ║     2025-12-01    ║     1     ║
 ╠════════════════════════╬═════════════════╬═══════════════╬═════════════════╬═══════════════════╬═══════════╣
 ║ <a href="https://github.com/chasenunez/DEVO">DEVO</a>                   ║  Python (100%)  ║     29643     ║        15       ║     2025-12-01    ║     1     ║
 ╠════════════════════════╬═════════════════╬═══════════════╬═════════════════╬═══════════════════╬═══════════╣
