@@ -12,9 +12,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
+DATECONSTRUCT = datetime.strptime(datetime.datetime.now(), "%A %d %B, %Y")
+TIMECONSTRUCT = datetime.strptime(datetime.datetime.now(), "%H:%M")
 HEADERA = "Detailed Composition Of Recently Active Repos"
 HEADERB = "Weekly Commit Intensity Among Recently Active Repositories"
-HEADERC = "Weekly Activity Breakdown & Annual Trends"
+HEADERC = f"Annual(ish) Activity Breakdown as of {TIMECONSTRUCT} on {DATECONSTRUCT}"
 LINE = "━"
 TOP_N = 10            # Number of top repositories to include (including private)
 WEEKS = 42            # Number of weeks to show in charts
