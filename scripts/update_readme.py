@@ -23,7 +23,7 @@ def getTimeOfDay(hour):
 
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
-DAY = datetime.now().strftime("%B")
+DAY = datetime.now().strftime("%A")
 DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
 TIMECONSTRUCT = datetime.now().strftime("%H")
 APPROXTIME = getTimeOfDay(TIMECONSTRUCT)
