@@ -23,7 +23,8 @@ RESTRICTED_NAME = "restricted"  #"⠗⠑⠎⠞⠗⠊⠉⠞⠑⠙"
 AVG_BYTES_PER_LINE = 40 
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
-SHADES = ["⠀","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
+SHADES = ["⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
+#SHADES = ["⠀","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
 #SHADES = [" ","⠁","⠃","⠇","⠏","⠟","⠿","⡿","⣿"]
 #SHADES = ["□", "░", "▒", "▓", "█"]  # For heat map (low→high intensity)
 GITHUB_API = "https://api.github.com"
@@ -727,7 +728,7 @@ def main():
         # Keep the "one-char + space per week" layout:
         axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
 
-        ascii_plot = "\n" + ascii_body + "\n" + axis_line
+        ascii_plot = "\n" + ascii_body + "\n" #+ axis_line
 
     # If ascii_plot was the no-activity case, we already built contrib_grid above.
     if 'contrib_grid' not in locals():
