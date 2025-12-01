@@ -10,6 +10,7 @@ from math import ceil, floor, isnan
 from typing import Dict, List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
+import wcwidth
 
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
@@ -367,19 +368,14 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
     table_str = "\n".join(lines)
     return table_str, len(top_line), len(lines)
 
-
-
-
 def build_contrib_grid(repo_weekly: Dict[str,List[int]],
                        repo_order: List[str],
                        label_w: Optional[int]=None,
                        repo_urls: Optional[Dict[str,str]]=None) -> Tuple[str,int]:
     """
     Build ASCII heat map (rows = repos, cols = weeks) using SHADES.
-    If repo_urls is provided (mapping repo_name -> url), the repo label will be rendered
-    as an HTML anchor (<a href="...">name</a>) while alignment is calculated from the
-    visible name only.
-    Returns (grid_string, label_w_used).
+    This version measures display width (wcwidth) and enforces a fixed slot width
+    so each 'week' column lines up across rows and with the x axis.
     """
     # compute label width if not provided
     if label_w is None:
@@ -387,18 +383,34 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
         label_w = min(label_w, 28)
     else:
         label_w = max(10, min(label_w, 28))
+
+    # determine display width of each shade glyph and choose a slot width
+    glyph_widths = [wcwidth.wcswidth(s) for s in SHADES]
+    # replace -1 (unprintable) with 1
+    glyph_widths = [w if w > 0 else 1 for w in glyph_widths]
+    slot_w = max(1, max(glyph_widths))   # how many monospace columns a shade may occupy
+    # We'll render each week as: [symbol padded to slot_w] + single-space separator
+    sep = " "
+
+    def render_slot(sym: str) -> str:
+        w = wcwidth.wcswidth(sym)
+        if w < 0:
+            w = 1
+        pad = slot_w - w
+        return sym + (" " * pad)
+
     lines = []
     for repo in repo_order:
         weeks = repo_weekly.get(repo, [0]*WEEKS)
         if len(weeks) < WEEKS:
             weeks = [0]*(WEEKS-len(weeks)) + weeks
         max_val = max(weeks) or 1
-        cells = []
+        cell_slots = []
         for w in weeks:
             ratio = w / max_val if max_val else 0
             idx = int(round(ratio*(len(SHADES)-1)))
             idx = max(0, min(len(SHADES)-1, idx))
-            cells.append(SHADES[idx])
+            cell_slots.append(render_slot(SHADES[idx]))
         # label visible text (clip/pad to label_w)
         name = repo
         if len(name) > label_w:
@@ -408,21 +420,29 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
         # If url present, wrap visible text in anchor and then pad so the total *visible* width remains label_w
         if repo_urls and repo in repo_urls and repo_urls[repo]:
             url = repo_urls[repo]
-            anchor = f'{visible.rstrip()}'#f'<a href="{url}">{visible.rstrip()}</a>'
-            # compute padding that keeps visible width label_w (visible.rstrip() might be shorter due to rstrip)
+            # keep visible text (no tags) for width, but render anchor-less here if you want
+            anchor = f'{visible.rstrip()}'
             pad_len = label_w - len(visible.rstrip())
             padding = " " * pad_len
             label_render = padding + anchor
         else:
             label_render = visible
-        lines.append(f"{label_render}┤ {' '.join(cells)}")
+        # join cells with a single separator so each week visually occupies slot_w + len(sep)
+        row = f"{label_render}┤ " + sep.join(cell_slots)
+        lines.append(row)
+
+    # axis: center each month initial inside slot_w and use same separator
     axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
-    axis_line = " " * label_w + " " + " ".join(axis_cells)
+    axis_slots = [(ch.center(slot_w)) for ch in axis_cells]
+    axis_line = " " * label_w + " " + sep.join(axis_slots)
     lines.append(axis_line)
-    legend = " " * label_w + "low " + " ".join(SHADES) + "  high"
+    # legend: keep same spacing
+    legend_slots = [(s.center(slot_w)) for s in SHADES]
+    legend = " " * label_w + "low " + sep.join(legend_slots) + "  high"
     lines.append("")
     lines.append(legend)
     return "\n".join(lines), label_w
+
 
 
 def build_rows_for_table(repos: List[dict], token: str=None) -> List[dict]:
