@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""
-Enhanced update_readme.py
- - more robust /stats data acquisition with local-cache fallback
- - heatmap alignment for multi-byte shades (uses wcwidth when available)
- - label for long-term mean inserted into plot when space available
-"""
+
 import os
 import sys
 import time
@@ -25,15 +20,38 @@ except Exception:
     wcwidth = None
     _HAS_WCWIDTH = False
 
+def getTimeOfDay(hour):
+    hour = int(hour) 
+    if 0 <= hour < 12:
+        return "Morning"
+    elif 12 <= hour < 18:
+        return "Afternoon"
+    elif 18 <= hour < 21:
+        return "Evening"
+    else:
+        return "Night"
+
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
+
+DAY = datetime.now().strftime("%A")
+DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
+TIMECONSTRUCT = datetime.now().strftime("%H")
+MINUTECONSTRUCT = datetime.now().strftime("%M")
+APPROXTIME = getTimeOfDay(TIMECONSTRUCT)
+
+HEADERA = "Detailed Composition Of Recently Active Repos"
+HEADERB = "Weekly Commit Intensity Among Recently Active Repositories"
+HEADERC = f"Annual(ish) Activity Breakdown as of {DAY} {APPROXTIME} at {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST"
+
+LINE = "━"
+
 TOP_N = 10
 WEEKS = 42
 MAX_WIDTH = 110
 RESTRICTED_NAME = "restricted"
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
-# your new shades (braille-like)
 SHADES = ["","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
@@ -108,7 +126,7 @@ def _retry_stats_get(url: str, token: str=None) -> Optional[requests.Response]:
 def repo_commit_activity(owner: str, repo: str, token: str=None) -> List[int]:
     """
     Request weekly commit counts for the repo (oldest -> newest).
-    We'll attempt robust retries; if we cannot obtain non-empty data we return a list of zeros.
+    if we cannot obtain non-empty data we return a list of zeros.
     """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/commit_activity"
     r = _retry_stats_get(url, token=token)
@@ -291,11 +309,8 @@ def month_initials_for_weeks(weeks: int, use_three_letter: bool=False) -> List[s
     return labels
 
 # ----------------------------
-# Table builder (unchanged semantics)
+# Table builder
 # ----------------------------
-# (reuse your make_ascii_table_with_links implementation — omitted here for brevity in this message)
-# For brevity I re-use your existing make_ascii_table_with_links from your code unchanged.
-# If you'd like I can paste it here; it's unchanged except I call pad_to_width when needed.
 from typing import List, Tuple
 def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = None) -> Tuple[str,int,int]:
     # --- lightweight table code adapted from your latest version ---
@@ -436,7 +451,7 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
     return table_str, len(top_line), len(lines)
 
 # ----------------------------
-# Heatmap builder (aligned slots)
+# Heatmap builder 
 # ----------------------------
 def build_contrib_grid(repo_weekly: Dict[str,List[int]],
                        repo_order: List[str],
@@ -515,13 +530,9 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
     return "\n".join(lines), label_w
 
 # ----------------------------
-# plot_with_mean (with mean label insertion)
+# plot_with_mean
 # ----------------------------
 def plot_with_mean(series, cfg=None) -> str:
-    """
-    ASCII line plot of a series with dotted mean line.
-    cfg keys (used here): min, max, offset, height, format, mean_label (optional)
-    """
     if not series:
         return ""
     if not isinstance(series[0], list):
@@ -638,8 +649,12 @@ def plot_with_mean(series, cfg=None) -> str:
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
     return (
         "<pre>\n"
-        f"{ascii_plot}\n\n"
+        f"{HEADERC: ^{MAX_WIDTH}}\n"
+        f"{LINE:━^{MAX_WIDTH}}\n"
+        f"{ascii_plot}\n"
         f"{contrib_grid}\n\n\n"
+        f"{HEADERA: ^{MAX_WIDTH}}\n"
+        f"{LINE:━^{MAX_WIDTH}}\n\n"                                                                                                               
         f"{ascii_table}\n"
         "</pre>\n"
     )
