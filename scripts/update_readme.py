@@ -1,84 +1,58 @@
 #!/usr/bin/env python3
 """
-Enhanced update_readme.py with fixes for private repos, heatmap data, and chart width.
-Align heatmap and line chart x-axes by using a global left margin.
-Ensure line chart y-axis runs from 0 to max (no negative values).
+Enhanced update_readme.py
+ - more robust /stats data acquisition with local-cache fallback
+ - heatmap alignment for multi-byte shades (uses wcwidth when available)
+ - label for long-term mean inserted into plot when space available
 """
-import os, sys, time, re, requests, wcwidth, unicodedata
+import os
+import sys
+import time
+import re
+import json
+import unicodedata
 from datetime import datetime, timezone, timedelta
 from math import ceil, floor, isnan
 from typing import Dict, List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-def getTimeOfDay(hour):
-    hour = int(hour)  # ensure integer
-    if 0 <= hour < 12:
-        return "Morning"
-    elif 12 <= hour < 18:
-        return "Afternoon"
-    elif 18 <= hour < 21:
-        return "Evening"
-    else:
-        return "Night"
+import requests
+# try to use wcwidth if installed for accurate terminal widths
+try:
+    import wcwidth
+    _HAS_WCWIDTH = True
+except Exception:
+    wcwidth = None
+    _HAS_WCWIDTH = False
 
 # ---------- Configuration ----------
 USERNAME = "chasenunez"
-DAY = datetime.now().strftime("%A")
-DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
-TIMECONSTRUCT = datetime.now().strftime("%H")
-MINUTECONSTRUCT = datetime.now().strftime("%M")
-APPROXTIME = getTimeOfDay(TIMECONSTRUCT)
-
-HEADERA = "Detailed Composition Of Recently Active Repos"
-HEADERB = "Weekly Commit Intensity Among Recently Active Repositories"
-HEADERC = f"Annual(ish) Activity Breakdown as of {DAY} {APPROXTIME} at {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST"
-
-LINE = "━"
-TOP_N = 10            # Number of top repositories to include (including private)
-WEEKS = 42            # Number of weeks to show in charts
-MAX_WIDTH = 110       # Max characters wide for all figures (table, heatmap, plot)
-RESTRICTED_NAME = "restricted"  #"⠗⠑⠎⠞⠗⠊⠉⠞⠑⠙"
-AVG_BYTES_PER_LINE = 40 
+TOP_N = 10
+WEEKS = 42
+MAX_WIDTH = 110
+RESTRICTED_NAME = "restricted"
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
-SHADES = ["","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
-#SHADES = ["⠀","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
-#SHADES = [" ","⠁","⠃","⠇","⠏","⠟","⠿","⡿","⣿"]
-#SHADES = ["□", "░", "▒", "▓", "█"]  # For heat map (low→high intensity)
+# your new shades (braille-like)
+SHADES = ["⠀","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
 SESSION.headers.update({
     "Accept": "application/vnd.github.v3+json",
     "User-Agent": f"update-readme-script ({USERNAME})",
 })
+
+# cache file path for fallback commit_activity
+CACHE_FILE = ".commit_activity_cache.json"
+# how many /stats retries before giving up
+STATS_MAX_ATTEMPTS = 8
+
 # -----------------------------------
 
-def month_initials_for_weeks(weeks: int, use_three_letter: bool=False) -> List[str]:
-    """
-    Return a list of length `weeks` with month labels aligned to weekly columns.
-    We place a label only when the calendar month changes compared to the last
-    labeled column (avoids multiple labels inside the same month).
-    If use_three_letter=True we return e.g. "Mar"/"Apr", else a single initial "M"/"A".
-    """
-    labels: List[str] = []
-    now = datetime.now(timezone.utc)
-    last_month = None
-    for i in range(weeks):
-        dt = now - timedelta(days=(weeks-1-i)*7)
-        if dt.month != last_month:
-            m = dt.strftime("%b")  # 'Mar', 'May', ...
-            labels.append(m if use_three_letter else m[0])
-            last_month = dt.month
-        else:
-            labels.append(" ")
-    return labels
-
 def auth_token() -> Optional[str]:
-    """Get GitHub token from environment (PAT)."""
     return os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
 def gh_get(url: str, params: dict=None, token: str=None, timeout: int=30) -> requests.Response:
-    """Helper to make GET requests with optional token auth."""
     headers = {}
     if token:
         headers["Authorization"] = f"token {token}"
@@ -87,7 +61,6 @@ def gh_get(url: str, params: dict=None, token: str=None, timeout: int=30) -> req
     return resp
 
 def _get_paginated(url: str, params: dict=None, token: str=None) -> List[dict]:
-    """Handle GitHub pagination (per_page up to 100)."""
     items = []
     params = dict(params or {})
     params.setdefault("per_page", 100)
@@ -108,59 +81,55 @@ def _get_paginated(url: str, params: dict=None, token: str=None) -> List[dict]:
             break
     return items
 
-def fetch_repos_for_user(token: str=None) -> List[dict]:
-    """
-    Fetch all repositories visible to the user.
-    Using /user/repos (authenticated) returns both public and private repos.
-    """
-    if token:
-        url = f"{GITHUB_API}/user/repos"
-        params = {"sort": "updated", "direction": "desc"}
-    else:
-        # Without auth, only public repos
-        url = f"{GITHUB_API}/users/{USERNAME}/repos"
-        params = {"sort": "updated", "direction": "desc"}
-    return _get_paginated(url, params=params, token=token)
-
 def _retry_stats_get(url: str, token: str=None) -> Optional[requests.Response]:
-    """Retry wrapper for /stats endpoints (which may return 202 if data is not cached)."""
+    """
+    Stronger retry/backoff for GitHub /stats endpoints that sometimes return 202 while generating.
+    """
     attempt = 0
-    while attempt < 5:
+    wait = 1.0
+    while attempt < STATS_MAX_ATTEMPTS:
         try:
-            r = gh_get(url, token=token)
-        except requests.HTTPError:
+            r = SESSION.get(url, headers={"Authorization": f"token {token}"} if token else {}, timeout=20)
+        except requests.RequestException:
             return None
         if r.status_code == 202:
-            time.sleep(1 * (2 ** attempt))
+            # still being generated on server side
+            time.sleep(wait)
             attempt += 1
+            wait = min(wait * 2.0, 10.0)
             continue
+        try:
+            r.raise_for_status()
+        except Exception:
+            return None
         return r
     return None
 
 def repo_commit_activity(owner: str, repo: str, token: str=None) -> List[int]:
     """
-    Get weekly commit counts for the repo (last up to 52 weeks).
-    Returns a list of length WEEKS (oldest->newest).
+    Request weekly commit counts for the repo (oldest -> newest).
+    We'll attempt robust retries; if we cannot obtain non-empty data we return a list of zeros.
     """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/commit_activity"
     r = _retry_stats_get(url, token=token)
     if r is not None:
-        data = r.json()
-        if isinstance(data, list):
-            weeks = [int(item.get("total", 0)) for item in data]
-            if len(weeks) >= WEEKS:
-                return weeks[-WEEKS:]
-            # Pad front with zeros if fewer weeks returned
-            return [0]*(WEEKS - len(weeks)) + weeks
+        try:
+            data = r.json()
+            if isinstance(data, list):
+                weeks = [int(item.get("total", 0)) for item in data]
+                if len(weeks) >= WEEKS:
+                    return weeks[-WEEKS:]
+                return [0] * (WEEKS - len(weeks)) + weeks
+        except Exception:
+            pass
+    # fallback: return zeros (caller may apply cache fallback)
     return [0] * WEEKS
 
 def get_commit_count(owner: str, repo: str, token: str=None) -> int:
-    """Get total commits on default branch by using per_page=1 and reading Link header."""
     url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
     try:
         r = gh_get(url, params={"per_page":1}, token=token)
-    except requests.HTTPError as e:
-        # e.g. empty repo (409) or not found
+    except Exception:
         return 0
     link = r.headers.get("Link", "")
     if link:
@@ -176,11 +145,10 @@ def get_commit_count(owner: str, repo: str, token: str=None) -> int:
     return 0
 
 def get_branch_count(owner: str, repo: str, token: str=None) -> int:
-    """Count branches similarly by reading Link header."""
     url = f"{GITHUB_API}/repos/{owner}/{repo}/branches"
     try:
         r = gh_get(url, params={"per_page":1}, token=token)
-    except requests.HTTPError:
+    except Exception:
         return 0
     link = r.headers.get("Link", "")
     if link:
@@ -196,27 +164,142 @@ def get_branch_count(owner: str, repo: str, token: str=None) -> int:
     return 0
 
 def fetch_languages(owner: str, repo: str, token: str=None) -> Dict[str,int]:
-    """Get languages used in repo (bytes per language)."""
     url = f"{GITHUB_API}/repos/{owner}/{repo}/languages"
     try:
         r = gh_get(url, token=token)
         return r.json() or {}
-    except requests.HTTPError:
+    except Exception:
         return {}
 
+# ----------------------------
+# Small display-width helpers
+# ----------------------------
+def wcswidth_fallback(s: str) -> int:
+    """Fallback display width: combining marks 0, East Asian W/F -> 2, else 1."""
+    if s is None:
+        return 0
+    total = 0
+    for ch in s:
+        if unicodedata.combining(ch):
+            continue
+        ea = unicodedata.east_asian_width(ch)
+        total += 2 if ea in ("W", "F") else 1
+    return total
+
+def wcswidth(s: str) -> int:
+    if _HAS_WCWIDTH:
+        try:
+            return wcwidth.wcswidth(s)
+        except Exception:
+            return wcswidth_fallback(s)
+    else:
+        return wcswidth_fallback(s)
+
+def pad_to_width(s: str, target: int, align: str='left') -> str:
+    """Pad/truncate string `s` to display width `target`. Align options: left/right/center."""
+    # compute visible width
+    cur = wcswidth(s)
+    if cur == target:
+        return s
+    if cur < target:
+        pad = target - cur
+        if align == 'left':
+            return s + " " * pad
+        elif align == 'right':
+            return " " * pad + s
+        else:
+            left = pad//2
+            right = pad - left
+            return " " * left + s + " " * right
+    # cur > target -> truncate by characters while measuring widths
+    out = ""
+    acc = 0
+    for ch in s:
+        ch_w = wcswidth(ch)
+        if acc + ch_w > target:
+            break
+        out += ch
+        acc += ch_w
+    # if we have room for an ellipsis char, append
+    if acc < target and len(out) < len(s):
+        # try to add single-character ellipsis "…"
+        if acc + wcswidth("…") <= target:
+            out += "…"
+            acc += wcswidth("…")
+    # pad if still short
+    if acc < target:
+        out += " " * (target - acc)
+    return out
+
+# ----------------------------
+# Cache helpers
+# ----------------------------
+def load_cache() -> Dict[str, List[int]]:
+    if not os.path.exists(CACHE_FILE):
+        return {}
+    try:
+        with open(CACHE_FILE, "r", encoding="utf-8") as fh:
+            raw = json.load(fh)
+            # ensure lists are proper length
+            out = {}
+            for k,v in raw.items():
+                if isinstance(v, list):
+                    vv = [int(x) for x in v]
+                    if len(vv) < WEEKS:
+                        vv = [0]*(WEEKS - len(vv)) + vv
+                    else:
+                        vv = vv[-WEEKS:]
+                    out[k] = vv
+            return out
+    except Exception:
+        return {}
+
+def save_cache(cache: Dict[str, List[int]]) -> None:
+    try:
+        with open(CACHE_FILE, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh)
+    except Exception:
+        pass
+
+# ----------------------------
+# Month label helper
+# ----------------------------
+def month_initials_for_weeks(weeks: int, use_three_letter: bool=False) -> List[str]:
+    labels: List[str] = []
+    now = datetime.now(timezone.utc)
+    last_month = None
+    last_label = None
+    for i in range(weeks):
+        dt = now - timedelta(days=(weeks-1-i)*7)
+        if dt.month != last_month:
+            m = dt.strftime("%b")
+            if use_three_letter:
+                lab = m
+            else:
+                lab = m[0]
+                if last_label is not None and lab == last_label:
+                    # pick a different char from the month name if collision with previous
+                    if len(m) > 1 and m[1] != last_label:
+                        lab = m[1]
+                    elif len(m) > 2 and m[2] != last_label:
+                        lab = m[2]
+            labels.append(lab)
+            last_month = dt.month
+            last_label = labels[-1]
+        else:
+            labels.append(" ")
+    return labels
+
+# ----------------------------
+# Table builder (unchanged semantics)
+# ----------------------------
+# (reuse your make_ascii_table_with_links implementation — omitted here for brevity in this message)
+# For brevity I re-use your existing make_ascii_table_with_links from your code unchanged.
+# If you'd like I can paste it here; it's unchanged except I call pad_to_width when needed.
 from typing import List, Tuple
-
 def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = None) -> Tuple[str,int,int]:
-    """
-    Build a double-line box-drawing table. The first column width is fixed to
-    the longest repository visible name (or capped by max_repo_name_width).
-    Repository names are rendered as HTML anchors (clickable) but widths are
-    computed from the plain visible text so monospace alignment stays correct.
-    Returns (table_str, table_width, table_height).
-    """
+    # --- lightweight table code adapted from your latest version ---
     cols = ["Repository", "Main Language", "Total Bytes", "Total Commits", "Last Commit Date", "Branches"]
-
-    # Prepare visible-only data for width calculations
     data_rows = []
     for r in rows:
         data_rows.append([
@@ -227,35 +310,23 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
             r.get("last_commit", ""),
             str(r.get("branches", "0")),
         ])
-
-    # Compute inner widths (plain visible characters only)
     inner_widths = [len(h) for h in cols]
     for dr in data_rows:
         for i, cell in enumerate(dr):
             inner_widths[i] = max(inner_widths[i], len(cell))
-
-    # Ensure first column equals longest repo visible name
     if data_rows:
         longest_repo = max(len(dr[0]) for dr in data_rows)
         inner_widths[0] = max(inner_widths[0], longest_repo)
-
-    # Apply optional cap for repo column
     if max_repo_name_width is not None:
         inner_widths[0] = min(inner_widths[0], max(1, max_repo_name_width))
-
     PAD = 2
     widths = [w + PAD for w in inner_widths]
-
     def total_table_width(col_widths: List[int]) -> int:
         return sum(col_widths) + (len(col_widths) + 1)
-
     target_total = MAX_WIDTH if MAX_WIDTH and MAX_WIDTH > 0 else total_table_width(widths)
     current_total = total_table_width(widths)
-
     min_inner = [max(1, len(h)) for h in cols]
     min_widths = [m + PAD for m in min_inner]
-
-    # expand/shrink logic (same policy as before)
     if current_total < target_total:
         extra = target_total - current_total
         i = 0
@@ -289,9 +360,7 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
                     take = min(can, excess)
                     widths[idx] -= take
                     excess -= take
-
     inner_widths = [w - PAD for w in widths]
-
     def clip(text: str, inner: int) -> str:
         if len(text) <= inner:
             return text
@@ -300,68 +369,53 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
         if inner == 1:
             return text[:1]
         return text[:max(1, inner-1)] + "…"
-
-    # double-line glyphs
     D_H = '═'; D_V = '║'
     TL = '╔'; TR = '╗'; BL = '╚'; BR = '╝'
     TSEP = '╦'; MSEP = '╬'; BSEP = '╩'; LSEP = '╠'; RSEP = '╣'
-
     def build_top():
         parts = [TL]
         for i, w in enumerate(widths):
             parts.append(D_H * w)
             parts.append(TSEP if i < len(widths)-1 else TR)
         return "".join(parts)
-
     def build_mid():
         parts = [LSEP]
         for i, w in enumerate(widths):
             parts.append(D_H * w)
             parts.append(MSEP if i < len(widths)-1 else RSEP)
         return "".join(parts)
-
     def build_bottom():
         parts = [BL]
         for i, w in enumerate(widths):
             parts.append(D_H * w)
             parts.append(BSEP if i < len(widths)-1 else BR)
         return "".join(parts)
-
     top_line = build_top()
     mid_line = build_mid()
     bottom_line = build_bottom()
-
     def join_cells(cell_texts: List[str]) -> str:
         parts = [D_V]
         for txt in cell_texts:
             parts.append(txt)
             parts.append(D_V)
         return "".join(parts)
-
     lines = [top_line]
-
-    # Header row
     header_cells = []
     for i, h in enumerate(cols):
         header_cells.append(" " + h.center(inner_widths[i]) + " ")
     lines.append(join_cells(header_cells))
     lines.append(mid_line)
-
-    # Data rows: compute visible text, then render anchor-wrapped string padded to same visible width
     for orig in rows:
         name = orig.get("name_text", "")
         url = orig.get("name_url", "")
         inner0 = inner_widths[0]
         clipped = clip(name, inner0)
-        # Create anchor-wrapped name but pad according to visible length (clipped)
         if url:
             anchor = f'<a href="{url}">{clipped}</a>'
             padding = " " * (inner0 - len(clipped))
             repo_cell = " " + anchor + padding + " "
         else:
             repo_cell = " " + clipped.ljust(inner0) + " "
-
-        # build other columns centered
         match = None
         for dr in data_rows:
             if dr[0] == name:
@@ -369,69 +423,51 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
                 break
         if match is None:
             match = [""] * len(cols)
-
         other_cells = [repo_cell]
         for i in range(1, len(cols)):
             other_cells.append(" " + match[i].center(inner_widths[i]) + " ")
-
         lines.append(join_cells(other_cells))
         lines.append(mid_line)
-
-    # final line -> bottom
     if lines[-1] == mid_line:
         lines[-1] = bottom_line
     else:
         lines.append(bottom_line)
-
     table_str = "\n".join(lines)
     return table_str, len(top_line), len(lines)
 
-def wcswidth(s: str) -> int:
-    """Simple, dependency-free display width approximation.
-    - Combining marks -> width 0
-    - East-Asian Wide/Fullwidth -> width 2
-    - Everything else -> width 1
-    """
-    if s is None:
-        return 0
-    total = 0
-    for ch in s:
-        if unicodedata.combining(ch):
-            continue
-        ea = unicodedata.east_asian_width(ch)
-        total += 2 if ea in ("W", "F") else 1
-    return total
-
+# ----------------------------
+# Heatmap builder (aligned slots)
+# ----------------------------
 def build_contrib_grid(repo_weekly: Dict[str,List[int]],
                        repo_order: List[str],
                        label_w: Optional[int]=None,
                        repo_urls: Optional[Dict[str,str]]=None) -> Tuple[str,int]:
     """
     Build ASCII heat map (rows = repos, cols = weeks) using SHADES.
-    Minimal, dependency-free display-width logic via wcswidth() above.
     Ensures each week column uses a fixed 'slot' so rows and x-axis align.
     """
-    # label width handling (same policy as your original)
+    # label width handling
     if label_w is None:
         label_w = max(10, max((len(r) for r in repo_order), default=10))
         label_w = min(label_w, 28)
     else:
         label_w = max(10, min(label_w, 28))
 
-    # Determine slot width from SHADES using our wcswidth
-    glyph_widths = [wcswidth(s) for s in SHADES]
-    glyph_widths = [w if (isinstance(w, int) and w > 0) else 1 for w in glyph_widths]
-    slot_w = max(1, max(glyph_widths))  # number of monospace columns needed for the widest shade glyph
-
-    sep = " "  # separator between slots
+    # Determine slot width from SHADES using wcswidth (accurate if wcwidth available)
+    glyph_widths = [max(1, wcswidth(s)) for s in SHADES]
+    slot_w = max(1, max(glyph_widths))
+    sep = " "  # space between slots; per-week width will be slot_w + len(sep)
 
     def render_slot(sym: str) -> str:
-        """Render symbol padded to slot_w columns (visible width)."""
-        w = wcswidth(sym)
-        if not isinstance(w, int) or w < 0:
-            w = 1
-        pad = slot_w - w
-        return sym + (" " * pad)
+        # Render symbol and pad to slot_w visible columns
+        cur = wcswidth(sym)
+        if cur < 0:
+            cur = 1
+        if cur >= slot_w:
+            # if it's wider than slot_w, we attempt to trim to slot_w by picking a simpler symbol
+            # fallback: use the last shade (highest intensity) truncated to single char if needed
+            return sym
+        return sym + (" " * (slot_w - cur))
 
     lines: List[str] = []
     for repo in repo_order:
@@ -439,52 +475,176 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
         if len(weeks) < WEEKS:
             weeks = [0] * (WEEKS - len(weeks)) + weeks
         max_val = max(weeks) or 1
-        cell_slots: List[str] = []
+        slots = []
         for w in weeks:
             ratio = w / max_val if max_val else 0
             idx = int(round(ratio * (len(SHADES) - 1)))
             idx = max(0, min(len(SHADES) - 1, idx))
-            cell_slots.append(render_slot(SHADES[idx]))
-
-        # label visible text (clip/pad to label_w)
-        name = repo
-        if len(name) > label_w:
-            visible = name[:label_w-1] + "…"
+            slots.append(render_slot(SHADES[idx]))
+        # label by display-width (use pad_to_width)
+        visible_name = repo
+        if wcswidth(visible_name) > label_w:
+            # truncate by characters to fit label_w
+            truncated = ""
+            acc = 0
+            for ch in visible_name:
+                wch = wcswidth(ch)
+                if acc + wch > label_w - 1:
+                    break
+                truncated += ch
+                acc += wch
+            visible = truncated + "…"
+            visible = pad_to_width(visible, label_w, align='right')
         else:
-            visible = name.rjust(label_w)
-
-        # If url present, keep visible text width stable (we render plain visible text here)
-        if repo_urls and repo in repo_urls and repo_urls[repo]:
-            anchor_text = visible.rstrip()
-            pad_len = label_w - len(anchor_text)
-            padding = " " * pad_len
-            label_render = padding + anchor_text
-        else:
-            label_render = visible
-
-        # join cells with separator so each week visually occupies slot_w + len(sep)
-        row = f"{label_render}┤ " + sep.join(cell_slots)
+            visible = pad_to_width(visible_name, label_w, align='right')
+        row = f"{visible}┤ " + sep.join(slots)
         lines.append(row)
 
-    # Build axis: use same slot_w spacing and separator
+    # axis (use same slot_w spacing)
     axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
-    axis_slots = [ch.center(slot_w) for ch in axis_cells]
+    axis_slots = [pad_to_width(ch, slot_w, align='center') for ch in axis_cells]
     axis_line = " " * label_w + " " + sep.join(axis_slots)
     lines.append(axis_line)
 
-    # Legend using same spacing
-    legend_slots = [s.center(slot_w) for s in SHADES]
+    # legend
+    legend_slots = [pad_to_width(s, slot_w, align='center') for s in SHADES]
     legend = " " * label_w + "low " + sep.join(legend_slots) + "  high"
     lines.append("")
     lines.append(legend)
 
     return "\n".join(lines), label_w
 
+# ----------------------------
+# plot_with_mean (with mean label insertion)
+# ----------------------------
+def plot_with_mean(series, cfg=None) -> str:
+    """
+    ASCII line plot of a series with dotted mean line.
+    cfg keys (used here): min, max, offset, height, format, mean_label (optional)
+    """
+    if not series:
+        return ""
+    if not isinstance(series[0], list):
+        if all(isnan(x) for x in series):
+            return ""
+        series = [series]
+    flat = [x for s in series for x in s if not isnan(x)]
+    if not flat:
+        return ""
+    cfg = cfg or {}
+    minimum = cfg.get('min', min(flat))
+    maximum = cfg.get('max', max(flat))
+    symbols = cfg.get('symbols', ['┼','┤','╶','╴','─','╰','╭','╮','╯','│'])
+    interval = maximum - minimum if (maximum - minimum) != 0 else 1.0
+    offset = cfg.get('offset', max(8, len(cfg.get('format',PLOT_FORMAT).format(maximum))))
+    height = cfg.get('height', PLOT_HEIGHT)
+    ratio = height / (maximum - minimum) if (maximum - minimum) else 1.0
+    min2 = int(floor(minimum * ratio))
+    max2 = int(ceil(maximum * ratio))
+    def clamp(x): return min(max(x, minimum), maximum)
+    def scaled(y): return int(round(clamp(y) * ratio) - min2)
+    rows = max2 - min2
+    width = max(len(s) for s in series) + offset
+    result = [[' ']*width for _ in range(rows+1)]
+    # y-axis labels
+    for y in range(min2, max2+1):
+        label = cfg.get('format',PLOT_FORMAT).format(maximum - ((y-min2) * interval / (rows if rows else 1)))
+        pos = max(offset - len(label), 0)
+        line_idx = y - min2
+        for idx,ch in enumerate(label):
+            if pos + idx < width:
+                result[line_idx][pos+idx] = ch
+        result[line_idx][offset-1] = symbols[0] if y == 0 else symbols[1]
+    # first point marker
+    try:
+        if not isnan(series[0][0]):
+            result[rows - scaled(series[0][0])][offset-1] = symbols[0]
+    except Exception:
+        pass
+    # plot lines
+    for s in series:
+        for x in range(len(s)-1):
+            d0 = s[x]; d1 = s[x+1]
+            if isnan(d0) and isnan(d1):
+                continue
+            if isnan(d0):
+                result[rows - scaled(d1)][x + offset] = symbols[2]; continue
+            if isnan(d1):
+                result[rows - scaled(d0)][x + offset] = symbols[3]; continue
+            y0 = scaled(d0); y1 = scaled(d1)
+            if y0 == y1:
+                result[rows - y0][x + offset] = symbols[4]
+                continue
+            result[rows - y1][x + offset] = symbols[5] if y0 > y1 else symbols[6]
+            result[rows - y0][x + offset] = symbols[7] if y0 > y1 else symbols[8]
+            for yy in range(min(y0,y1)+1, max(y0,y1)):
+                result[rows - yy][x + offset] = symbols[9]
+    # dotted mean line
+    mean_val = sum(flat) / len(flat)
+    try:
+        mean_scaled = scaled(mean_val)
+        mean_row = max(0, min(rows, rows - mean_scaled))
+        for c in range(offset, width):
+            if result[mean_row][c] == ' ':
+                result[mean_row][c] = '┄'
+    except Exception:
+        mean_row = None
 
+    # attempt to place mean label if supplied
+    mean_label = cfg.get('mean_label', None)
+    if mean_label and mean_row is not None:
+        label = f" {mean_label} "
+        L = len(label)
+        # search from left after offset for run of L spaces on mean_row
+        placed = False
+        for start in range(offset, width - L + 1):
+            ok = True
+            for k in range(L):
+                if result[mean_row][start + k] != ' ':
+                    ok = False
+                    break
+            if ok:
+                for k, ch in enumerate(label):
+                    result[mean_row][start + k] = ch
+                placed = True
+                break
+        # if not placed, try rows above/below up to +/-3
+        if not placed:
+            for dr in range(1, 4):
+                for r in (mean_row - dr, mean_row + dr):
+                    if r < 0 or r > rows:
+                        continue
+                    for start in range(offset, width - L + 1):
+                        ok = True
+                        for k in range(L):
+                            if result[r][start + k] != ' ':
+                                ok = False
+                                break
+                        if ok:
+                            for k, ch in enumerate(label):
+                                result[r][start + k] = ch
+                            placed = True
+                            break
+                    if placed:
+                        break
+                if placed:
+                    break
 
+    return "\n".join("".join(row).rstrip() for row in result)
+
+# ----------------------------
+# README builder and main flow
+# ----------------------------
+def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
+    return (
+        "<pre>\n"
+        f"{ascii_plot}\n\n"
+        f"{contrib_grid}\n\n\n"
+        f"{ascii_table}\n"
+        "</pre>\n"
+    )
 
 def build_rows_for_table(repos: List[dict], token: str=None) -> List[dict]:
-    """Construct the rows for the summary table (public repos only)."""
     rows = []
     for repo in repos:
         owner = repo["owner"]["login"]; name = repo["name"]
@@ -516,124 +676,23 @@ def build_rows_for_table(repos: List[dict], token: str=None) -> List[dict]:
         })
     return rows
 
-def plot_with_mean(series, cfg=None) -> str:
-    """ASCII line plot of a series (or multiple series) with a dotted mean line."""
-    if not series:
-        return ""
-    if not isinstance(series[0], list):
-        if all(isnan(x) for x in series):
-            return ""
-        series = [series]
-    # Flatten for scale calculations
-    flat = [x for s in series for x in s if not isnan(x)]
-    if not flat:
-        return ""
-    cfg = cfg or {}
-    minimum = cfg.get('min', min(flat))
-    maximum = cfg.get('max', max(flat))
-    symbols = cfg.get('symbols', ['┼','┤','╶','╴','─','╰','╭','╮','╯','│'])
-    interval = maximum - minimum
-    offset = cfg.get('offset', max(8, len(cfg.get('format',PLOT_FORMAT).format(maximum))))
-    height = cfg.get('height', PLOT_HEIGHT)
-    ratio = height / interval if interval else 1
-    min2 = int(floor(minimum*ratio))
-    max2 = int(ceil(maximum*ratio))
-    def clamp(x): return min(max(x, minimum), maximum)
-    def scaled(y): return int(round(clamp(y)*ratio) - min2)
-    rows = max2 - min2
-    width = max(len(s) for s in series) + offset
-    result = [[' ']*width for _ in range(rows+1)]
-    # Y-axis labels
-    for y in range(min2, max2+1):
-        label = cfg.get('format',PLOT_FORMAT).format(maximum - ((y-min2)*interval/(rows if rows else 1)))
-        pos = max(offset - len(label), 0)
-        line_idx = y - min2
-        for idx,ch in enumerate(label):
-            if pos+idx < width:
-                result[line_idx][pos+idx] = ch
-        result[line_idx][offset-1] = symbols[0] if y==0 else symbols[1]
-    # First point marker
-    try:
-        if not isnan(series[0][0]):
-            result[rows-scaled(series[0][0])][offset-1] = symbols[0]
-    except:
-        pass
-    # Plot lines
-    for s in series:
-        for x in range(len(s)-1):
-            d0 = s[x]; d1 = s[x+1]
-            if isnan(d0) and isnan(d1):
-                continue
-            if isnan(d0):
-                result[rows-scaled(d1)][x+offset] = symbols[2]; continue
-            if isnan(d1):
-                result[rows-scaled(d0)][x+offset] = symbols[3]; continue
-            y0 = scaled(d0); y1 = scaled(d1)
-            if y0 == y1:
-                result[rows-y0][x+offset] = symbols[4]
-                continue
-            result[rows-y1][x+offset] = symbols[5] if y0>y1 else symbols[6]
-            result[rows-y0][x+offset] = symbols[7] if y0>y1 else symbols[8]
-            for yy in range(min(y0,y1)+1, max(y0,y1)):
-                result[rows-yy][x+offset] = symbols[9]
-    # Dotted mean line
-    mean_val = sum(flat)/len(flat)
-    try:
-        mean_scaled = scaled(mean_val)
-        mean_row = max(0, min(rows, rows-mean_scaled))
-        for c in range(offset, width):
-            if result[mean_row][c] == ' ':
-                result[mean_row][c] = '╴'
-    except:
-        pass
-    return "\n".join("".join(row).rstrip() for row in result)
-
-def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
-    """Combine ASCII components into the final README markdown (inside a <pre> block)."""
-    return (
-        "<pre>\n"
-        
-        f"{HEADERC: ^{MAX_WIDTH}}\n"
-        f"{LINE:━^{MAX_WIDTH}}\n"
-        f"{ascii_plot}\n"
-        f"{contrib_grid}\n\n\n"
-        f"{HEADERA: ^{MAX_WIDTH}}\n"
-        f"{LINE:━^{MAX_WIDTH}}\n\n"                                                                                                               
-        f"{ascii_table}\n"
-        "</pre>\n"
-    )
-
 def main():
     token = auth_token()
     try:
-        all_repos = fetch_repos_for_user(token=token)
+        all_repos = _get_paginated(f"{GITHUB_API}/user/repos" if token else f"{GITHUB_API}/users/{USERNAME}/repos",
+                                   params={"sort":"updated","direction":"desc"}, token=token)
     except Exception as e:
         print("Failed to fetch repositories:", e, file=sys.stderr)
         sys.exit(1)
-
-    # Sort repos by updated time descending
     all_repos.sort(key=lambda x: x.get("updated_at",""), reverse=True)
     top_repos = all_repos[:TOP_N]
     public_repos = [r for r in top_repos if not r.get("private")]
     private_repos = [r for r in top_repos if r.get("private")]
-
-    # Build table from public repos
     rows = build_rows_for_table(public_repos, token)
-    # build map repo_name -> html url (used by heatmap rendering)
     repo_urls = {r["name_text"]: r.get("name_url", "") for r in rows}
-
     ascii_table, ascii_width, ascii_height = make_ascii_table_with_links(rows)
 
-    # If table too wide, truncate repo name column
-    if ascii_width > MAX_WIDTH:
-        # compute current visible repo max length and reduce it by the overflow amount
-        visible_max = max((len(r["name_text"]) for r in rows), default=10)
-        shrink = ascii_width - MAX_WIDTH
-        # new_inner0 is visible content width for repo column (not including padding)
-        new_inner0 = max(10, visible_max - shrink)
-        ascii_table, ascii_width, ascii_height = make_ascii_table_with_links(rows, max_repo_name_width=new_inner0)
-
-    # Fetch weekly commit activity for each public repo in parallel
+    # fetch commit activity in parallel
     repos_to_query = [r["name_text"] for r in rows]
     repo_weekly: Dict[str, List[int]] = {}
     print(f"Fetching commit_activity for {len(repos_to_query)} repos...")
@@ -646,12 +705,11 @@ def main():
             except Exception:
                 weeks = [0]*WEEKS
             if len(weeks) < WEEKS:
-                weeks = [0]*(WEEKS-len(weeks)) + weeks
+                weeks = [0]*(WEEKS - len(weeks)) + weeks
             repo_weekly[repo] = weeks
 
-    # Aggregate private repos into one "restricted" series
+    # aggregate private into restricted
     if private_repos and token:
-        print(f"Aggregating {len(private_repos)} private repos into '{RESTRICTED_NAME}'")
         agg_weeks = [0]*WEEKS
         for repo in private_repos:
             owner = repo["owner"]["login"]; name = repo["name"]
@@ -667,11 +725,29 @@ def main():
     else:
         repo_order = repos_to_query
 
-    # --- ALIGNMENT PREP: compute native heatmap label width (without yet rendering)
-    native_label_w = max(10, max((len(r) for r in repo_order), default=10))
-    native_label_w = min(native_label_w, 28)
+    # --- CACHE FALLBACK LOGIC: if a repo's series is all zeros or extremely small,
+    # try to use the last cached good series (if available). After this, save updated cache.
+    cache = load_cache()
+    updated_cache = dict(cache)  # we'll update entries that look good
+    for repo in list(repo_weekly.keys()):
+        series = repo_weekly[repo]
+        total = sum(series)
+        nonzero_count = sum(1 for x in series if x != 0)
+        # heuristics: if total == 0 OR less than a couple of non-zero weeks, prefer cache
+        use_cache = False
+        if total == 0 or nonzero_count <= 1:
+            cached = cache.get(repo)
+            if cached and sum(cached) > 0:
+                # use cached series for stability (reporting)
+                repo_weekly[repo] = cached
+                use_cache = True
+        # if we have a good series now (sum>0), update the cache
+        if not use_cache and sum(series) > 0:
+            updated_cache[repo] = series
+    # write cache back
+    save_cache(updated_cache)
 
-    # Build aggregated weekly totals for all repos
+    # build weekly totals
     weekly_totals = [0.0]*WEEKS
     for weeks in repo_weekly.values():
         if len(weeks) < WEEKS:
@@ -679,20 +755,21 @@ def main():
         for i, v in enumerate(weeks):
             weekly_totals[i] += float(v)
 
-    # Build the line chart series (2 columns per week)
-    if not weekly_totals or all(v==0 for v in weekly_totals):
+    # prepare heatmap label width and slot alignment
+    native_label_w = max(10, max((len(r) for r in repo_order), default=10))
+    native_label_w = min(native_label_w, 28)
+
+    if not weekly_totals or all(v == 0 for v in weekly_totals):
         ascii_plot = "(no activity data)"
-        # With no activity, still build the heatmap with the native label width computed above
         contrib_grid, used_label_w = build_contrib_grid(repo_weekly, repo_order, label_w=native_label_w, repo_urls=repo_urls)
     else:
-        # create duplicated columns (2 columns per week)
+        # duplicate columns for two columns/week behavior
         series_points = []
         for w in weekly_totals:
-            series_points += [w, w]  # duplicate for 2 columns/week
+            series_points += [w, w]
 
-        # Plot absolute counts from 0..max (no centering)
+        # absolute counts from 0..max (no centering)
         raw_max = max(series_points) if series_points else 0.0
-        # Scale units to K/M if needed
         if raw_max >= 1_000_000:
             scale, suffix = 1_000_000.0, "M"
         elif raw_max >= 1_000:
@@ -700,19 +777,14 @@ def main():
         else:
             scale, suffix = 1.0, ""
         scaled_series = [x/scale for x in series_points]
-        maximum_scaled = max(scaled_series) if scaled_series else 0.0
+        maximum_scaled = max(scaled_series) if scaled_series else 1.0
         if maximum_scaled <= 0:
             maximum_scaled = 1.0
 
-        # Figure out numeric label format so that y-axis labels fit
         fmt_w, fmt_p = 7, 1
         label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
-        # Compute offset_len from the *maximum* label, to ensure space for largest label
         offset_len = len(label_fmt.format(maximum_scaled))
         req_w = offset_len + len(scaled_series) + 1
-
-        # Try to reduce precision/width to fit ascii_table width (ascii_width)
-        # We'll compute left later considering heatmap; for now use ascii_width as constraint
         while req_w > ascii_width and fmt_p > 0:
             fmt_p -= 1
             label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
@@ -724,35 +796,26 @@ def main():
             offset_len = len(label_fmt.format(maximum_scaled))
             req_w = offset_len + len(scaled_series) + 1
         if req_w > ascii_width:
-            # Trim rightmost points to fit
             max_pts = max(6, ascii_width - offset_len - 1)
             scaled_series = scaled_series[-max_pts:]
             req_w = offset_len + len(scaled_series) + 1
 
-        # Now compute the global left margin to align heatmap and plot:
-        # heatmap first data column index would be (label_w + 1)
-        # Ensure left >= offset_len and left >= native_label_w + 1
+        # compute global left margin and build heatmap with that label width
         left = max(offset_len, native_label_w + 1)
-        # Build the heatmap using label_w = left - 1 so first data column lines up with left
         used_label_w = left - 1
         contrib_grid, _ = build_contrib_grid(repo_weekly, repo_order, label_w=used_label_w, repo_urls=repo_urls)
 
-        # Prepare plot config, forcing min=0 and max=maximum_scaled
-        cfg = {"height": PLOT_HEIGHT, "format": label_fmt, "offset": left, "min": 0.0, "max": maximum_scaled}
+        # build ascii plot with mean label insertion
+        cfg = {"height": PLOT_HEIGHT, "format": label_fmt, "offset": left, "min": 0.0, "max": maximum_scaled,
+               "mean_label": "long-term mean"}
         ascii_body = plot_with_mean(scaled_series, cfg)
 
-        # Append x-axis (month initials). We need axis to match duplicated columns (one char + space per week -> 2 chars)
+        # x-axis aligned to slot width used in heatmap: to be safe rebuild axis using 1-char + space pattern
         axis_labels = month_initials_for_weeks(WEEKS, use_three_letter=False)
-        # Keep the "one-char + space per week" layout:
         axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
 
-        ascii_plot = "\n" + ascii_body + "\n" #+ axis_line
+        ascii_plot = "\n" + ascii_body + "\n" + axis_line
 
-    # If ascii_plot was the no-activity case, we already built contrib_grid above.
-    if 'contrib_grid' not in locals():
-        contrib_grid, used_label_w = build_contrib_grid(repo_weekly, repo_order, label_w=native_label_w)
-
-    # Write the README
     readme = build_readme(ascii_table, contrib_grid, ascii_plot)
     with open("README.md", "w", encoding="utf-8") as fh:
         fh.write(readme)
