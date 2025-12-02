@@ -25,12 +25,13 @@ def getTimeOfDay(hour):
 USERNAME = "chasenunez"
 DAY = datetime.now().strftime("%A")
 DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
-TIMECONSTRUCT = datetime.now().strftime("%H:%M")
+TIMECONSTRUCT = datetime.now().strftime("%H")
+MINUTECONSTRUCT = datetime.now().strftime("%M")
 APPROXTIME = getTimeOfDay(TIMECONSTRUCT)
 
 HEADERA = "Detailed Composition Of Recently Active Repos"
 HEADERB = "Weekly Commit Intensity Among Recently Active Repositories"
-HEADERC = f"Annual(ish) Activity Breakdown as of {DAY} {APPROXTIME} at {TIMECONSTRUCT} CEST"
+HEADERC = f"Annual(ish) Activity Breakdown as of {DAY} {APPROXTIME} at {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST"
 
 LINE = "━"
 TOP_N = 10            # Number of top repositories to include (including private)
