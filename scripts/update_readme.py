@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def getTimeOfDay(hour):
     hour = int(hour)  # ensure integer
-    if 5 <= hour < 12:
+    if 0 <= hour < 12:
         return "Morning"
     elif 12 <= hour < 18:
         return "Afternoon"
