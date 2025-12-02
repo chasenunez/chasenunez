@@ -34,7 +34,7 @@ RESTRICTED_NAME = "restricted"
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
 # your new shades (braille-like)
-SHADES = ["⠀","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
+SHADES = ["","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
 SESSION.headers.update({
