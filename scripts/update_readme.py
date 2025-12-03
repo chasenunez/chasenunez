@@ -677,16 +677,18 @@ def build_commit_hour_values(timestamps: List[datetime], tz: Optional[timezone]=
         out.append(hour)
     return out
 
-def build_histogram_ascii(hours: List[float], width: int = MAX_WIDTH) -> str:
+def build_histogram_ascii(hours: List[float], width: int = MAX_WIDTH, left: int = 0, use_braille: bool = True) -> str:
     if not hours:
         return "(no commit timestamps)"
+    inner_width = max(20, width - max(0, left))
     if _HAS_PLOTILLE:
         try:
-            hist_str = plotille.hist(hours, bins=24, width=width)
-            return hist_str
+            hist_str = plotille.hist(hours, bins=24, width=inner_width)
+            out_lines = [" " * left + line for line in hist_str.splitlines()]
+            return "\n".join(out_lines)
         except Exception:
             pass
-    counts = [0]*24
+    counts = [0] * 24
     for h in hours:
         try:
             idx = int(h) % 24
@@ -694,8 +696,11 @@ def build_histogram_ascii(hours: List[float], width: int = MAX_WIDTH) -> str:
             continue
         counts[idx] += 1
     label_len = 4
-    bar_space = max(10, width - label_len - 6)
+    bar_space = max(10, inner_width - label_len - 6)
     max_count = max(counts) if counts else 0
+    braille_full = '⣿'
+    block_full = '█'
+    bar_char = braille_full if use_braille else block_full
     lines = []
     for hr in range(24):
         c = counts[hr]
@@ -703,9 +708,10 @@ def build_histogram_ascii(hours: List[float], width: int = MAX_WIDTH) -> str:
             bar_len = int(round((c / max_count) * bar_space))
         else:
             bar_len = 0
-        bar = "█" * bar_len
+        bar = bar_char * bar_len
         lines.append(f"{hr:02d}: {bar} {c}")
-    return "\n".join(lines)
+    out_lines = [" " * left + line for line in lines]
+    return "\n".join(out_lines)
 
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
     return (
@@ -854,9 +860,14 @@ def main():
     ascii_hist = build_histogram_ascii(hours, width=MAX_WIDTH)
     native_label_w = max(10, max((len(r) for r in repo_order), default=10))
     native_label_w = min(native_label_w, 28)
+    
+    native_label_w = max(10, max((len(r) for r in repo_order), default=10))
+    native_label_w = min(native_label_w, 28)
+
     if not weekly_totals or all(v == 0 for v in weekly_totals):
         ascii_plot = "(no activity data)"
         contrib_grid, used_label_w = build_contrib_grid(repo_weekly, repo_order, label_w=native_label_w, repo_urls=repo_urls)
+        left = used_label_w + 1
     else:
         series_points = []
         for w in weekly_totals:
@@ -872,6 +883,7 @@ def main():
         maximum_scaled = max(scaled_series) if scaled_series else 1.0
         if maximum_scaled <= 0:
             maximum_scaled = 1.0
+
         fmt_w, fmt_p = 7, 1
         label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
         offset_len = len(label_fmt.format(maximum_scaled))
@@ -890,15 +902,22 @@ def main():
             max_pts = max(6, ascii_width - offset_len - 1)
             scaled_series = scaled_series[-max_pts:]
             req_w = offset_len + len(scaled_series) + 1
+
         left = max(offset_len, native_label_w + 1)
         used_label_w = left - 1
         contrib_grid, _ = build_contrib_grid(repo_weekly, repo_order, label_w=used_label_w, repo_urls=repo_urls)
+
         cfg = {"height": PLOT_HEIGHT, "format": label_fmt, "offset": left, "min": 0.0, "max": maximum_scaled,
                "mean_label": "long-term mean"}
         ascii_body = plot_with_mean(scaled_series, cfg)
+
         axis_labels = month_initials_for_weeks(WEEKS, use_three_letter=False)
         axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
+
         ascii_plot = "\n" + ascii_body + "\n" + axis_line
+
+    ascii_hist = build_histogram_ascii(hours, width=MAX_WIDTH, left=left, use_braille=True)
+
     readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
     with open("README.md", "w", encoding="utf-8") as fh:
         fh.write(readme)
