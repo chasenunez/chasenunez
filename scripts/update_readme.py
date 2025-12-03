@@ -868,7 +868,7 @@ def main():
     print(f"Fetching timestamps for commits across {len(repo_pairs)} repos (up to 300 commits per repo)...")
     timestamps = fetch_commit_timestamps_for_repos(repo_pairs, token, per_repo_limit=300, max_workers=6)
     hours = build_commit_hour_values(timestamps)
-        native_label_w = max(10, max((len(r) for r in repo_order), default=10))
+    native_label_w = max(10, max((len(r) for r in repo_order), default=10))
     native_label_w = min(native_label_w, 28)
     if not weekly_totals or all(v == 0 for v in weekly_totals):
         ascii_plot = "(no activity data)"
