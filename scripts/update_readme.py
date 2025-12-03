@@ -677,26 +677,29 @@ def build_commit_hour_values(timestamps: List[datetime], tz: Optional[timezone]=
         out.append(hour)
     return out
 
-def build_histogram_ascii(hours: List[float], width: int = MAX_WIDTH, left: int = 0, use_braille: bool = True) -> str:
+def build_histogram_ascii(hours: List[float], width: int = MAX_WIDTH, label_w: Optional[int] = None, use_braille: bool = True) -> str:
     if not hours:
         return "(no commit timestamps)"
-    inner_width = max(20, width - max(0, left))
+    if label_w is None:
+        label_w = 2
+    inner_width = max(20, width - label_w - 3)
     if _HAS_PLOTILLE:
         try:
             hist_str = plotille.hist(hours, bins=24, width=inner_width)
-            out_lines = [" " * left + line for line in hist_str.splitlines()]
+            out_lines = []
+            for line in hist_str.splitlines():
+                out_lines.append(line)
             return "\n".join(out_lines)
         except Exception:
             pass
-    counts = [0] * 24
+    counts = [0]*24
     for h in hours:
         try:
             idx = int(h) % 24
         except Exception:
             continue
         counts[idx] += 1
-    label_len = 4
-    bar_space = max(10, inner_width - label_len - 6)
+    bar_space = max(10, inner_width - 6)
     max_count = max(counts) if counts else 0
     braille_full = '⣿'
     block_full = '█'
@@ -709,9 +712,10 @@ def build_histogram_ascii(hours: List[float], width: int = MAX_WIDTH, left: int 
         else:
             bar_len = 0
         bar = bar_char * bar_len
-        lines.append(f"{hr:02d}: {bar} {c}")
-    out_lines = [" " * left + line for line in lines]
-    return "\n".join(out_lines)
+        label = pad_to_width(f"{hr:02d}", label_w, align='right')
+        lines.append(f"{label}┤ {bar} {c}")
+    return "\n".join(lines)
+
 
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
     return (
@@ -857,7 +861,6 @@ def main():
     print(f"Fetching timestamps for commits across {len(repo_pairs)} repos (up to 300 commits per repo)...")
     timestamps = fetch_commit_timestamps_for_repos(repo_pairs, token, per_repo_limit=300, max_workers=6)
     hours = build_commit_hour_values(timestamps)
-    ascii_hist = build_histogram_ascii(hours, width=MAX_WIDTH)
     native_label_w = max(10, max((len(r) for r in repo_order), default=10))
     native_label_w = min(native_label_w, 28)
     
@@ -913,10 +916,11 @@ def main():
 
         axis_labels = month_initials_for_weeks(WEEKS, use_three_letter=False)
         axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
-
+            
         ascii_plot = "\n" + ascii_body + "\n" + axis_line
 
-    ascii_hist = build_histogram_ascii(hours, width=MAX_WIDTH, left=left, use_braille=True)
+    ascii_hist = build_histogram_ascii(hours, width=MAX_WIDTH, label_w=used_label_w, use_braille=True)
+
 
     readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
     with open("README.md", "w", encoding="utf-8") as fh:
