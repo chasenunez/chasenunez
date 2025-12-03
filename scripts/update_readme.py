@@ -807,9 +807,6 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_his
         "</pre>\n"
     )
 
-# ... (the rest of your make_ascii_table_with_links, build_contrib_grid, plot_with_mean already defined above) ...
-# For brevity they are the same as prior definitions in this file (we included them above).
-
 # ----------------------------
 # main (modified to build histogram and include it)
 # ----------------------------
@@ -862,7 +859,7 @@ def main():
     else:
         repo_order = repos_to_query
 
-    # --- CACHE FALLBACK LOGIC (unchanged)
+    # --- CACHE FALLBACK LOGIC
     cache = load_cache()
     updated_cache = dict(cache)  # we'll update entries that look good
     for repo in list(repo_weekly.keys()):
