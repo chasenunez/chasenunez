@@ -50,11 +50,11 @@ HEADERC = f"Annual(ish) Activity Breakdown as of {DAY} {APPROXTIME} at {TIMECONS
 LINE = "━"
 TOP_N = 10
 WEEKS = 42
-MAX_WIDTH = 110
+MAX_WIDTH = 100
 RESTRICTED_NAME = "restricted"
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
-SHADES = ["⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
+SHADES = ["","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
 SESSION.headers.update({
