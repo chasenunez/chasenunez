@@ -26,6 +26,7 @@ except Exception:
     plotille = None
     _HAS_PLOTILLE = False
 
+
 def getTimeOfDay(hour):
     hour = int(hour)
     if 0 <= hour < 12:
@@ -65,26 +66,6 @@ SESSION.headers.update({
 })
 CACHE_FILE = ".commit_activity_cache.json"
 STATS_MAX_ATTEMPTS = 8
-
-HIGHLIGHT_COLOR = "#6bc46c"
-
-def _hex_to_rgb(hexstr: str) -> Tuple[int,int,int]:
-    s = hexstr.strip().lstrip('#')
-    if len(s) == 3:
-        s = ''.join([c*2 for c in s])
-    if len(s) != 6:
-        return (107,196,108)
-    try:
-        r = int(s[0:2], 16); g = int(s[2:4], 16); b = int(s[4:6], 16)
-        return (r,g,b)
-    except Exception:
-        return (107,196,108)
-
-_rgb = _hex_to_rgb(HIGHLIGHT_COLOR)
-
-def color_wrap(text: str) -> str:
-    r,g,b = _rgb
-    return f"\x1b[38;2;{r};{g};{b}m{text}\x1b[0m"
 
 def auth_token() -> Optional[str]:
     return os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
@@ -434,13 +415,7 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
             match = [""] * len(cols)
         other_cells = [repo_cell]
         for i in range(1, len(cols)):
-            cell_text = match[i]
-            if i == 3:
-                centered = cell_text.center(inner_widths[i])
-                colored = color_wrap(centered)
-                other_cells.append(" " + colored + " ")
-            else:
-                other_cells.append(" " + cell_text.center(inner_widths[i]) + " ")
+            other_cells.append(" " + match[i].center(inner_widths[i]) + " ")
         lines.append(join_cells(other_cells))
         lines.append(mid_line)
     if lines[-1] == mid_line:
@@ -466,10 +441,9 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
         cur = wcswidth(sym)
         if cur < 0:
             cur = 1
-        pad = "" if cur >= slot_w else (" " * (slot_w - cur))
-        if sym and sym.strip():
-            return color_wrap(sym) + pad
-        return sym + pad
+        if cur >= slot_w:
+            return sym
+        return sym + (" " * (slot_w - cur))
     lines: List[str] = []
     for repo in repo_order:
         weeks = repo_weekly.get(repo, [0]*WEEKS)
@@ -502,12 +476,7 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
     axis_slots = [pad_to_width(ch, slot_w, align='center') for ch in axis_cells]
     axis_line = " " * label_w + " " + sep.join(axis_slots)
     lines.append(axis_line)
-    legend_slots = []
-    for s in SHADES:
-        slot = pad_to_width(s, slot_w, align='center')
-        if s and s.strip():
-            slot = color_wrap(slot)
-        legend_slots.append(slot)
+    legend_slots = [pad_to_width(s, slot_w, align='center') for s in SHADES]
     legend = " " * label_w + "low " + sep.join(legend_slots) + "  high"
     lines.append("")
     lines.append(legend)
@@ -634,11 +603,6 @@ def plot_with_mean(series, cfg=None) -> str:
                         break
                 if placed:
                     break
-    for r_idx in range(len(result)):
-        for c_idx in range(offset, width):
-            ch = result[r_idx][c_idx]
-            if ch != ' ':
-                result[r_idx][c_idx] = color_wrap(ch)
     return "\n".join("".join(row).rstrip() for row in result)
 
 def fetch_commits_limited(owner: str, repo: str, token: Optional[str], max_commits: int = 300) -> List[dict]:
@@ -731,6 +695,21 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
     longest_count_len = len(str(max(counts))) if counts else 1
     reserved = label_w + 2 + 1 + longest_count_len
     bar_space = max(1, max_width - reserved)
+    if _HAS_PLOTILLE:
+        try:
+            hist_str = plotille.hist(hours, bins=24, width=max(10, bar_space))
+            out_lines = []
+            for line in hist_str.splitlines():
+                out_lines.append(line)
+            lines = []
+            for hr in range(24):
+                label = pad_to_width(f'{hr:02d}', label_w, align='right')
+                bar = ''
+                count = counts[hr]
+                lines.append(f'{label}┤ {bar} {count}')
+            return '\n'.join(lines)
+        except Exception:
+            pass
     max_count = max(counts) if counts else 0
     braille_full = '⣿'
     block_full = '█'
@@ -743,11 +722,10 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
         else:
             bar_len = 0
         bar = bar_char * bar_len
-        if bar:
-            bar = color_wrap(bar)
         label = pad_to_width(f'{hr:02d}', label_w, align='right')
-        lines.append(f"{label}┤ {bar} {c}")
+        lines.append(f'{label}┤ {bar} {c}')
     return '\n'.join(lines)
+
 
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
     return (
@@ -755,18 +733,23 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_his
         f"{HEADERB: ^{LINE_LENGTH}}\n"
         f"{LINE:▔^{LINE_LENGTH}}\n\n"
         f"{ascii_plot}\n\n\n"
+
         f"{HEADERC: ^{LINE_LENGTH}}\n"
         f"{LINE:▔^{LINE_LENGTH}}\n\n"
         f"{contrib_grid}\n\n\n"
+
         f"{HEADERD: ^{LINE_LENGTH}}\n"
         f"{LINE:▔^{LINE_LENGTH}}\n\n"
         f"{ascii_hist}\n\n\n"
+
         f"{HEADERE: ^{LINE_LENGTH}}\n"
         f"{LINE:▔^{LINE_LENGTH}}\n\n"
         f"{ascii_table}\n\n\n"
+
         f"{HEADERA: ^{LINE_LENGTH}}\n"
         "</pre>\n"
     )
+
 
 def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
     def worker(r: dict) -> dict:
