@@ -20,8 +20,16 @@ except Exception:
     wcwidth = None
     _HAS_WCWIDTH = False
 
+# NEW: try to import plotille (histogram). If not present, we'll fallback.
+try:
+    import plotille
+    _HAS_PLOTILLE = True
+except Exception:
+    plotille = None
+    _HAS_PLOTILLE = False
+
 def getTimeOfDay(hour):
-    hour = int(hour) 
+    hour = int(hour)
     if 0 <= hour < 12:
         return "Morning"
     elif 12 <= hour < 18:
@@ -52,7 +60,7 @@ MAX_WIDTH = 110
 RESTRICTED_NAME = "restricted"
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
-SHADES = ["","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
+SHADES = ["⠀","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
 SESSION.headers.update({
@@ -479,8 +487,6 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
         if cur < 0:
             cur = 1
         if cur >= slot_w:
-            # if it's wider than slot_w, we attempt to trim to slot_w by picking a simpler symbol
-            # fallback: use the last shade (highest intensity) truncated to single char if needed
             return sym
         return sym + (" " * (slot_w - cur))
 
@@ -499,7 +505,6 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
         # label by display-width (use pad_to_width)
         visible_name = repo
         if wcswidth(visible_name) > label_w:
-            # truncate by characters to fit label_w
             truncated = ""
             acc = 0
             for ch in visible_name:
@@ -644,14 +649,157 @@ def plot_with_mean(series, cfg=None) -> str:
     return "\n".join("".join(row).rstrip() for row in result)
 
 # ----------------------------
-# README builder and main flow
+# NEW: commit timestamp extraction & histogram
 # ----------------------------
-def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
+def fetch_commits_limited(owner: str, repo: str, token: Optional[str], max_commits: int = 300) -> List[dict]:
+    """
+    Fetch commits for a repo with pagination but stop after max_commits to limit API usage.
+    Returns list of commit dicts (as returned by the API).
+    """
+    url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
+    per_page = 100
+    page = 1
+    commits = []
+    while len(commits) < max_commits:
+        params = {"per_page": per_page, "page": page}
+        try:
+            r = SESSION.get(url, headers={"Authorization": f"token {token}"} if token else {}, params=params, timeout=20)
+            if r.status_code == 404:
+                break
+            r.raise_for_status()
+            data = r.json()
+            if not isinstance(data, list) or not data:
+                break
+            commits.extend(data)
+            if len(data) < per_page:
+                break
+            page += 1
+        except Exception:
+            break
+    return commits[:max_commits]
+
+def parse_commit_datetime(commit_obj: dict) -> Optional[datetime]:
+    """
+    Extract a datetime from a commit object. Prefer commit['commit']['author']['date'].
+    Return timezone-aware (UTC) datetime or None.
+    """
+    try:
+        # preferred path
+        date_str = None
+        if isinstance(commit_obj.get('commit'), dict):
+            date_str = commit_obj['commit'].get('author', {}).get('date')
+        if not date_str:
+            # fallback to top-level author date if present
+            date_str = commit_obj.get('author', {}).get('date')
+        if not date_str:
+            return None
+        # Typical format: '2023-05-01T12:34:56Z'
+        if date_str.endswith("Z"):
+            date_str = date_str.rstrip("Z")
+            dt = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+            return dt
+        else:
+            # fromisoformat can parse offsets like +00:00
+            return datetime.fromisoformat(date_str)
+    except Exception:
+        return None
+
+def fetch_commit_timestamps_for_repos(repo_pairs: List[Tuple[str,str]], token: Optional[str], per_repo_limit: int = 300, max_workers: int = 6) -> List[datetime]:
+    """
+    repo_pairs is list of (owner, repo) tuples.
+    Returns list of datetimes (UTC) (may be empty).
+    """
+    timestamps: List[datetime] = []
+    def worker(pair):
+        owner, repo = pair
+        commits = fetch_commits_limited(owner, repo, token, max_commits=per_repo_limit)
+        out = []
+        for c in commits:
+            dt = parse_commit_datetime(c)
+            if dt:
+                # normalize to UTC for consistent counting
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                else:
+                    dt = dt.astimezone(timezone.utc)
+                out.append(dt)
+        return out
+
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        futures = {ex.submit(worker, p): p for p in repo_pairs}
+        for fut in as_completed(futures):
+            try:
+                res = fut.result()
+                if res:
+                    timestamps.extend(res)
+            except Exception:
+                pass
+    return timestamps
+
+def build_commit_hour_values(timestamps: List[datetime], tz: Optional[timezone]=None) -> List[float]:
+    """
+    Convert datetimes to hour-of-day floats (0..24). If tz provided, convert to that timezone.
+    By default use UTC (consistent).
+    """
+    out = []
+    for dt in timestamps:
+        if tz:
+            dt = dt.astimezone(tz)
+        else:
+            dt = dt.astimezone(timezone.utc)
+        hour = dt.hour + dt.minute/60.0 + dt.second/3600.0
+        out.append(hour)
+    return out
+
+def build_histogram_ascii(hours: List[float], width: int = MAX_WIDTH) -> str:
+    """
+    Build histogram for hours-of-day. Prefer plotille.hist if available, else fallback ASCII.
+    The histogram will have 24 bins (0..23 hours).
+    plotille.hist creates rows left-to-right; that's exactly what we want.
+    """
+    if not hours:
+        return "(no commit timestamps)"
+    if _HAS_PLOTILLE:
+        try:
+            # Use 24 bins, width provided, no log scale
+            hist_str = plotille.hist(hours, bins=24, width=width, log_scale=False, linesep="\n")
+            return hist_str
+        except Exception:
+            # fall back to ASCII
+            pass
+
+    # Fallback: simple left-to-right bars for hours 0..23
+    counts = [0]*24
+    for h in hours:
+        idx = int(h) % 24
+        counts[idx] += 1
+    total = sum(counts) or 1
+    # label field (e.g. "23:") length
+    label_len = 4
+    bar_space = max(10, width - label_len - 6)  # safe minimum
+    max_count = max(counts)
+    lines = []
+    for hr in range(24):
+        c = counts[hr]
+        if max_count:
+            bar_len = int(round((c / max_count) * bar_space))
+        else:
+            bar_len = 0
+        bar = "█" * bar_len
+        lines.append(f"{hr:02d}: {bar} {c}")
+    return "\n".join(lines)
+
+# ----------------------------
+# README builder and main flow (modified to accept ascii_hist)
+# ----------------------------
+def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
     return (
         "<pre>\n"
         f"{HEADERC: ^{MAX_WIDTH}}\n"
-        f"{LINE:━^{MAX_WIDTH}}\n"
-        f"{ascii_plot}\n"
+        f"{LINE:━^{MAX_WIDTH}}\n\n"
+        # insert histogram here
+        f"{ascii_hist}\n\n"
+        f"{ascii_plot}\n\n"
         f"{contrib_grid}\n\n\n"
         f"{HEADERA: ^{MAX_WIDTH}}\n"
         f"{LINE:━^{MAX_WIDTH}}\n\n"                                                                                                               
@@ -659,38 +807,12 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str) -> str:
         "</pre>\n"
     )
 
-def build_rows_for_table(repos: List[dict], token: str=None) -> List[dict]:
-    rows = []
-    for repo in repos:
-        owner = repo["owner"]["login"]; name = repo["name"]
-        html_url = repo.get("html_url","")
-        langs = fetch_languages(owner, name, token)
-        total_bytes = sum(langs.values()) if langs else 0
-        lang_label = "Unknown (0%)"
-        if langs and total_bytes>0:
-            top_lang, top_bytes = max(langs.items(), key=lambda x: x[1])
-            pct = (top_bytes/total_bytes)*100
-            lang_label = f"{top_lang} ({pct:.0f}%)"
-        commits = get_commit_count(owner, name, token)
-        branches = get_branch_count(owner, name, token)
-        last = repo.get("pushed_at","")
-        try:
-            if last:
-                last = last.rstrip("Z")
-                last = datetime.fromisoformat(last).strftime("%Y-%m-%d")
-        except Exception:
-            pass
-        rows.append({
-            "name_text": name,
-            "name_url": html_url,
-            "language": lang_label,
-            "size": total_bytes,
-            "commits": commits,
-            "last_commit": last,
-            "branches": branches
-        })
-    return rows
+# ... (the rest of your make_ascii_table_with_links, build_contrib_grid, plot_with_mean already defined above) ...
+# For brevity they are the same as prior definitions in this file (we included them above).
 
+# ----------------------------
+# main (modified to build histogram and include it)
+# ----------------------------
 def main():
     token = auth_token()
     try:
@@ -723,7 +845,7 @@ def main():
                 weeks = [0]*(WEEKS - len(weeks)) + weeks
             repo_weekly[repo] = weeks
 
-    # aggregate private into restricted
+    # aggregate private into restricted (unchanged)
     if private_repos and token:
         agg_weeks = [0]*WEEKS
         for repo in private_repos:
@@ -740,29 +862,24 @@ def main():
     else:
         repo_order = repos_to_query
 
-    # --- CACHE FALLBACK LOGIC: if a repo's series is all zeros or extremely small,
-    # try to use the last cached good series (if available). After this, save updated cache.
+    # --- CACHE FALLBACK LOGIC (unchanged)
     cache = load_cache()
     updated_cache = dict(cache)  # we'll update entries that look good
     for repo in list(repo_weekly.keys()):
         series = repo_weekly[repo]
         total = sum(series)
         nonzero_count = sum(1 for x in series if x != 0)
-        # heuristics: if total == 0 OR less than a couple of non-zero weeks, prefer cache
         use_cache = False
         if total == 0 or nonzero_count <= 1:
             cached = cache.get(repo)
             if cached and sum(cached) > 0:
-                # use cached series for stability (reporting)
                 repo_weekly[repo] = cached
                 use_cache = True
-        # if we have a good series now (sum>0), update the cache
         if not use_cache and sum(series) > 0:
             updated_cache[repo] = series
-    # write cache back
     save_cache(updated_cache)
 
-    # build weekly totals
+    # build weekly totals (unchanged)
     weekly_totals = [0.0]*WEEKS
     for weeks in repo_weekly.values():
         if len(weeks) < WEEKS:
@@ -770,7 +887,17 @@ def main():
         for i, v in enumerate(weeks):
             weekly_totals[i] += float(v)
 
-    # prepare heatmap label width and slot alignment
+    # ---------------------
+    # NEW: build commit-time histogram
+    # ---------------------
+    # Prepare list of (owner, repo) for top_repos (include private if present; fetch will use token)
+    repo_pairs = [(r['owner']['login'], r['name']) for r in top_repos]
+    print(f"Fetching timestamps for commits across {len(repo_pairs)} repos (up to 300 commits per repo)...")
+    timestamps = fetch_commit_timestamps_for_repos(repo_pairs, token, per_repo_limit=300, max_workers=6)
+    hours = build_commit_hour_values(timestamps)  # hours in 0..24 floats
+    ascii_hist = build_histogram_ascii(hours, width=MAX_WIDTH)
+
+    # prepare heatmap label width and slot alignment (unchanged)
     native_label_w = max(10, max((len(r) for r in repo_order), default=10))
     native_label_w = min(native_label_w, 28)
 
@@ -800,6 +927,7 @@ def main():
         label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
         offset_len = len(label_fmt.format(maximum_scaled))
         req_w = offset_len + len(scaled_series) + 1
+        # ensure fits within ascii_width
         while req_w > ascii_width and fmt_p > 0:
             fmt_p -= 1
             label_fmt = f"{{:{fmt_w}.{fmt_p}f}} "
@@ -831,7 +959,8 @@ def main():
 
         ascii_plot = "\n" + ascii_body + "\n" + axis_line
 
-    readme = build_readme(ascii_table, contrib_grid, ascii_plot)
+    # Write README (now includes histogram)
+    readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
     with open("README.md", "w", encoding="utf-8") as fh:
         fh.write(readme)
     print("README.md updated.")
