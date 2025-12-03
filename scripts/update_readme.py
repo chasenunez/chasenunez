@@ -728,13 +728,13 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
     return (
         "<pre>\n"
-        f"{HEADERC: ^{LINE_WIDTH}}\n"
-        f"{LINE:━^{LINE_WIDTH}}\n\n"
+        f"{HEADERC: ^{LINE_LENGTH}}\n"
+        f"{LINE:━^{LINE_LENGTH}}\n\n"
         f"{ascii_plot}\n\n"
         f"{contrib_grid}\n\n"
         f"{ascii_hist}\n\n\n"
-        f"{HEADERA: ^{LINE_WIDTH}}\n"
-        f"{LINE:━^{LINE_WIDTH}}\n\n"
+        f"{HEADERA: ^{LINE_LENGTH}}\n"
+        f"{LINE:━^{LINE_LENGTH}}\n\n"
         f"{ascii_table}\n"
         "</pre>\n"
     )
