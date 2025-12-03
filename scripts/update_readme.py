@@ -49,7 +49,7 @@ HEADERB = "Commits Per-Week with Annual Average"
 HEADERC = "Commit Allocation Among Most Active Projects"
 HEADERD = "Commit Allocation By Hour Of The Day"
 HEADERE = "Recently Active Project Details"
-LINE = "─"
+LINE = "▂"
 TOP_N = 10
 WEEKS = 42
 MAX_WIDTH = 100
@@ -731,19 +731,19 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_his
     return (
         "<pre>\n"
         f"{HEADERB: ^{LINE_LENGTH}}\n"
-        f"{LINE:─^{LINE_LENGTH}}\n\n"
+        f"{LINE:▂^{LINE_LENGTH}}\n\n"
         f"{ascii_plot}\n\n"
 
         f"{HEADERC: ^{LINE_LENGTH}}\n"
-        f"{LINE:─^{LINE_LENGTH}}\n\n"
+        f"{LINE:▂^{LINE_LENGTH}}\n\n"
         f"{contrib_grid}\n\n"
 
         f"{HEADERD: ^{LINE_LENGTH}}\n"
-        f"{LINE:─^{LINE_LENGTH}}\n\n"
+        f"{LINE:▂^{LINE_LENGTH}}\n\n"
         f"{ascii_hist}\n\n\n"
 
         f"{HEADERE: ^{LINE_LENGTH}}\n"
-        f"{LINE:─^{LINE_LENGTH}}\n\n"
+        f"{LINE:▂^{LINE_LENGTH}}\n\n"
         f"{ascii_table}\n\n"
 
         f"{HEADERA: ^{LINE_LENGTH}}\n"
