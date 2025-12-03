@@ -51,6 +51,7 @@ LINE = "━"
 TOP_N = 10
 WEEKS = 42
 MAX_WIDTH = 100
+LINE_LENGTH = 115
 RESTRICTED_NAME = "restricted"
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
@@ -727,13 +728,13 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
     return (
         "<pre>\n"
-        f"{HEADERC: ^{MAX_WIDTH}}\n"
-        f"{LINE:━^{MAX_WIDTH}}\n\n"
-        f"{ascii_hist}\n\n"
+        f"{HEADERC: ^{LINE_WIDTH}}\n"
+        f"{LINE:━^{LINE_WIDTH}}\n\n"
         f"{ascii_plot}\n\n"
-        f"{contrib_grid}\n\n\n"
-        f"{HEADERA: ^{MAX_WIDTH}}\n"
-        f"{LINE:━^{MAX_WIDTH}}\n\n"
+        f"{contrib_grid}\n\n"
+        f"{ascii_hist}\n\n\n"
+        f"{HEADERA: ^{LINE_WIDTH}}\n"
+        f"{LINE:━^{LINE_WIDTH}}\n\n"
         f"{ascii_table}\n"
         "</pre>\n"
     )
