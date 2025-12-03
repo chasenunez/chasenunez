@@ -44,12 +44,12 @@ DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
 TIMECONSTRUCT = datetime.now().strftime("%H")
 MINUTECONSTRUCT = datetime.now().strftime("%M")
 APPROXTIME = getTimeOfDay(TIMECONSTRUCT)
-HEADERA = f"Activity Breakdown as of {DAY} {APPROXTIME} at {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST"
+HEADERA = f"⣠⣴⣾⣿ Activity Breakdown as of {DAY} {APPROXTIME} at {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST ⣿⣷⣦⣄"
 HEADERB = "Commits Per-Week with Annual Average"
 HEADERC = "Commit Allocation Among Most Active Projects"
 HEADERD = "Commit Allocation By Hour Of The Day"
 HEADERE = "Recently Active Project Details"
-LINE = "▂"
+LINE = "▔"
 TOP_N = 10
 WEEKS = 42
 MAX_WIDTH = 100
@@ -313,7 +313,7 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
     widths = [w + PAD for w in inner_widths]
     def total_table_width(col_widths: List[int]) -> int:
         return sum(col_widths) + (len(col_widths) + 1)
-    target_total = MAX_WIDTH if MAX_WIDTH and MAX_WIDTH > 0 else total_table_width(widths)
+    target_total = MAX_WIDTH #if MAX_WIDTH and MAX_WIDTH > 0 else total_table_width(widths) #trial to see if we can force the table to be a specific width to match the other figures. 
     current_total = total_table_width(widths)
     min_inner = [max(1, len(h)) for h in cols]
     min_widths = [m + PAD for m in min_inner]
@@ -731,20 +731,20 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_his
     return (
         "<pre>\n"
         f"{HEADERB: ^{LINE_LENGTH}}\n"
-        f"{LINE:▂^{LINE_LENGTH}}\n\n"
-        f"{ascii_plot}\n\n"
+        f"{LINE:▔^{LINE_LENGTH}}\n\n"
+        f"{ascii_plot}\n\n\n"
 
         f"{HEADERC: ^{LINE_LENGTH}}\n"
-        f"{LINE:▂^{LINE_LENGTH}}\n\n"
-        f"{contrib_grid}\n\n"
+        f"{LINE:▔^{LINE_LENGTH}}\n\n"
+        f"{contrib_grid}\n\n\n"
 
         f"{HEADERD: ^{LINE_LENGTH}}\n"
-        f"{LINE:▂^{LINE_LENGTH}}\n\n"
+        f"{LINE:▔^{LINE_LENGTH}}\n\n"
         f"{ascii_hist}\n\n\n"
 
         f"{HEADERE: ^{LINE_LENGTH}}\n"
-        f"{LINE:▂^{LINE_LENGTH}}\n\n"
-        f"{ascii_table}\n\n"
+        f"{LINE:▔^{LINE_LENGTH}}\n\n"
+        f"{ascii_table}\n\n\n"
 
         f"{HEADERA: ^{LINE_LENGTH}}\n"
         "</pre>\n"
