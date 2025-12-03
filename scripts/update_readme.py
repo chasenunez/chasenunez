@@ -44,9 +44,11 @@ DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
 TIMECONSTRUCT = datetime.now().strftime("%H")
 MINUTECONSTRUCT = datetime.now().strftime("%M")
 APPROXTIME = getTimeOfDay(TIMECONSTRUCT)
-HEADERA = "Detailed Composition Of Recently Active Repos"
-HEADERB = "Weekly Commit Intensity Among Recently Active Repositories"
-HEADERC = f"Annual(ish) Activity Breakdown as of {DAY} {APPROXTIME} at {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST"
+HEADERA = f"Activity Breakdown as of {DAY} {APPROXTIME} at {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST"
+HEADERB = "Commits Per-Week with Annual Average"
+HEADERC = "Commit Allocation Among Most Active Projects"
+HEADERD = "Commit Allocation By Hour Of The Day"
+HEADERE = "Recently Active Project Details"
 LINE = "━"
 TOP_N = 10
 WEEKS = 42
@@ -728,16 +730,27 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
     return (
         "<pre>\n"
-        f"{HEADERC: ^{LINE_LENGTH}}\n"
-        f"{LINE:━^{LINE_LENGTH}}\n\n"
-        f"{ascii_plot}\n\n"
-        f"{contrib_grid}\n\n"
-        f"{ascii_hist}\n\n\n"
         f"{HEADERA: ^{LINE_LENGTH}}\n"
-        f"{LINE:━^{LINE_LENGTH}}\n\n"
+        f"{LINE:═^{LINE_LENGTH}}\n\n\n"
+
+        f"{HEADERB: ^{LINE_LENGTH}}\n"
+        f"{LINE:─^{LINE_LENGTH}}\n\n"
+        f"{ascii_plot}\n\n"
+
+        f"{HEADERC: ^{LINE_LENGTH}}\n"
+        f"{LINE:─^{LINE_LENGTH}}\n\n"
+        f"{contrib_grid}\n\n"
+
+        f"{HEADERD: ^{LINE_LENGTH}}\n"
+        f"{LINE:─^{LINE_LENGTH}}\n\n"
+        f"{ascii_hist}\n\n\n"
+
+        f"{HEADERE: ^{LINE_LENGTH}}\n"
+        f"{LINE:─^{LINE_LENGTH}}\n\n"
         f"{ascii_table}\n"
         "</pre>\n"
     )
+
 
 def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
     def worker(r: dict) -> dict:
