@@ -40,18 +40,12 @@ def getTimeOfDay(hour):
 
 USERNAME = "chasenunez"
 
+# --- simple color config (change here) ---
+# Default color: black. Set to a hex string like "#00aa00" to change.
 COLOR_HEX = "#000000"        # overall fallback color (default black)
 BRAILLE_COLOR = "#8dc990"       # default to None -> falls back to COLOR_HEX
 TOTAL_LINE_COLOR = "#8dc990" # color for the total/mean line (green by default)
-
-USE_SVG = True # Toggle this to True to produce a colored SVG
-
-# SVG file settings
-SVG_FILENAME = "readme_ascii.svg"
-SVG_FONT_SIZE = 14           # px; increase to make text larger
-SVG_LINE_HEIGHT = 1.15       # line height multiplier (relative to font size)
-SVG_PADDING = 8              # px padding around content
-SVG_FONT_FAMILY = 'DejaVu Sans Mono, "Courier New", monospace'
+# ------------------------------------------------------------------
 
 DAY = datetime.now().strftime("%A")
 DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
@@ -80,107 +74,6 @@ SESSION.headers.update({
 })
 CACHE_FILE = ".commit_activity_cache.json"
 STATS_MAX_ATTEMPTS = 8
-
-
-def _xml_escape(s: str) -> str:
-    """Escape XML special chars for text nodes."""
-    return (s.replace("&", "&amp;")
-             .replace("<", "&lt;")
-             .replace(">", "&gt;"))
-
-def _svg_color_for_char(ch: str) -> Optional[str]:
-    """Return color hex for a character or None for default (COLOR_HEX)."""
-    # braille characters from SHADES (skip empty)
-    braille_set = set(c for c in SHADES if c)
-    if ch in braille_set:
-        return BRAILLE_COLOR or COLOR_HEX
-    if ch == '┄':
-        return TOTAL_LINE_COLOR or COLOR_HEX
-    return COLOR_HEX
-
-def generate_svg_from_pre(pre_text: str, filename: str = SVG_FILENAME,
-                          font_size: int = SVG_FONT_SIZE,
-                          line_height: float = SVG_LINE_HEIGHT,
-                          padding: int = SVG_PADDING,
-                          font_family: str = SVG_FONT_FAMILY) -> None:
-    """
-    Generate a simple SVG that renders the ASCII in `pre_text`.
-    The function splits on lines and emits one <text> per line with nested <tspan>
-    segments for differently-colored character runs.
-    """
-    if not pre_text:
-        return
-
-    lines = pre_text.splitlines()
-    if not lines:
-        return
-
-    # compute size estimates
-    max_cols = max(len(l) for l in lines)
-    char_width_est = font_size * 0.62   # approximate char width for monospace
-    width = int(padding*2 + max_cols * char_width_est)
-    line_h = font_size * line_height
-    height = int(padding*2 + len(lines) * line_h)
-
-    # Build SVG content
-    svg_parts = [
-        '<?xml version="1.0" encoding="utf-8"?>',
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
-        # background (optional transparent)
-        # f'<rect width="100%" height="100%" fill="white" />',
-    ]
-
-    # For each line create a <text> at appropriate y; inside it add <tspan> chunks
-    x = padding
-    y_start = padding + font_size  # first baseline
-    for i, line in enumerate(lines):
-        y = y_start + i * line_h
-        # create chunks of same color to minimize tspans
-        if not line:
-            # empty line: still need a tspan with a single space so that SVG preserves it
-            svg_parts.append(
-                f'<text x="{x}" y="{y}" xml:space="preserve" font-family="{font_family}" font-size="{font_size}px">'
-                f'<tspan fill="{COLOR_HEX}"> </tspan></text>'
-            )
-            continue
-
-        # accumulate sequence of (color, text) segments
-        segments = []
-        cur_color = _svg_color_for_char(line[0])
-        cur_seg = line[0]
-        for ch in line[1:]:
-            c = _svg_color_for_char(ch)
-            if c == cur_color:
-                cur_seg += ch
-            else:
-                segments.append((cur_color or COLOR_HEX, cur_seg))
-                cur_color = c
-                cur_seg = ch
-        segments.append((cur_color or COLOR_HEX, cur_seg))
-
-        # Build text line with tspans
-        line_tspans = []
-        for col, seg in segments:
-            seg_escaped = _xml_escape(seg)
-            # If color is None (shouldn't be), use COLOR_HEX as fallback
-            col_attr = col or COLOR_HEX or "#000000"
-            line_tspans.append(f'<tspan fill="{col_attr}">{seg_escaped}</tspan>')
-
-        svg_parts.append(
-            f'<text x="{x}" y="{y}" xml:space="preserve" font-family="{font_family}" font-size="{font_size}px">'
-            + "".join(line_tspans) + '</text>'
-        )
-
-    svg_parts.append('</svg>')
-    svg_str = "\n".join(svg_parts)
-
-    # Write file
-    try:
-        with open(filename, "w", encoding="utf-8") as fh:
-            fh.write(svg_str)
-    except Exception:
-        # best-effort: ignore write errors
-        pass
 
 def auth_token() -> Optional[str]:
     return os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
@@ -1084,37 +977,12 @@ def main():
         axis_labels = month_initials_for_weeks(WEEKS, use_three_letter=False)
         axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
         ascii_plot = "\n" + ascii_body + "\n" + axis_line
-        ascii_hist = build_histogram_ascii(hours, max_width=MAX_WIDTH, label_w=used_label_w, use_braille=True)
-        readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
-
-    if USE_SVG:
-        # Extract the raw content inside <pre>...</pre>
-        m = re.search(r'<pre>(.*?)</pre>', readme, flags=re.S)
-        if m:
-            pre_content = m.group(1).lstrip("\n").rstrip("\n")
-        else:
-            pre_content = readme
-
-        # Generate SVG from the ASCII inside the pre block
-        generate_svg_from_pre(pre_content, filename=SVG_FILENAME,
-                              font_size=SVG_FONT_SIZE, line_height=SVG_LINE_HEIGHT, padding=SVG_PADDING,
-                              font_family=SVG_FONT_FAMILY)
-
-        # Build README: show SVG image and include the original ASCII in a collapsible block
-        readme = (
-            f'<p><img src="{SVG_FILENAME}" alt="Commit activity ASCII visualization" /></p>\n\n'
-            f'<details>\n<summary>Show ASCII</summary>\n\n'
-            f'<pre>\n{pre_content}\n</pre>\n\n'
-            f'</details>\n'
-        )
-    else:
-        # existing behavior: apply inline HTML coloring (may be sanitized by GitHub)
-        readme = _apply_ascii_coloring(readme)
-
+    ascii_hist = build_histogram_ascii(hours, max_width=MAX_WIDTH, label_w=used_label_w, use_braille=True)
+    readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
+    readme = _apply_ascii_coloring(readme)
     with open("README.md", "w", encoding="utf-8") as fh:
         fh.write(readme)
     print("README.md updated.")
-
 
 if __name__ == "__main__":
     main()
