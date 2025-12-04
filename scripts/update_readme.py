@@ -40,18 +40,13 @@ def getTimeOfDay(hour):
 
 USERNAME = "chasenunez"
 
-# ----------------- color / feature toggles (change here) -----------------
-ENABLE_COLOR = True         # master on/off for coloring
-USE_LATEX_COLOR = True      # if True -> use $$\color{...}...$$ (KaTeX/MathJax)
-                           # if False -> fallback to <code style="color:...">...</code>
-# Default color values (change hex or names)
-COLOR_HEX = "#8dc990"        # overall fallback color
-BRAILLE_COLOR = None         # if None -> falls back to COLOR_HEX
-TOTAL_LINE_COLOR = None      # if None -> falls back to COLOR_HEX
+# Default color: black. Set to a hex string like "#00aa00" to change.
+COLOR_HEX = "#8dc990"        # overall fallback color (default black)
+BRAILLE_COLOR = "#8dc990"    # fall back to COLOR_HEX when None
+TOTAL_LINE_COLOR = "#8dc990" # color for the total/mean line (green by default)
 
-# Option (kept for compatibility - not used in this patch)
-ENABLE_SVG = False          # placeholder for previously requested SVG toggle
-# -------------------------------------------------------------------------
+# Enable / disable coloring easily
+ENABLE_COLOR = True
 
 DAY = datetime.now().strftime("%A")
 DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
@@ -250,76 +245,75 @@ def pad_to_width(s: str, target: int, align: str='left') -> str:
         out += " " * (target - acc)
     return out
 
-def _wrap_color_latex(s: str, color_spec: str) -> str:
-    # produce $${\color{<color_spec>}<s>}$$
-    # color_spec is expected to be a color name or hex string like "#58A6FF"
-    # Using display style $$...$$ per user example; inline $...$ also possible.
-    return f'$$\\color{{{color_spec}}}{{{s}}}$$'
+# ---------- coloring helpers (corrected + toggle) ----------
 
-def _wrap_color_code_tag(s: str, color_spec: str) -> str:
-    # fallback that wraps in <code style="color : ...">text</code>
-    return f'<code style="color : {color_spec}">{s}</code>'
-
-def _wrap_color(s: str, color_spec: Optional[str]) -> str:
-    if not color_spec:
-        return s
+def _wrap_color(s: str, hex_color: Optional[str]) -> str:
+    """
+    Wrap text `s` in a <code> tag with inline color style using the exact format:
+      <code style="color : #rrggbb">text</code>
+    If coloring is disabled or hex_color falsy, returns s unchanged.
+    """
     if not ENABLE_COLOR:
         return s
-    if USE_LATEX_COLOR:
-        return _wrap_color_latex(s, color_spec)
-    else:
-        return _wrap_color_code_tag(s, color_spec)
+    if not hex_color:
+        return s
+    return f'<code style="color : {hex_color}">{s}</code>'
+
 
 def _apply_ascii_coloring_on_block(block: str) -> str:
     """
-    Apply coloring replacements to a string block (expected to be the ASCII-art content).
+    Apply coloring replacements to a string block (expected the content of <pre>).
     Replaces braille glyphs from SHADES and the mean/total glyph '┄'.
     """
-    if not ENABLE_COLOR:
-        return block
-
     out = block
 
     # Build braille chars list (skip any empty entries in SHADES)
     braille_chars = [c for c in SHADES if c]
+    # Choose the braille color (explicit BRAILLE_COLOR else fallback to COLOR_HEX)
     braille_color_to_use = BRAILLE_COLOR if BRAILLE_COLOR is not None else COLOR_HEX
 
-    if braille_color_to_use:
-        # Replace each braille glyph with the chosen wrapper.
-        # Use a set to avoid duplicate work.
+    if ENABLE_COLOR and braille_color_to_use:
+        # Replace each braille glyph with the <code style="..."> wrapper.
         for ch in set(braille_chars):
             if ch:
                 out = out.replace(ch, _wrap_color(ch, braille_color_to_use))
 
     # Replace the plotted mean/total line glyph '┄' with the total-line color
-    total_color_to_use = TOTAL_LINE_COLOR if TOTAL_LINE_COLOR is not None else COLOR_HEX
-    if total_color_to_use:
-        out = out.replace('┄', _wrap_color('┄', total_color_to_use))
+    if ENABLE_COLOR:
+        if TOTAL_LINE_COLOR:
+            out = out.replace('┄', _wrap_color('┄', TOTAL_LINE_COLOR))
+        elif COLOR_HEX:
+            out = out.replace('┄', _wrap_color('┄', COLOR_HEX))
 
     return out
 
+
 def _apply_ascii_coloring(readme_str: str) -> str:
     """
-    In this revision we do coloring on the whole README body content.
-    Because we use an HTML wrapper <div style="white-space: pre; ..."> to preserve
-    spacing (instead of <pre>), we can safely apply replacements anywhere.
-    If you had multiple <div> areas and wanted only one colored, you'd search for that exact block.
+    Find the first <pre>...</pre> block in the README and apply coloring only inside it.
+    Preserve any text before/after the matched block.
+    If no <pre> block is found, apply coloring to the whole string (fallback).
     """
     if not ENABLE_COLOR:
         return readme_str
 
-    # If a whitespace-preserving container exists, try to color only its inner text
-    m = re.search(r'(<div[^>]*style="[^"]*white-space:\s*pre[^"]*"[^>]*>)(.*?)(</div>)', readme_str, flags=re.S|re.I)
-    if m:
-        head = m.group(1)
-        content = m.group(2)
-        tail = m.group(3)
-        new_content = _apply_ascii_coloring_on_block(content)
-        return readme_str.replace(head + content + tail, head + new_content + tail, 1)
+    m = re.search(r'(<pre[^>]*>)(.*?)(</pre>)', readme_str, flags=re.S)
+    if not m:
+        # no pre block; operate on whole string (fallback)
+        return _apply_ascii_coloring_on_block(readme_str)
 
-    # otherwise, just operate on the whole text (fallback)
-    return _apply_ascii_coloring_on_block(readme_str)
+    # Preserve everything outside the matched span
+    prefix = readme_str[:m.start()]
+    head = m.group(1)         # opening <pre...>
+    pre_content = m.group(2)  # content
+    tail_tag = m.group(3)     # closing </pre>
+    suffix = readme_str[m.end():]
 
+    new_pre = _apply_ascii_coloring_on_block(pre_content)
+
+    return prefix + head + new_pre + tail_tag + suffix
+
+# -----------------------------------------------------------
 
 def load_cache() -> Dict[str, List[int]]:
     if not os.path.exists(CACHE_FILE):
@@ -813,10 +807,8 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
 
 
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
-    # Use a div that preserves whitespace (so spacing remains monospaced) but is plain HTML so that
-    # GitHub's markdown math rendering has a chance to operate on $...$ / $$...$$ fragments.
-    body = (
-        '<div style="white-space: pre; font-family: monospace;">\n'
+    return (
+        "<pre>\n"
         f"{HEADERB: ^{LINE_LENGTH}}\n"
         f"{LINE:▔^{LINE_LENGTH}}\n\n"
         f"{ascii_plot}\n\n\n"
@@ -834,9 +826,8 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_his
         f"{ascii_table}\n\n\n"
 
         f"{HEADERA: ^{LINE_LENGTH}}\n"
-        "</div>\n"
+        "</pre>\n"
     )
-    return body
 
 
 def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
@@ -1018,7 +1009,10 @@ def main():
         ascii_plot = "\n" + ascii_body + "\n" + axis_line
     ascii_hist = build_histogram_ascii(hours, max_width=MAX_WIDTH, label_w=used_label_w, use_braille=True)
     readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
+
+    # Apply coloring (only if ENABLE_COLOR True)
     readme = _apply_ascii_coloring(readme)
+
     with open("README.md", "w", encoding="utf-8") as fh:
         fh.write(readme)
     print("README.md updated.")
