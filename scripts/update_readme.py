@@ -40,6 +40,8 @@ def getTimeOfDay(hour):
 
 USERNAME = "chasenunez"
 
+$${\color{lightgreen}Light \space Green}$$
+
 # Default color: black. Set to a hex string like "#00aa00" to change.
 COLOR_HEX = "#8dc990"        # overall fallback color (default black)
 BRAILLE_COLOR = "#8dc990"    # fall back to COLOR_HEX when None
@@ -54,10 +56,10 @@ TIMECONSTRUCT = datetime.now().strftime("%H")
 MINUTECONSTRUCT = datetime.now().strftime("%M")
 APPROXTIME = getTimeOfDay(TIMECONSTRUCT)
 HEADERA = f"⢀⣠⣴⣾⣿ Updated {DAY} {APPROXTIME} At {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST ⣿⣷⣦⣄⡀"
-HEADERB = "Commits Per-Week With Annual Average"
-HEADERC = "Commit Allocation Among Most Active Projects"
-HEADERD = "Commit Allocation By Hour Of The Day"
-HEADERE = "Recently Active Project Details"
+HEADERB = "$${\color{lightgreen}Commits \space Per-Week \space With \space Annual \space Average}$$"
+HEADERC = $${\color{lightgreen} Commit \space Allocation \space Among \space Most \space Active Projects}$$
+HEADERD = "$${\color{lightgreen} Commit Allocation By Hour Of The Day}$$"
+HEADERE = $${\color{lightgreen}Recently Active Project Details}$$
 LINE = "▔"
 TOP_N = 10
 WEEKS = 42
