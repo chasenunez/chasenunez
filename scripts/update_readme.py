@@ -43,7 +43,7 @@ USERNAME = "chasenunez"
 # --- simple color config (change here) ---
 # Default color: black. Set to a hex string like "#00aa00" to change.
 COLOR_HEX = "#000000"        # overall fallback color (default black)
-BRAILLE_COLOR = None         # default to None -> falls back to COLOR_HEX
+BRAILLE_COLOR = "#8dc990"       # default to None -> falls back to COLOR_HEX
 TOTAL_LINE_COLOR = "#8dc990" # color for the total/mean line (green by default)
 # ------------------------------------------------------------------
 
