@@ -40,12 +40,10 @@ def getTimeOfDay(hour):
 
 USERNAME = "chasenunez"
 
-# --- simple color config (change here) ---
 # Default color: black. Set to a hex string like "#00aa00" to change.
 COLOR_HEX = "#000000"        # overall fallback color (default black)
 BRAILLE_COLOR = "#8dc990"       # default to None -> falls back to COLOR_HEX
 TOTAL_LINE_COLOR = "#8dc990" # color for the total/mean line (green by default)
-# ------------------------------------------------------------------
 
 DAY = datetime.now().strftime("%A")
 DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
@@ -796,6 +794,7 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_his
         f"{ascii_table}\n\n\n"
 
         f"{HEADERA: ^{LINE_LENGTH}}\n"
+        f"<center>![](https://github.com/chasenunez/chasenunez/blob/ce1237217e4728b0abbeba33de2b10bb6bf2f054/scripts/loading.gif)</center>"
         "</pre>\n"
     )
 
