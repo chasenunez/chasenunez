@@ -39,6 +39,14 @@ def getTimeOfDay(hour):
         return "Night"
 
 USERNAME = "chasenunez"
+
+# --- simple color config (change here) ---
+# Default color: black. Set to a hex string like "#00aa00" to change.
+COLOR_HEX = "#000000"        # overall fallback color (default black)
+BRAILLE_COLOR = None         # default to None -> falls back to COLOR_HEX
+TOTAL_LINE_COLOR = "#8dc990" # color for the total/mean line (green by default)
+# ------------------------------------------------------------------
+
 DAY = datetime.now().strftime("%A")
 DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
 TIMECONSTRUCT = datetime.now().strftime("%H")
@@ -235,6 +243,47 @@ def pad_to_width(s: str, target: int, align: str='left') -> str:
     if acc < target:
         out += " " * (target - acc)
     return out
+
+def _wrap_color(s: str, hex_color: Optional[str]) -> str:
+    """Return s wrapped in an inline span with color if hex_color is set, else s."""
+    if not hex_color:
+        return s
+    # keep it minimal — we rely on README being HTML <pre> so span is allowed where not sanitized
+    return f'<span style="color:{hex_color}">{s}</span>'
+
+def _apply_ascii_coloring(readme_str: str) -> str:
+    """
+    Replace braille glyphs and the mean/total-line glyph with colored spans.
+    This is a simple global replace; run just before saving the README.
+    """
+    # If no colors are configured, just return unchanged
+    if not COLOR_HEX and not BRAILLE_COLOR and not TOTAL_LINE_COLOR:
+        return readme_str
+
+    out = readme_str
+
+    # Make a set of braille glyphs from SHADES (ignore empty strings)
+    braille_chars = [c for c in SHADES if c]
+    braille_color_to_use = BRAILLE_COLOR or COLOR_HEX
+
+    if braille_color_to_use:
+        # Replace each braille glyph with a colored span
+        # note: doing global replace because bars are repeated characters
+        for ch in set(braille_chars):
+            if ch:
+                out = out.replace(ch, _wrap_color(ch, braille_color_to_use))
+
+    # Color the mean/total line glyph used in plot_with_mean: '┄'
+    # (If you used a different glyph for the mean line change below.)
+    if TOTAL_LINE_COLOR:
+        out = out.replace('┄', _wrap_color('┄', TOTAL_LINE_COLOR))
+    elif COLOR_HEX:
+        out = out.replace('┄', _wrap_color('┄', COLOR_HEX))
+
+    return out
+
+
+
 
 def load_cache() -> Dict[str, List[int]]:
     if not os.path.exists(CACHE_FILE):
@@ -930,6 +979,7 @@ def main():
         ascii_plot = "\n" + ascii_body + "\n" + axis_line
     ascii_hist = build_histogram_ascii(hours, max_width=MAX_WIDTH, label_w=used_label_w, use_braille=True)
     readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
+    readme = _apply_ascii_coloring(readme)
     with open("README.md", "w", encoding="utf-8") as fh:
         fh.write(readme)
     print("README.md updated.")
