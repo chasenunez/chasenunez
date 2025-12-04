@@ -41,9 +41,12 @@ def getTimeOfDay(hour):
 USERNAME = "chasenunez"
 
 # Default color: black. Set to a hex string like "#00aa00" to change.
-COLOR_HEX = "#000000"        # overall fallback color (default black)
-BRAILLE_COLOR = "#8dc990"       # default to None -> falls back to COLOR_HEX
+COLOR_HEX = "#8dc990"        # overall fallback color (default black)
+BRAILLE_COLOR = "#8dc990"    # fall back to COLOR_HEX when None
 TOTAL_LINE_COLOR = "#8dc990" # color for the total/mean line (green by default)
+
+# Enable / disable coloring easily
+ENABLE_COLOR = True
 
 DAY = datetime.now().strftime("%A")
 DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
@@ -242,14 +245,18 @@ def pad_to_width(s: str, target: int, align: str='left') -> str:
         out += " " * (target - acc)
     return out
 
+# ---------- coloring helpers (corrected + toggle) ----------
+
 def _wrap_color(s: str, hex_color: Optional[str]) -> str:
     """
-    Wrap text `s` in a <code> tag with inline color style using the exact format
-    you requested. If hex_color is falsy, return s unchanged.
+    Wrap text `s` in a <code> tag with inline color style using the exact format:
+      <code style="color : #rrggbb">text</code>
+    If coloring is disabled or hex_color falsy, returns s unchanged.
     """
+    if not ENABLE_COLOR:
+        return s
     if not hex_color:
         return s
-    # user-requested format: <code style="color : name_color">text</code>
     return f'<code style="color : {hex_color}">{s}</code>'
 
 
@@ -262,20 +269,21 @@ def _apply_ascii_coloring_on_block(block: str) -> str:
 
     # Build braille chars list (skip any empty entries in SHADES)
     braille_chars = [c for c in SHADES if c]
+    # Choose the braille color (explicit BRAILLE_COLOR else fallback to COLOR_HEX)
     braille_color_to_use = BRAILLE_COLOR if BRAILLE_COLOR is not None else COLOR_HEX
 
-    if braille_color_to_use:
+    if ENABLE_COLOR and braille_color_to_use:
         # Replace each braille glyph with the <code style="..."> wrapper.
-        # Using set() ensures each glyph is replaced once per occurrence.
         for ch in set(braille_chars):
             if ch:
                 out = out.replace(ch, _wrap_color(ch, braille_color_to_use))
 
     # Replace the plotted mean/total line glyph '┄' with the total-line color
-    if TOTAL_LINE_COLOR:
-        out = out.replace('┄', _wrap_color('┄', TOTAL_LINE_COLOR))
-    elif COLOR_HEX:
-        out = out.replace('┄', _wrap_color('┄', COLOR_HEX))
+    if ENABLE_COLOR:
+        if TOTAL_LINE_COLOR:
+            out = out.replace('┄', _wrap_color('┄', TOTAL_LINE_COLOR))
+        elif COLOR_HEX:
+            out = out.replace('┄', _wrap_color('┄', COLOR_HEX))
 
     return out
 
@@ -283,19 +291,29 @@ def _apply_ascii_coloring_on_block(block: str) -> str:
 def _apply_ascii_coloring(readme_str: str) -> str:
     """
     Find the first <pre>...</pre> block in the README and apply coloring only inside it.
-    If no <pre> block is found, apply coloring to the whole string.
+    Preserve any text before/after the matched block.
+    If no <pre> block is found, apply coloring to the whole string (fallback).
     """
+    if not ENABLE_COLOR:
+        return readme_str
+
     m = re.search(r'(<pre[^>]*>)(.*?)(</pre>)', readme_str, flags=re.S)
     if not m:
         # no pre block; operate on whole string (fallback)
         return _apply_ascii_coloring_on_block(readme_str)
 
-    head = m.group(1)
-    pre_content = m.group(2)
-    tail = m.group(3)
+    # Preserve everything outside the matched span
+    prefix = readme_str[:m.start()]
+    head = m.group(1)         # opening <pre...>
+    pre_content = m.group(2)  # content
+    tail_tag = m.group(3)     # closing </pre>
+    suffix = readme_str[m.end():]
 
     new_pre = _apply_ascii_coloring_on_block(pre_content)
-    return head + new_pre + tail
+
+    return prefix + head + new_pre + tail_tag + suffix
+
+# -----------------------------------------------------------
 
 def load_cache() -> Dict[str, List[int]]:
     if not os.path.exists(CACHE_FILE):
@@ -991,7 +1009,10 @@ def main():
         ascii_plot = "\n" + ascii_body + "\n" + axis_line
     ascii_hist = build_histogram_ascii(hours, max_width=MAX_WIDTH, label_w=used_label_w, use_braille=True)
     readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
+
+    # Apply coloring (only if ENABLE_COLOR True)
     readme = _apply_ascii_coloring(readme)
+
     with open("README.md", "w", encoding="utf-8") as fh:
         fh.write(readme)
     print("README.md updated.")
