@@ -243,36 +243,35 @@ def pad_to_width(s: str, target: int, align: str='left') -> str:
     return out
 
 def _wrap_color(s: str, hex_color: Optional[str]) -> str:
-    """Return s wrapped in an inline span with color if hex_color is set, else s."""
+    """
+    Wrap text `s` in a <code> tag with inline color style using the exact format
+    you requested. If hex_color is falsy, return s unchanged.
+    """
     if not hex_color:
         return s
-    # keep it minimal — we rely on README being HTML <pre> so span is allowed where not sanitized
-    return f'<span style="color:{hex_color}">{s}</span>'
+    # user-requested format: <code style="color : name_color">text</code>
+    return f'<code style="color : {hex_color}">{s}</code>'
 
-def _apply_ascii_coloring(readme_str: str) -> str:
+
+def _apply_ascii_coloring_on_block(block: str) -> str:
     """
-    Replace braille glyphs and the mean/total-line glyph with colored spans.
-    This is a simple global replace; run just before saving the README.
+    Apply coloring replacements to a string block (expected the content of <pre>).
+    Replaces braille glyphs from SHADES and the mean/total glyph '┄'.
     """
-    # If no colors are configured, just return unchanged
-    if not COLOR_HEX and not BRAILLE_COLOR and not TOTAL_LINE_COLOR:
-        return readme_str
+    out = block
 
-    out = readme_str
-
-    # Make a set of braille glyphs from SHADES (ignore empty strings)
+    # Build braille chars list (skip any empty entries in SHADES)
     braille_chars = [c for c in SHADES if c]
-    braille_color_to_use = BRAILLE_COLOR or COLOR_HEX
+    braille_color_to_use = BRAILLE_COLOR if BRAILLE_COLOR is not None else COLOR_HEX
 
     if braille_color_to_use:
-        # Replace each braille glyph with a colored span
-        # note: doing global replace because bars are repeated characters
+        # Replace each braille glyph with the <code style="..."> wrapper.
+        # Using set() ensures each glyph is replaced once per occurrence.
         for ch in set(braille_chars):
             if ch:
                 out = out.replace(ch, _wrap_color(ch, braille_color_to_use))
 
-    # Color the mean/total line glyph used in plot_with_mean: '┄'
-    # (If you used a different glyph for the mean line change below.)
+    # Replace the plotted mean/total line glyph '┄' with the total-line color
     if TOTAL_LINE_COLOR:
         out = out.replace('┄', _wrap_color('┄', TOTAL_LINE_COLOR))
     elif COLOR_HEX:
@@ -281,7 +280,22 @@ def _apply_ascii_coloring(readme_str: str) -> str:
     return out
 
 
+def _apply_ascii_coloring(readme_str: str) -> str:
+    """
+    Find the first <pre>...</pre> block in the README and apply coloring only inside it.
+    If no <pre> block is found, apply coloring to the whole string.
+    """
+    m = re.search(r'(<pre[^>]*>)(.*?)(</pre>)', readme_str, flags=re.S)
+    if not m:
+        # no pre block; operate on whole string (fallback)
+        return _apply_ascii_coloring_on_block(readme_str)
 
+    head = m.group(1)
+    pre_content = m.group(2)
+    tail = m.group(3)
+
+    new_pre = _apply_ascii_coloring_on_block(pre_content)
+    return head + new_pre + tail
 
 def load_cache() -> Dict[str, List[int]]:
     if not os.path.exists(CACHE_FILE):
