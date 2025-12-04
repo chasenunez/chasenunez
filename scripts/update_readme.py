@@ -40,8 +40,6 @@ def getTimeOfDay(hour):
 
 USERNAME = "chasenunez"
 
-$${\color{lightgreen}Light \space Green}$$
-
 # Default color: black. Set to a hex string like "#00aa00" to change.
 COLOR_HEX = "#8dc990"        # overall fallback color (default black)
 BRAILLE_COLOR = "#8dc990"    # fall back to COLOR_HEX when None
