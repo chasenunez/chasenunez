@@ -794,7 +794,6 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_his
         f"{ascii_table}\n\n\n"
 
         f"{HEADERA: ^{LINE_LENGTH}}\n"
-        <center>![](https://github.com/chasenunez/chasenunez/blob/ce1237217e4728b0abbeba33de2b10bb6bf2f054/scripts/loading.gif)</center>
         "</pre>\n"
     )
 
