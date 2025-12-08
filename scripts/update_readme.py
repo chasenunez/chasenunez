@@ -56,7 +56,7 @@ APPROXTIME = getTimeOfDay(TIMECONSTRUCT)
 HEADERA = f"⢀⣠⣴⣾⣿ Updated {DAY} {APPROXTIME} At {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST ⣿⣷⣦⣄⡀"
 HEADERB = "Commits Per-Week With Annual Average"
 HEADERC = "Commit Allocation Among Most Active Projects"
-HEADERD = "Commit Allocation By Hour Of The Day"
+HEADERD = "Commit Allocation By Hour Of The Day (right) and By Day Of Week (left)"
 HEADERE = "Recently Active Project Details"
 LINE = "▔"
 TOP_N = 10
@@ -66,6 +66,7 @@ LINE_LENGTH = 110
 RESTRICTED_NAME = "restricted"
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
+# Braille shades (your preference)
 SHADES = ["","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
@@ -244,76 +245,6 @@ def pad_to_width(s: str, target: int, align: str='left') -> str:
     if acc < target:
         out += " " * (target - acc)
     return out
-
-# ---------- coloring helpers (corrected + toggle) ----------
-
-def _wrap_color(s: str, hex_color: Optional[str]) -> str:
-    """
-    Wrap text `s` in a <code> tag with inline color style using the exact format:
-      <code style="color : #rrggbb">text</code>
-    If coloring is disabled or hex_color falsy, returns s unchanged.
-    """
-    if not ENABLE_COLOR:
-        return s
-    if not hex_color:
-        return s
-    return f'<code style="color : {hex_color}">{s}</code>'
-
-
-def _apply_ascii_coloring_on_block(block: str) -> str:
-    """
-    Apply coloring replacements to a string block (expected the content of <pre>).
-    Replaces braille glyphs from SHADES and the mean/total glyph '┄'.
-    """
-    out = block
-
-    # Build braille chars list (skip any empty entries in SHADES)
-    braille_chars = [c for c in SHADES if c]
-    # Choose the braille color (explicit BRAILLE_COLOR else fallback to COLOR_HEX)
-    braille_color_to_use = BRAILLE_COLOR if BRAILLE_COLOR is not None else COLOR_HEX
-
-    if ENABLE_COLOR and braille_color_to_use:
-        # Replace each braille glyph with the <code style="..."> wrapper.
-        for ch in set(braille_chars):
-            if ch:
-                out = out.replace(ch, _wrap_color(ch, braille_color_to_use))
-
-    # Replace the plotted mean/total line glyph '┄' with the total-line color
-    if ENABLE_COLOR:
-        if TOTAL_LINE_COLOR:
-            out = out.replace('┄', _wrap_color('┄', TOTAL_LINE_COLOR))
-        elif COLOR_HEX:
-            out = out.replace('┄', _wrap_color('┄', COLOR_HEX))
-
-    return out
-
-
-def _apply_ascii_coloring(readme_str: str) -> str:
-    """
-    Find the first <pre>...</pre> block in the README and apply coloring only inside it.
-    Preserve any text before/after the matched block.
-    If no <pre> block is found, apply coloring to the whole string (fallback).
-    """
-    if not ENABLE_COLOR:
-        return readme_str
-
-    m = re.search(r'(<pre[^>]*>)(.*?)(</pre>)', readme_str, flags=re.S)
-    if not m:
-        # no pre block; operate on whole string (fallback)
-        return _apply_ascii_coloring_on_block(readme_str)
-
-    # Preserve everything outside the matched span
-    prefix = readme_str[:m.start()]
-    head = m.group(1)         # opening <pre...>
-    pre_content = m.group(2)  # content
-    tail_tag = m.group(3)     # closing </pre>
-    suffix = readme_str[m.end():]
-
-    new_pre = _apply_ascii_coloring_on_block(pre_content)
-
-    return prefix + head + new_pre + tail_tag + suffix
-
-# -----------------------------------------------------------
 
 def load_cache() -> Dict[str, List[int]]:
     if not os.path.exists(CACHE_FILE):
@@ -504,63 +435,155 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
     table_str = "\n".join(lines)
     return table_str, len(top_line), len(lines)
 
-def build_contrib_grid(repo_weekly: Dict[str,List[int]],
-                       repo_order: List[str],
-                       label_w: Optional[int]=None,
-                       repo_urls: Optional[Dict[str,str]]=None) -> Tuple[str,int]:
-    if label_w is None:
-        label_w = max(10, max((len(r) for r in repo_order), default=10))
-        label_w = min(label_w, 28)
-    else:
-        label_w = max(10, min(label_w, 28))
-    glyph_widths = [max(1, wcswidth(s)) for s in SHADES]
-    slot_w = max(1, max(glyph_widths))
-    sep = " "
-    def render_slot(sym: str) -> str:
-        cur = wcswidth(sym)
-        if cur < 0:
-            cur = 1
-        if cur >= slot_w:
-            return sym
-        return sym + (" " * (slot_w - cur))
-    lines: List[str] = []
-    for repo in repo_order:
-        weeks = repo_weekly.get(repo, [0]*WEEKS)
-        if len(weeks) < WEEKS:
-            weeks = [0] * (WEEKS - len(weeks)) + weeks
-        max_val = max(weeks) or 1
-        slots = []
-        for w in weeks:
-            ratio = w / max_val if max_val else 0
-            idx = int(round(ratio * (len(SHADES) - 1)))
-            idx = max(0, min(len(SHADES) - 1, idx))
-            slots.append(render_slot(SHADES[idx]))
-        visible_name = repo
-        if wcswidth(visible_name) > label_w:
-            truncated = ""
-            acc = 0
-            for ch in visible_name:
-                wch = wcswidth(ch)
-                if acc + wch > label_w - 1:
-                    break
-                truncated += ch
-                acc += wch
-            visible = truncated + "…"
-            visible = pad_to_width(visible, label_w, align='right')
-        else:
-            visible = pad_to_width(visible_name, label_w, align='right')
-        row = f"{visible}┤ " + sep.join(slots)
-        lines.append(row)
-    axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
-    axis_slots = [pad_to_width(ch, slot_w, align='center') for ch in axis_cells]
-    axis_line = " " * label_w + " " + sep.join(axis_slots)
-    lines.append(axis_line)
-    legend_slots = [pad_to_width(s, slot_w, align='center') for s in SHADES]
-    legend = " " * label_w + "low " + sep.join(legend_slots) + "  high"
-    lines.append("")
-    lines.append(legend)
-    return "\n".join(lines), label_w
+# ----------------------------
+# New dual histogram builder
+# ----------------------------
+def build_dual_histogram(hours: List[float],
+                         timestamps: List[datetime],
+                         max_width: int = MAX_WIDTH,
+                         label_day_w: int = 4,
+                         day_label_names: Optional[List[str]] = None) -> str:
+    """
+    Build a composite histogram:
+      - Right: commits by hour (24 rows), bars extend right from center.
+      - Left: commits by day of week (7 bars, each drawn on 3 rows -> 21 rows), bars extend left from center and are vertically centered
+    Output width obeys max_width.
+    """
+    if not timestamps and not hours:
+        return "(no commit timestamps)"
 
+    # prepare counts
+    counts_hr = [0] * 24
+    for h in hours:
+        try:
+            idx = int(h) % 24
+        except Exception:
+            continue
+        counts_hr[idx] += 1
+
+    counts_day = [0] * 7  # Monday=0 .. Sunday=6
+    for dt in timestamps:
+        try:
+            d = dt.weekday()
+            counts_day[d] += 1
+        except Exception:
+            continue
+
+    # labels
+    if day_label_names is None:
+        day_label_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+    # center separators (two adjacent to denote two axes)
+    center_sep = " ┤├ "  # length 4, visually: left-axis (┤) and right-axis (├) adjacent with padding
+    center_sep_len = wcswidth(center_sep)
+
+    # hour label area on right (space + two digits) -> we give it width 3: ' 00'
+    hour_label_w = 3
+
+    # compute available bar widths (left/right must be same)
+    remaining = max_width - label_day_w - center_sep_len - hour_label_w
+    # leave at least 2 chars for each side
+    left_bar_w = right_bar_w = max(2, remaining // 2)
+
+    # adjust if too large to keep full width within max_width (in case odd remainder)
+    total_len = label_day_w + left_bar_w + center_sep_len + right_bar_w + hour_label_w
+    if total_len > max_width:
+        # shrink right_bar_w first
+        over = total_len - max_width
+        right_bar_w = max(1, right_bar_w - over)
+        total_len = label_day_w + left_bar_w + center_sep_len + right_bar_w + hour_label_w
+
+    # choose bar glyph
+    braille_full = '⣿'
+    block_full = '█'
+    bar_char = braille_full if braille_full else block_full
+
+    max_hr = max(counts_hr) if counts_hr else 1
+    max_day = max(counts_day) if counts_day else 1
+    if max_hr == 0:
+        max_hr = 1
+    if max_day == 0:
+        max_day = 1
+
+    # We'll produce exactly 24 rows (hours 0..23). Day-of-week block: 7 * 3 = 21 rows, centered inside 24
+    rows_total = 24
+    day_block_rows = 7 * 3
+    top_pad = (rows_total - day_block_rows) // 2  # usually 1
+    # bottom_pad = rows_total - day_block_rows - top_pad
+
+    lines: List[str] = []
+    for row in range(rows_total):
+        # determine day-side content
+        day_row_relative = row - top_pad
+        if 0 <= day_row_relative < day_block_rows:
+            day_idx = day_row_relative // 3  # which day (0..6)
+            sub = day_row_relative % 3  # 0,1,2: middle line (sub==1) will carry label
+            # bar length for this day
+            c = counts_day[day_idx]
+            day_bar_len = int(round((c / max_day) * left_bar_w)) if max_day else 0
+            # left bars extend left from separator, so we right-pad with bar_char at the right edge of the left-bar area
+            left_bar = " " * (left_bar_w - day_bar_len) + (bar_char * day_bar_len)
+            if sub == 1:
+                day_label = pad_to_width(day_label_names[day_idx], label_day_w, align='right')
+            else:
+                # blank label line (keep width)
+                day_label = " " * label_day_w
+        else:
+            # outside day-block
+            left_bar = " " * left_bar_w
+            day_label = " " * label_day_w
+
+        # hour-side content (row maps directly to hour)
+        hr = row % 24
+        c_hr = counts_hr[hr]
+        hr_bar_len = int(round((c_hr / max_hr) * right_bar_w)) if max_hr else 0
+        right_bar = (bar_char * hr_bar_len) + " " * (right_bar_w - hr_bar_len)
+        hour_label = f"{hr:02d}"
+        hour_label = " " + hour_label  # keep hour_label_w == 3
+
+        # combine
+        line = f"{day_label}{left_bar}{center_sep}{right_bar}{hour_label}"
+        # ensure total visible width does not exceed max_width (trim if necessary)
+        # Use wcswidth to check and if necessary trim rightmost padding
+        visible_len = wcswidth(line)
+        if visible_len > max_width:
+            # try to trim spaces from right_bar area first
+            excess = visible_len - max_width
+            if excess > 0 and right_bar_w - hr_bar_len >= excess:
+                # reduce right padding
+                right_bar = (bar_char * hr_bar_len) + " " * (right_bar_w - hr_bar_len - excess)
+                line = f"{day_label}{left_bar}{center_sep}{right_bar}{hour_label}"
+            else:
+                # fallback: truncate to max_width characters visually
+                # naive truncation by bytes is OK for most terminals here
+                # produce a best-effort cropping:
+                cropped = ""
+                acc = 0
+                for ch in line:
+                    ch_w = wcswidth(ch)
+                    if acc + ch_w > max_width:
+                        break
+                    cropped += ch
+                    acc += ch_w
+                line = cropped
+
+        lines.append(line)
+
+    # legend + extras: show small legend for left/right bar scale
+    legend_left = f"Left: commits by day (each day drawn 3 rows), Right: commits by hour"
+    # Ensure legend fits, else crop
+    if wcswidth(legend_left) > max_width:
+        # crop
+        legend_left = legend_left[:max_width]
+
+    lines.append("")
+    lines.append(pad_to_width(legend_left, max_width, align='left'))
+
+    return "\n".join(lines)
+
+# ----------------------------
+# plot_with_mean & other helpers (kept mostly as-is)
+# ----------------------------
 def _safe_isnan(x) -> bool:
     try:
         return isnan(float(x))
@@ -759,53 +782,6 @@ def build_commit_hour_values(timestamps: List[datetime], tz: Optional[timezone]=
         out.append(hour)
     return out
 
-def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_w: Optional[int] = None, use_braille: bool = True) -> str:
-    if not hours:
-        return '(no commit timestamps)'
-    if label_w is None:
-        label_w = 2
-    counts = [0] * 24
-    for h in hours:
-        try:
-            idx = int(h) % 24
-        except Exception:
-            continue
-        counts[idx] += 1
-    longest_count_len = len(str(max(counts))) if counts else 1
-    reserved = label_w + 2 + 1 + longest_count_len
-    bar_space = max(1, max_width - reserved)
-    if _HAS_PLOTILLE:
-        try:
-            hist_str = plotille.hist(hours, bins=24, width=max(10, bar_space))
-            out_lines = []
-            for line in hist_str.splitlines():
-                out_lines.append(line)
-            lines = []
-            for hr in range(24):
-                label = pad_to_width(f'{hr:02d}', label_w, align='right')
-                bar = ''
-                count = counts[hr]
-                lines.append(f'{label}┤ {bar} {count}')
-            return '\n'.join(lines)
-        except Exception:
-            pass
-    max_count = max(counts) if counts else 0
-    braille_full = '⣿'
-    block_full = '█'
-    bar_char = braille_full if use_braille else block_full
-    lines = []
-    for hr in range(24):
-        c = counts[hr]
-        if max_count:
-            bar_len = int(round((c / max_count) * bar_space))
-        else:
-            bar_len = 0
-        bar = bar_char * bar_len
-        label = pad_to_width(f'{hr:02d}', label_w, align='right')
-        lines.append(f'{label}┤ {bar} {c}')
-    return '\n'.join(lines)
-
-
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
     return (
         "<pre>\n"
@@ -828,7 +804,6 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_his
         f"{HEADERA: ^{LINE_LENGTH}}\n"
         "</pre>\n"
     )
-
 
 def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
     def worker(r: dict) -> dict:
@@ -880,6 +855,35 @@ def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
             except Exception:
                 results[idx] = None
     return [r for r in results if r]
+
+def _apply_ascii_coloring_on_block(block: str) -> str:
+    out = block
+    braille_chars = [c for c in SHADES if c]
+    braille_color_to_use = BRAILLE_COLOR if BRAILLE_COLOR is not None else COLOR_HEX
+    if ENABLE_COLOR and braille_color_to_use:
+        for ch in set(braille_chars):
+            if ch:
+                out = out.replace(ch, f'<code style="color : {braille_color_to_use}">{ch}</code>')
+    if ENABLE_COLOR:
+        if TOTAL_LINE_COLOR:
+            out = out.replace('┄', f'<code style="color : {TOTAL_LINE_COLOR}">┄</code>')
+        elif COLOR_HEX:
+            out = out.replace('┄', f'<code style="color : {COLOR_HEX}">┄</code>')
+    return out
+
+def _apply_ascii_coloring(readme_str: str) -> str:
+    if not ENABLE_COLOR:
+        return readme_str
+    m = re.search(r'(<pre[^>]*>)(.*?)(</pre>)', readme_str, flags=re.S)
+    if not m:
+        return _apply_ascii_coloring_on_block(readme_str)
+    prefix = readme_str[:m.start()]
+    head = m.group(1)
+    pre_content = m.group(2)
+    tail_tag = m.group(3)
+    suffix = readme_str[m.end():]
+    new_pre = _apply_ascii_coloring_on_block(pre_content)
+    return prefix + head + new_pre + tail_tag + suffix
 
 def main():
     token = auth_token()
@@ -1007,10 +1011,11 @@ def main():
         axis_labels = month_initials_for_weeks(WEEKS, use_three_letter=False)
         axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
         ascii_plot = "\n" + ascii_body + "\n" + axis_line
-    ascii_hist = build_histogram_ascii(hours, max_width=MAX_WIDTH, label_w=used_label_w, use_braille=True)
-    readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
 
-    # Apply coloring (only if ENABLE_COLOR True)
+    # build the new combined histogram (days left, hours right)
+    ascii_hist = build_dual_histogram(hours, timestamps, max_width=MAX_WIDTH, label_day_w=4)
+
+    readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
     readme = _apply_ascii_coloring(readme)
 
     with open("README.md", "w", encoding="utf-8") as fh:
