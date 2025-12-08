@@ -296,6 +296,84 @@ def month_initials_for_weeks(weeks: int, use_three_letter: bool=False) -> List[s
         else:
             labels.append(" ")
     return labels
+def build_contrib_grid(repo_weekly: Dict[str,List[int]],
+                       repo_order: List[str],
+                       label_w: Optional[int]=None,
+                       repo_urls: Optional[Dict[str,str]]=None) -> Tuple[str,int]:
+    """
+    Build ASCII heat map (rows = repos, cols = weeks) using SHADES.
+    Ensures each week column uses a fixed 'slot' so rows and x-axis align.
+    Returns (grid_string, label_w_used).
+    """
+    # label width handling (same policy as earlier code)
+    if label_w is None:
+        label_w = max(10, max((len(r) for r in repo_order), default=10))
+        label_w = min(label_w, 28)
+    else:
+        label_w = max(10, min(label_w, 28))
+
+    # Determine slot width from SHADES using wcswidth (accurate if wcwidth available)
+    glyph_widths = [max(1, wcswidth(s)) for s in SHADES]
+    slot_w = max(1, max(glyph_widths))
+    sep = " "  # separator between slots
+
+    def render_slot(sym: str) -> str:
+        """Render symbol padded to slot_w columns (visible width)."""
+        cur = wcswidth(sym)
+        if not isinstance(cur, int) or cur <= 0:
+            cur = 1
+        pad = slot_w - cur
+        if pad <= 0:
+            return sym
+        return sym + (" " * pad)
+
+    lines: List[str] = []
+    for repo in repo_order:
+        weeks = repo_weekly.get(repo, [0]*WEEKS)
+        if len(weeks) < WEEKS:
+            weeks = [0] * (WEEKS - len(weeks)) + weeks
+        max_val = max(weeks) or 1
+        slots: List[str] = []
+        for w in weeks:
+            ratio = (w / max_val) if max_val else 0.0
+            idx = int(round(ratio * (len(SHADES) - 1)))
+            idx = max(0, min(len(SHADES) - 1, idx))
+            slots.append(render_slot(SHADES[idx]))
+
+        # Prepare visible label (truncate/pad by display width)
+        visible_name = repo
+        if wcswidth(visible_name) > label_w:
+            # truncate preserving display width and append ellipsis
+            truncated = ""
+            acc = 0
+            for ch in visible_name:
+                ch_w = wcswidth(ch)
+                if acc + ch_w > label_w - 1:
+                    break
+                truncated += ch
+                acc += ch_w
+            visible = truncated + "…"
+            visible = pad_to_width(visible, label_w, align='right')
+        else:
+            visible = pad_to_width(visible_name, label_w, align='right')
+
+        row = f"{visible}┤ " + sep.join(slots)
+        lines.append(row)
+
+    # Build axis: use same slot_w spacing and separator
+    axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
+    axis_slots = [pad_to_width(ch, slot_w, align='center') for ch in axis_cells]
+    axis_line = " " * label_w + " " + sep.join(axis_slots)
+    lines.append(axis_line)
+
+    # Legend using same spacing
+    legend_slots = [pad_to_width(s, slot_w, align='center') for s in SHADES]
+    legend = " " * label_w + "low " + sep.join(legend_slots) + "  high"
+    lines.append("")
+    lines.append(legend)
+
+    return "\n".join(lines), label_w
+
 
 from typing import List, Tuple
 def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = None) -> Tuple[str,int,int]:
