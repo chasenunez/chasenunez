@@ -6,6 +6,9 @@ import time
 import re
 import json
 import unicodedata
+import plotille
+import numpy as np
+
 from datetime import datetime, timezone, timedelta
 from math import ceil, floor, isnan
 from typing import Dict, List, Tuple, Optional
