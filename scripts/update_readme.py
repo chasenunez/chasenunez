@@ -66,7 +66,7 @@ LINE_LENGTH = 110
 RESTRICTED_NAME = "restricted"
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
-# Braille shades (your preference)
+BLANK = "⠀"   # U+2800 BRAILLE PATTERN BLANK
 SHADES = ["","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
@@ -217,19 +217,26 @@ def wcswidth(s: str) -> int:
         return wcswidth_fallback(s)
 
 def pad_to_width(s: str, target: int, align: str='left') -> str:
+    """
+    Pad/truncate string `s` to display width `target`.
+    Uses the global BLANK character for padding so all figures use the same glyph.
+    Align options: left/right/center.
+    """
+    # compute visible width
     cur = wcswidth(s)
     if cur == target:
         return s
     if cur < target:
         pad = target - cur
         if align == 'left':
-            return s + " " * pad
+            return s + (BLANK * pad)
         elif align == 'right':
-            return " " * pad + s
+            return (BLANK * pad) + s
         else:
             left = pad//2
             right = pad - left
-            return " " * left + s + " " * right
+            return (BLANK * left) + s + (BLANK * right)
+    # cur > target -> truncate by characters while measuring widths
     out = ""
     acc = 0
     for ch in s:
@@ -238,13 +245,17 @@ def pad_to_width(s: str, target: int, align: str='left') -> str:
             break
         out += ch
         acc += ch_w
+    # if we have room for an ellipsis char, append
     if acc < target and len(out) < len(s):
+        # try to add single-character ellipsis "…"
         if acc + wcswidth("…") <= target:
             out += "…"
             acc += wcswidth("…")
+    # pad if still short (use BLANK)
     if acc < target:
-        out += " " * (target - acc)
+        out += BLANK * (target - acc)
     return out
+
 
 def load_cache() -> Dict[str, List[int]]:
     if not os.path.exists(CACHE_FILE):
@@ -302,10 +313,9 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
                        repo_urls: Optional[Dict[str,str]]=None) -> Tuple[str,int]:
     """
     Build ASCII heat map (rows = repos, cols = weeks) using SHADES.
-    Ensures each week column uses a fixed 'slot' so rows and x-axis align.
+    Uses BLANK for all padding so columns line up exactly on GitHub.
     Returns (grid_string, label_w_used).
     """
-    # label width handling (same policy as earlier code)
     if label_w is None:
         label_w = max(10, max((len(r) for r in repo_order), default=10))
         label_w = min(label_w, 28)
@@ -315,17 +325,17 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
     # Determine slot width from SHADES using wcswidth (accurate if wcwidth available)
     glyph_widths = [max(1, wcswidth(s)) for s in SHADES]
     slot_w = max(1, max(glyph_widths))
-    sep = " "  # separator between slots
+    sep = BLANK  # use braille-blank as the separator between slots
 
     def render_slot(sym: str) -> str:
-        """Render symbol padded to slot_w columns (visible width)."""
+        """Render symbol padded to slot_w display columns using BLANK."""
         cur = wcswidth(sym)
         if not isinstance(cur, int) or cur <= 0:
             cur = 1
         pad = slot_w - cur
         if pad <= 0:
             return sym
-        return sym + (" " * pad)
+        return sym + (BLANK * pad)
 
     lines: List[str] = []
     for repo in repo_order:
@@ -333,42 +343,42 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
         if len(weeks) < WEEKS:
             weeks = [0] * (WEEKS - len(weeks)) + weeks
         max_val = max(weeks) or 1
-        slots: List[str] = []
+        slots = []
         for w in weeks:
-            ratio = (w / max_val) if max_val else 0.0
+            ratio = w / max_val if max_val else 0
             idx = int(round(ratio * (len(SHADES) - 1)))
             idx = max(0, min(len(SHADES) - 1, idx))
             slots.append(render_slot(SHADES[idx]))
 
-        # Prepare visible label (truncate/pad by display width)
+        # label by display-width (use pad_to_width which now pads with BLANK)
         visible_name = repo
         if wcswidth(visible_name) > label_w:
-            # truncate preserving display width and append ellipsis
             truncated = ""
             acc = 0
             for ch in visible_name:
-                ch_w = wcswidth(ch)
-                if acc + ch_w > label_w - 1:
+                wch = wcswidth(ch)
+                if acc + wch > label_w - 1:
                     break
                 truncated += ch
-                acc += ch_w
+                acc += wch
             visible = truncated + "…"
             visible = pad_to_width(visible, label_w, align='right')
         else:
             visible = pad_to_width(visible_name, label_w, align='right')
 
-        row = f"{visible}┤ " + sep.join(slots)
+        # use BLANK after the '┤' so the overall grid uses BLANK only for spacing
+        row = f"{visible}┤{BLANK}" + sep.join(slots)
         lines.append(row)
 
     # Build axis: use same slot_w spacing and separator
     axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
     axis_slots = [pad_to_width(ch, slot_w, align='center') for ch in axis_cells]
-    axis_line = " " * label_w + " " + sep.join(axis_slots)
+    axis_line = (BLANK * label_w) + BLANK + sep.join(axis_slots)
     lines.append(axis_line)
 
     # Legend using same spacing
     legend_slots = [pad_to_width(s, slot_w, align='center') for s in SHADES]
-    legend = " " * label_w + "low " + sep.join(legend_slots) + "  high"
+    legend = (BLANK * label_w) + "low" + BLANK + sep.join(legend_slots) + BLANK + "high"
     lines.append("")
     lines.append(legend)
 
@@ -669,6 +679,11 @@ def _safe_isnan(x) -> bool:
         return False
 
 def plot_with_mean(series, cfg=None) -> str:
+    """
+    ASCII line plot of a series with dotted mean line.
+    Produces a canvas filled with BLANK so it lines up with the heatmap.
+    Returns the full block (DO NOT rstrip — keep trailing BLANKs for alignment).
+    """
     if not series:
         return ""
     if not isinstance(series[0], list):
@@ -702,7 +717,9 @@ def plot_with_mean(series, cfg=None) -> str:
         return int(round(clamp(y) * ratio) - min2)
     rows = max2 - min2
     width = max(len(s) for s in series) + offset
-    result = [[' ']*width for _ in range(rows+1)]
+    # build canvas filled with BLANK (not ASCII space)
+    result = [[BLANK]*width for _ in range(rows+1)]
+    # y-axis labels (these may contain ASCII digits etc.)
     for y in range(min2, max2+1):
         try:
             label = fmt.format(maximum - ((y-min2) * interval / (rows if rows else 1)))
@@ -713,23 +730,24 @@ def plot_with_mean(series, cfg=None) -> str:
         for idx,ch in enumerate(label):
             if pos + idx < width:
                 result[line_idx][pos+idx] = ch
+        # axis glyph: put the axis char at offset-1 (keep ASCII glyph)
         result[line_idx][offset-1] = symbols[0] if y == 0 else symbols[1]
+    # first point marker
     try:
         if not _safe_isnan(series[0][0]):
             result[rows - scaled(series[0][0])][offset-1] = symbols[0]
     except Exception:
         pass
+    # plot lines
     for s in series:
         for x in range(len(s)-1):
             d0 = s[x]; d1 = s[x+1]
             if _safe_isnan(d0) and _safe_isnan(d1):
                 continue
             if _safe_isnan(d0):
-                result[rows - scaled(d1)][x + offset] = symbols[2]
-                continue
+                result[rows - scaled(d1)][x + offset] = symbols[2]; continue
             if _safe_isnan(d1):
-                result[rows - scaled(d0)][x + offset] = symbols[3]
-                continue
+                result[rows - scaled(d0)][x + offset] = symbols[3]; continue
             y0 = scaled(d0); y1 = scaled(d1)
             if y0 == y1:
                 result[rows - y0][x + offset] = symbols[4]
@@ -738,15 +756,18 @@ def plot_with_mean(series, cfg=None) -> str:
             result[rows - y0][x + offset] = symbols[7] if y0 > y1 else symbols[8]
             for yy in range(min(y0,y1)+1, max(y0,y1)):
                 result[rows - yy][x + offset] = symbols[9]
+    # dotted mean line (use ASCII '┄' but write into BLANK canvas)
     mean_val = sum(flat) / len(flat)
+    mean_row = None
     try:
         mean_scaled = scaled(mean_val)
         mean_row = max(0, min(rows, rows - mean_scaled))
         for c in range(offset, width):
-            if result[mean_row][c] == ' ':
+            if result[mean_row][c] == BLANK:
                 result[mean_row][c] = '┄'
     except Exception:
         mean_row = None
+    # optional mean label placement (same logic, checks BLANK)
     mean_label = cfg.get('mean_label', None)
     if mean_label and mean_row is not None:
         label = f" {mean_label} "
@@ -755,7 +776,7 @@ def plot_with_mean(series, cfg=None) -> str:
         for start in range(offset, width - L + 1):
             ok = True
             for k in range(L):
-                if result[mean_row][start + k] != ' ':
+                if result[mean_row][start + k] != BLANK:
                     ok = False
                     break
             if ok:
@@ -771,7 +792,7 @@ def plot_with_mean(series, cfg=None) -> str:
                     for start in range(offset, width - L + 1):
                         ok = True
                         for k in range(L):
-                            if result[r][start + k] != ' ':
+                            if result[r][start + k] != BLANK:
                                 ok = False
                                 break
                         if ok:
@@ -783,7 +804,9 @@ def plot_with_mean(series, cfg=None) -> str:
                         break
                 if placed:
                     break
-    return "\n".join("".join(row).rstrip() for row in result)
+    # return lines exactly (do NOT rstrip); keep trailing BLANKs for alignment
+    return "\n".join("".join(row) for row in result)
+
 
 def fetch_commits_limited(owner: str, repo: str, token: Optional[str], max_commits: int = 300) -> List[dict]:
     url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
@@ -1087,7 +1110,7 @@ def main():
                "mean_label": "long-term mean"}
         ascii_body = plot_with_mean(scaled_series, cfg)
         axis_labels = month_initials_for_weeks(WEEKS, use_three_letter=False)
-        axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
+        axis_line = BLANK * left + "".join(ch + BLANK for ch in axis_labels)
         ascii_plot = "\n" + ascii_body + "\n" + axis_line
 
     # build the new combined histogram (days left, hours right)
