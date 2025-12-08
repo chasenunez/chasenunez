@@ -56,8 +56,9 @@ APPROXTIME = getTimeOfDay(TIMECONSTRUCT)
 HEADERA = f"⢀⣠⣴⣾⣿ Updated {DAY} {APPROXTIME} At {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST ⣿⣷⣦⣄⡀"
 HEADERB = "Commits Per-Week With Annual Average"
 HEADERC = "Commit Allocation Among Most Active Projects"
-HEADERD = "Commit Allocation By Hour Of The Day"
-HEADERE = "Recently Active Project Details"
+HEADERD = "Commit Distribution By Day Of The Week"
+HEADERE = "Commit Allocation By Hour Of The Day"
+HEADERF = "Recently Active Project Details"
 LINE = "▔"
 TOP_N = 10
 WEEKS = 42
@@ -365,6 +366,27 @@ def month_initials_for_weeks(weeks: int, use_three_letter: bool=False) -> List[s
         else:
             labels.append(" ")
     return labels
+
+def center_table(table_str: str, max_width: int) -> str:
+    """Center each line of the table within max_width."""
+    lines = table_str.split('\n')
+    if not lines:
+        return table_str
+    
+    # Find the maximum line width
+    table_width = max(len(line) for line in lines)
+    
+    # If table is already wider than max_width, return as is
+    if table_width >= max_width:
+        return table_str
+    
+    # Calculate left padding
+    left_pad = (max_width - table_width) // 2
+    padding = ' ' * left_pad
+    
+    # Add padding to each line
+    centered_lines = [padding + line for line in lines]
+    return '\n'.join(centered_lines)
 
 from typing import List, Tuple
 def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = None) -> Tuple[str,int,int]:
@@ -759,6 +781,69 @@ def build_commit_hour_values(timestamps: List[datetime], tz: Optional[timezone]=
         out.append(hour)
     return out
 
+def build_commit_day_of_week_counts(timestamps: List[datetime], tz: Optional[timezone]=None) -> List[int]:
+    """
+    Returns a list of 7 counts, one for each day of the week.
+    Index 0 = Monday, 1 = Tuesday, ..., 6 = Sunday
+    """
+    counts = [0] * 7
+    for dt in timestamps:
+        if tz:
+            dt = dt.astimezone(tz)
+        else:
+            dt = dt.astimezone(timezone.utc)
+        day_of_week = dt.weekday()  # Monday=0, Sunday=6
+        counts[day_of_week] += 1
+    return counts
+
+def build_day_of_week_histogram(timestamps: List[datetime], max_width: int = MAX_WIDTH, tz: Optional[timezone]=None) -> str:
+    """
+    Build a histogram showing commit distribution by day of week using plotille.hist_aggregated
+    """
+    if not timestamps:
+        return '(no commit timestamps)'
+    
+    if not _HAS_PLOTILLE:
+        return '(plotille not available)'
+    
+    counts = build_commit_day_of_week_counts(timestamps, tz)
+    
+    # bins needs to be n+1 for n counts
+    # We have 7 days, so we need 8 bin edges: [0, 1, 2, 3, 4, 5, 6, 7]
+    bins = [float(i) for i in range(8)]
+    
+    try:
+        hist_str = plotille.hist_aggregated(
+            counts=counts,
+            bins=bins,
+            width=max(20, max_width - 20),
+            log_scale=False
+        )
+        
+        # Add day labels
+        day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        lines = hist_str.splitlines()
+        
+        # Find the lines that correspond to each bin
+        # The histogram will have labels on the left showing the bin ranges
+        # We'll add our day names to the output
+        output_lines = []
+        output_lines.append("    " + hist_str)
+        output_lines.append("")
+        output_lines.append("    Day of Week: " + "  ".join(f"{name}({counts[i]})" for i, name in enumerate(day_names)))
+        
+        return "\n".join(output_lines)
+    except Exception as e:
+        # Fallback to simple text representation
+        day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        lines = []
+        max_count = max(counts) if counts else 1
+        for i, (day, count) in enumerate(zip(day_names, counts)):
+            bar_len = int((count / max_count) * 40) if max_count > 0 else 0
+            bar = '█' * bar_len
+            lines.append(f"  {day:9s} │ {bar} {count}")
+        return "\n".join(lines)
+
 def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_w: Optional[int] = None, use_braille: bool = True) -> str:
     if not hours:
         return '(no commit timestamps)'
@@ -806,7 +891,10 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
     return '\n'.join(lines)
 
 
-def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
+def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_dow: str, ascii_hist: str) -> str:
+    # Center the table
+    centered_table = center_table(ascii_table, MAX_WIDTH)
+    
     return (
         "<pre>\n"
         f"{HEADERB: ^{LINE_LENGTH}}\n"
@@ -819,11 +907,15 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_his
 
         f"{HEADERD: ^{LINE_LENGTH}}\n"
         f"{LINE:▔^{LINE_LENGTH}}\n\n"
-        f"{ascii_hist}\n\n\n"
+        f"{ascii_dow}\n\n\n"
 
         f"{HEADERE: ^{LINE_LENGTH}}\n"
         f"{LINE:▔^{LINE_LENGTH}}\n\n"
-        f"{ascii_table}\n\n\n"
+        f"{ascii_hist}\n\n\n"
+
+        f"{HEADERF: ^{LINE_LENGTH}}\n"
+        f"{LINE:▔^{LINE_LENGTH}}\n\n"
+        f"{centered_table}\n\n\n"
 
         f"{HEADERA: ^{LINE_LENGTH}}\n"
         "</pre>\n"
@@ -1007,8 +1099,14 @@ def main():
         axis_labels = month_initials_for_weeks(WEEKS, use_three_letter=False)
         axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
         ascii_plot = "\n" + ascii_body + "\n" + axis_line
+    
+    # Build day-of-week histogram
+    ascii_dow = build_day_of_week_histogram(timestamps, max_width=MAX_WIDTH)
+    
+    # Build hour histogram
     ascii_hist = build_histogram_ascii(hours, max_width=MAX_WIDTH, label_w=used_label_w, use_braille=True)
-    readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
+    
+    readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_dow, ascii_hist)
 
     # Apply coloring (only if ENABLE_COLOR True)
     readme = _apply_ascii_coloring(readme)
