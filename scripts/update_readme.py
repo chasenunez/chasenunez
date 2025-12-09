@@ -1066,14 +1066,12 @@ def create_pulsar_svg(repo_weekly: Dict[str, List[int]],
                 f'preserveAspectRatio="xMidYMid meet">\n'
                 )
     svg_style = (
-        '<defs>\n<style type="text/css"><![CDATA[\n'
-        ':root { --line: #000000; }\n'
-        '@media (prefers-color-scheme: dark) { :root { --line: #ffffff; } }\n'
-        'path { stroke: var(--line); }\n'
-        'text { fill: var(--line); }\n'
-        'svg { background: transparent; }\n'
-        ']]></style>\n</defs>\n'
-    )
+    '<defs>\n<style type="text/css"><![CDATA[\n'
+    'path { stroke: #8dc990; }\n'
+    'text { fill: #8dc990; }\n'
+    'svg { background: transparent; }\n'
+    ']]></style>\n</defs>\n'
+    )   
     svg_body = []
     svg_body.append('<g>\n')
     for p in path_elements:
