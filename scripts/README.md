@@ -1,25 +1,37 @@
 <p align="center">
-  <img src="pulsar.svg" alt="Activity pulsar" style="max-width:100%; height:auto;" />
+  <img src="scripts/pulsar.svg" alt="Activity pulsar" style="max-width:100%; height:auto;" />
 </p>
 
 <pre>
                                      Commits Per-Week With Annual Average                                     
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
-(no activity data)
+
+            55.0┼                                                 ╭─╮
+            49.5┤                                                 │ │
+            44.0┤                                                 │ │
+            38.5┤                                                 │ │ ╭─╮               ╭─╮
+            33.0┤                                                 │ │ │ │               │ │
+            27.5┤           ╭─╮                                   │ │ │ │               │ ╰─╮
+            22.0┤       ╭─╮ │ │                                   │ │ │ ╰─╮             │   │
+            16.5┤     ╭─╯ │ │ │ long-term mean        ╭─╮         │ ╰─╯   │             │   │
+            11.0┤<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code>╰─╮<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>╭─╮<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>╭─╮<code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>╰─╮<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>
+             5.5┤     │   │ │   │   ╭─╮ │ ╰─╮     │ │ │ │   ╭─╮   │       ╰─╮       ╭─╮ │     ╰─────
+             0.0┼─────╯   ╰─╯   ╰───╯ ╰─╯   ╰─────╯ ╰─╯ ╰───╯ ╰───╯         ╰───────╯ ╰─╯
+                 F M       A         M       J       u         A       S         O       N       D   
 
 
                                  Commit Allocation Among Most Active Projects                                 
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
       chasenunez┤                                                                                    
-         voronoi┤                                                                                    
-          trmnlp┤                                                                                    
-         tui_log┤                                                                                    
-    sunburst_nav┤                                                                                    
-  DEVO_validator┤                                                                                    
-        data_HUD┤                                                                                    
-recursive_shrink┤                                                                                    
+         voronoi┤                                                                                   <code style="color : #8dc990">⣿</code>
+          trmnlp┤       <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡑</code>   <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡑</code>     <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡑</code>   <code style="color : #8dc990">⡁</code>           <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code>                              
+         tui_log┤       <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⣿</code>             <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡁</code>             <code style="color : #8dc990">⣽</code>     <code style="color : #8dc990">⡑</code>         <code style="color : #8dc990">⡁</code>                         <code style="color : #8dc990">⡀</code>  
+    sunburst_nav┤                                                       <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡀</code>           <code style="color : #8dc990">⡁</code>   <code style="color : #8dc990">⡝</code>       <code style="color : #8dc990">⡀</code>  
+  DEVO_validator┤                                                   <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡀</code>                 <code style="color : #8dc990">⡁</code>      
+        data_HUD┤                                                                         <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⣽</code>     <code style="color : #8dc990">⡀</code>  
+recursive_shrink┤                                                         <code style="color : #8dc990">⣿</code>                       <code style="color : #8dc990">⡀</code>  
    etani_shordul┤                                                                                    
 envidat_entrails┤                                                                                    
                  F M       A         M       J       u         A       S         O       N       D  
@@ -39,7 +51,7 @@ envidat_entrails┤
 ╔═══════════════════╦════════════════╦══════════════╦════════════════╦══════════════════╦══════════╗
 ║     Repository    ║ Main Language  ║ Total Bytes  ║ Total Commits  ║ Last Commit Date ║ Branches ║
 ╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>        ║     Python     ║    27280     ║      551       ║    2025-12-09    ║    2     ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>        ║     Python     ║    27280     ║      555       ║    2025-12-09    ║    2     ║
 ╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
 ║ <a href="https://github.com/chasenunez/voronoi">voronoi</a>           ║   JavaScript   ║      7       ║       3        ║    2025-12-08    ║    1     ║
 ╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
@@ -61,5 +73,5 @@ envidat_entrails┤
 ╚═══════════════════╩════════════════╩══════════════╩════════════════╩══════════════════╩══════════╝
 
 
-                              ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Tuesday Morning At 09:05 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                               
+                              ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Tuesday Morning At 09:30 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                               
 </pre>
