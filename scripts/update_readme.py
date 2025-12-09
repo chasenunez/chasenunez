@@ -1064,14 +1064,7 @@ def create_pulsar_svg(repo_weekly: Dict[str, List[int]],
                 f'<svg xmlns="http://www.w3.org/2000/svg" '
                 f'width="{svg_width}" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}" '
                 f'preserveAspectRatio="xMidYMid meet">\n'
-                )
-    svg_style = (
-    '<defs>\n<style type="text/css"><![CDATA[\n'
-    'path { stroke: #8dc990; }\n'
-    'text { fill: #8dc990; }\n'
-    'svg { background: transparent; }\n'
-    ']]></style>\n</defs>\n'
-    )   
+                ) 
     svg_body = []
     svg_body.append('<g>\n')
     for p in path_elements:
