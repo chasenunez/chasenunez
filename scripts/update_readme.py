@@ -903,8 +903,8 @@ def create_pulsar_svg(repo_weekly: Dict[str, List[int]],
                       weeks: int = WEEKS,
                       show_repo_labels: bool = True,
                       show_x_axis_labels: bool = True,
-                      svg_width: int = MAX_WIDTH,
-                      svg_height: int = PLOT_HEIGHT,
+                      svg_width: int = 1200,
+                      svg_height: int = 500,
                       line_width: float = 1.5,
                       smoothing_sigma: float = 1.6):
     """
@@ -1123,8 +1123,8 @@ def main():
             weeks=WEEKS,
             show_repo_labels=True,     # toggle repo labels left side
             show_x_axis_labels=True,  # toggle month initials on bottom
-            svg_width=MAX_WIDTH,#1200,
-            svg_height=PLOT_HEIGHT,#500,
+            svg_width=1200,
+            svg_height=500,
             line_width=1.5,
             smoothing_sigma=1.2
         )
