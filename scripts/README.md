@@ -24,7 +24,7 @@
                                  Commit Allocation Among Most Active Projects                                 
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
-      chasenunez┤                                                                           <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡁</code>
+      chasenunez┤                                                                           <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡑</code>
          voronoi┤                                                                                   <code style="color : #8dc990">⣿</code>
           trmnlp┤       <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡑</code>   <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡑</code>     <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡑</code>   <code style="color : #8dc990">⡁</code>           <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code>                              
          tui_log┤       <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⣿</code>             <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡁</code>             <code style="color : #8dc990">⣽</code>     <code style="color : #8dc990">⡑</code>         <code style="color : #8dc990">⡁</code>                         <code style="color : #8dc990">⡀</code>  
@@ -45,26 +45,26 @@ envidat_entrails┤                                                             
               00┤  0
               01┤  0
               02┤  6
-              03┤  0
+              03┤  1
               04┤  0
               05┤  0
-              06┤  2
-              07┤  15
-              08┤  21
-              09┤  5
-              10┤  25
-              11┤  27
-              12┤  22
-              13┤  7
-              14┤  18
-              15┤  11
-              16┤  12
-              17┤  10
-              18┤  19
-              19┤  9
-              20┤  14
-              21┤  7
-              22┤  1
+              06┤  0
+              07┤  11
+              08┤  16
+              09┤  0
+              10┤  14
+              11┤  15
+              12┤  29
+              13┤  10
+              14┤  23
+              15┤  21
+              16┤  7
+              17┤  14
+              18┤  15
+              19┤  5
+              20┤  11
+              21┤  5
+              22┤  0
               23┤  0
 
 
@@ -74,7 +74,7 @@ envidat_entrails┤                                                             
 ╔═══════════════════╦════════════════╦══════════════╦════════════════╦══════════════════╦══════════╗
 ║     Repository    ║ Main Language  ║ Total Bytes  ║ Total Commits  ║ Last Commit Date ║ Branches ║
 ╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>        ║     Python     ║    27394     ║      563       ║    2025-12-09    ║    2     ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>        ║     Python     ║    27315     ║      574       ║    2025-12-09    ║    2     ║
 ╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
 ║ <a href="https://github.com/chasenunez/voronoi">voronoi</a>           ║   JavaScript   ║      7       ║       3        ║    2025-12-08    ║    1     ║
 ╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
@@ -96,5 +96,5 @@ envidat_entrails┤                                                             
 ╚═══════════════════╩════════════════╩══════════════╩════════════════╩══════════════════╩══════════╝
 
 
-                             ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Tuesday Afternoon At 12:18 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                              
+                             ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Tuesday Afternoon At 13:28 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                              
 </pre>
