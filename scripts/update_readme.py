@@ -1067,11 +1067,14 @@ def create_pulsar_svg(repo_weekly: Dict[str, List[int]],
                 )
     svg_style = (
     '<defs>\n<style type="text/css"><![CDATA[\n'
-    'path { stroke: #8dc990; }\n'
-    'text { fill: #8dc990; }\n'
+    ':root { --line: #8dc990; }  /* light mode color */\n'
+    '@media (prefers-color-scheme: dark) { :root { --line: #8dc990; } } /* dark mode color */\n'
+    'path { stroke: var(--line); }\n'
+    'text { fill: var(--line); }\n'
     'svg { background: transparent; }\n'
     ']]></style>\n</defs>\n'
-    )   
+    )
+
     svg_body = []
     svg_body.append('<g>\n')
     for p in path_elements:
