@@ -913,7 +913,7 @@ def create_pulsar_svg(repo_weekly: Dict[str, List[int]],
                       line_width: float = 1.5,
                       smoothing_sigma: float = 1.6,
                       max_relative_height: float = 2.0,
-                      left_margin_frac: float = 0.12,
+                      left_margin_frac: float = 0.32,
                       max_label_chars: int = 28):
     """
     Create a transparent SVG in a 'Joy Division' pulsar style.
