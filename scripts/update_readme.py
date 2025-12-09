@@ -11,6 +11,14 @@ from math import ceil, floor, isnan
 from typing import Dict, List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# Add near other imports
+try:
+    import numpy as np
+    import matplotlib.pyplot as plt
+    _HAS_MATPLOTLIB = True
+except Exception:
+    _HAS_MATPLOTLIB = False
+
 import requests
 try:
     import wcwidth
@@ -807,7 +815,15 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
 
 
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
+    svg_block = (
+        '<p align="center">\n'
+        '  <img src="pulsar.svg" alt="Activity pulsar" style="max-width:100%; height:auto;" />\n'
+        '</p>\n\n'
+    )
+
     return (
+        # SVG block is intentionally outside the <pre> so it renders as an image on GitHub.
+        svg_block +
         "<pre>\n"
         f"{HEADERB: ^{LINE_LENGTH}}\n"
         f"{LINE:▔^{LINE_LENGTH}}\n\n"
@@ -881,6 +897,163 @@ def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
                 results[idx] = None
     return [r for r in results if r]
 
+def create_pulsar_svg(repo_weekly: Dict[str, List[int]],
+                      repo_order: List[str],
+                      out_path: str = "pulsar.svg",
+                      weeks: int = WEEKS,
+                      show_repo_labels: bool = True,
+                      show_x_axis_labels: bool = False,
+                      svg_width: int = 1200,
+                      svg_height: int = 600,
+                      line_width: float = 1.2,
+                      smoothing_sigma: float = 1.6):
+    """
+    Create a transparent SVG in a 'Joy Division' pulsar style.
+
+    - repo_weekly: dict mapping repo name -> list of weekly commit counts (length == weeks)
+    - repo_order: list of repo names in order, first is most-recent (will be top line)
+    - out_path: filename to write (svg)
+    - show_repo_labels: left-side labels for each row (True/False)
+    - show_x_axis_labels: tiny month initials on bottom (True/False)
+    - svg_width/svg_height: pixel canvas size
+    - line_width: stroke width
+    - smoothing_sigma: smoothing kernel width (in week units)
+    """
+    if not _HAS_MATPLOTLIB:
+        print("matplotlib/numpy not available; pulsar SVG not created.", file=sys.stderr)
+        return
+
+    # Prepare data matrix (ensure length)
+    n = len(repo_order)
+    if n == 0:
+        print("No repos to plot.", file=sys.stderr)
+        return
+
+    # Build array: rows x weeks
+    mat = []
+    for r in repo_order:
+        w = repo_weekly.get(r, [0]*weeks)
+        if len(w) < weeks:
+            w = [0]*(weeks - len(w)) + w
+        mat.append(np.asarray(w, dtype=float))
+    mat = np.vstack(mat)  # shape (n, weeks)
+
+    # Smoothing kernel (Gaussian)
+    ksize = max(3, int(np.ceil(smoothing_sigma * 6)))
+    if ksize % 2 == 0:
+        ksize += 1
+    half = ksize // 2
+    xs = np.arange(-half, half+1)
+    kernel = np.exp(-(xs**2) / (2 * smoothing_sigma**2))
+    kernel = kernel / kernel.sum()
+
+    # Smooth each row and upsample for smoother SVG path
+    xs_fine = np.linspace(0, weeks-1, num=weeks * 4)  # fine x positions
+    curves = []
+    for row in mat:
+        smooth = np.convolve(row, kernel, mode='same')
+        # normalize by max (avoid div0)
+        mval = smooth.max() if smooth.max() > 0 else 1.0
+        smooth_norm = smooth / mval
+        # interpolate to fine grid
+        interp = np.interp(xs_fine, np.arange(weeks), smooth_norm)
+        curves.append(interp)
+
+    # vertical layout: baseline for repo i (i=0 top)
+    # choose a vertical spacing so curves overlap but stay readable
+    spacing = 1.0  # unit spacing in "rows"
+    amplitude = 0.8  # maximum amplitude (units) of each density
+    # We'll map rows/amps into SVG y coordinates by linear transform
+    total_rows_height = (n + 1) * spacing
+    # Map data-space y [0 .. total_rows_height] -> svg pixels (0 top -> height px)
+    def data_to_svg_x(xv):
+        return (xv / (weeks-1)) * (svg_width * 0.90) + svg_width * 0.08  # leave left/right margins
+    def data_to_svg_y(yv):
+        return svg_height * 0.95 - (yv / total_rows_height) * (svg_height * 0.85)  # invert so 0 at bottom
+
+    # Build path strings for each repo (top-most repo first in repo_order)
+    path_elements = []
+    text_elements = []
+    for i, repo in enumerate(repo_order):
+        baseline = (n - i) * spacing  # top repo -> largest baseline
+        curve = curves[i]  # normalized 0..1
+        # scale amplitude and add to baseline
+        ys = baseline + curve * amplitude
+        # Build path d: move to first point then line to subsequent
+        pts = []
+        for xv, yv in zip(xs_fine, ys):
+            px = data_to_svg_x(xv)
+            py = data_to_svg_y(yv)
+            pts.append(f"{px:.2f},{py:.2f}")
+        # SVG path: move to first point, then L for others
+        d = "M " + " L ".join(pts)
+        path_elements.append(f'<path d="{d}" stroke-width="{line_width}" stroke-linejoin="round" stroke-linecap="round" fill="none"/>')
+
+        # optional repository label on left
+        if show_repo_labels:
+            # compute label position slightly left of left-most x
+            label_x = svg_width * 0.02
+            label_y = data_to_svg_y(baseline)  # baseline position
+            # anchor to the left
+            name_escaped = repo.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            text_elements.append(f'<text x="{label_x:.1f}" y="{label_y + 4:.1f}" font-family="sans-serif" font-size="12" text-anchor="start">{name_escaped}</text>')
+
+    # optional x-axis month initials (tiny)
+    xaxis_el = ""
+    if show_x_axis_labels:
+        # produce monthly initials like your function month_initials_for_weeks
+        axis_labels = month_initials_for_weeks(weeks, use_three_letter=False)
+        # place them at bottom
+        y_pos = svg_height * 0.98
+        step_x = (svg_width * 0.90) / (weeks - 1) if weeks > 1 else 0
+        base_x = svg_width * 0.08
+        for idx, ch in enumerate(axis_labels):
+            px = base_x + idx * step_x
+            ch_esc = ch.replace(" ", "&nbsp;")
+            xaxis_el += f'<text x="{px:.1f}" y="{y_pos:.1f}" font-family="sans-serif" font-size="10" text-anchor="middle">{ch_esc}</text>\n'
+
+    # Build SVG string with internal CSS that adapts to color-scheme:
+    # - default: black lines (light mode)
+    # - dark mode: white lines
+    # We use a CSS variable (--line) and assign stroke/fill to it; we replaced stroke attributes with none so will rely on CSS.
+    svg_head = (f'<?xml version="1.0" encoding="UTF-8"?>\n'
+                f'<svg xmlns="http://www.w3.org/2000/svg" '
+                f'width="{svg_width}" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}" '
+                f'preserveAspectRatio="xMidYMid meet">\n'
+                )
+    svg_style = (
+        '<defs>\n<style type="text/css"><![CDATA[\n'
+        ':root { --line: #000000; }\n'
+        '@media (prefers-color-scheme: dark) { :root { --line: #ffffff; } }\n'
+        'path { stroke: var(--line); }\n'
+        'text { fill: var(--line); }\n'
+        'svg { background: transparent; }\n'
+        ']]></style>\n</defs>\n'
+    )
+    svg_body = []
+    svg_body.append('<g>\n')
+    # Append paths
+    for p in path_elements:
+        svg_body.append(p + "\n")
+    # Append texts
+    for t in text_elements:
+        svg_body.append(t + "\n")
+    if xaxis_el:
+        svg_body.append(xaxis_el)
+    svg_body.append('</g>\n')
+    svg_tail = '</svg>\n'
+
+    svg_full = svg_head + svg_style + "".join(svg_body) + svg_tail
+
+    # Write to disk
+    try:
+        with open(out_path, "w", encoding="utf-8") as fh:
+            fh.write(svg_full)
+        print(f"Pulsar SVG written to {out_path}")
+    except Exception as e:
+        print("Failed to write pulsar SVG:", e, file=sys.stderr)
+
+
 def main():
     token = auth_token()
     try:
@@ -941,6 +1114,22 @@ def main():
         if not use_cache and sum(series) > 0:
             updated_cache[repo] = series
     save_cache(updated_cache)
+        # --- create pulsar SVG for README (optional) ---
+    try:
+        create_pulsar_svg(
+            repo_weekly=repo_weekly,
+            repo_order=repo_order,
+            out_path="pulsar.svg",
+            weeks=WEEKS,
+            show_repo_labels=True,     # toggle repo labels left side
+            show_x_axis_labels=False,  # toggle month initials on bottom
+            svg_width=1200,
+            svg_height=500,
+            line_width=1.2,
+            smoothing_sigma=1.6
+        )
+    except Exception as e:
+        print("Failed to create pulsar svg:", e, file=sys.stderr)
     weekly_totals = [0.0]*WEEKS
     for weeks in repo_weekly.values():
         if len(weeks) < WEEKS:
