@@ -902,10 +902,10 @@ def create_pulsar_svg(repo_weekly: Dict[str, List[int]],
                       out_path: str = "pulsar.svg",
                       weeks: int = WEEKS,
                       show_repo_labels: bool = True,
-                      show_x_axis_labels: bool = False,
-                      svg_width: int = 1200,
-                      svg_height: int = 600,
-                      line_width: float = 1.2,
+                      show_x_axis_labels: bool = True,
+                      svg_width: int = MAX_WIDTH,
+                      svg_height: int = PLOT_HEIGHT,
+                      line_width: float = 1.5,
                       smoothing_sigma: float = 1.6):
     """
     Create a transparent SVG in a 'Joy Division' pulsar style.
