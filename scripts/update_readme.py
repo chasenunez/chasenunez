@@ -1009,7 +1009,7 @@ def create_pulsar_svg(repo_weekly: Dict[str, List[int]],
         base_x = svg_width * 0.08
         for idx, ch in enumerate(axis_labels):
             px = base_x + idx * step_x
-            ch_esc = ch.replace(" ", "&nbsp;")
+            #ch_esc = ch.replace(" ", "&nbsp;") #this is throwing errors becuase &nbsp is not a valid html element in svg's
             xaxis_el += f'<text x="{px:.1f}" y="{y_pos:.1f}" font-family="sans-serif" font-size="10" text-anchor="middle">{ch_esc}</text>\n'
 
     # Build SVG string with internal CSS that adapts to color-scheme:

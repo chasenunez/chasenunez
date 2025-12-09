@@ -7,24 +7,24 @@
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
 
-            55.0┼                                                 ╭─╮
-            49.5┤                                                 │ │
-            44.0┤                                                 │ │
-            38.5┤                                                 │ │ ╭─╮               ╭─╮
-            33.0┤                                                 │ │ │ │               │ │
-            27.5┤           ╭─╮                                   │ │ │ │               │ ╰─╮
-            22.0┤       ╭─╮ │ │                                   │ │ │ ╰─╮             │   │
-            16.5┤     ╭─╯ │ │ │ long-term mean        ╭─╮         │ ╰─╯   │             │   │
-            11.0┤<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code>╰─╮<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>╭─╮<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>╭─╮<code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>╭─╮<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>╰─╮<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>
-             5.5┤     │   │ │   │   ╭─╮ │ ╰─╮     │ │ │ │   ╭─╮   │       ╰─╮   │ │ ╭─╮ │     ╰─────
-             0.0┼─────╯   ╰─╯   ╰───╯ ╰─╯   ╰─────╯ ╰─╯ ╰───╯ ╰───╯         ╰───╯ ╰─╯ ╰─╯
+           156.0┼                                                                             ╭───╮
+           140.4┤                                                                         ╭─╮ │   │
+           124.8┤                                                                         │ │ │   │
+           109.2┤                                                                         │ ╰─╯   │
+            93.6┤                                                                         │       │
+            78.0┤                                                                         │       │
+            62.4┤                                                 ╭─╮                     │       │
+            46.8┤                                                 │ │ ╭─╮               ╭─╯       ╰─
+            31.2┤           ╭─╮ long-term mean                    │ │ │ │               │
+            15.6┤<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>╭───╮<code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code>╰─╮<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>╭─╮<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>╭─╮<code style="color : #8dc990">┄</code>╭─╮<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code>╰─╯<code style="color : #8dc990">┄</code>╰─╮<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>╭─╮<code style="color : #8dc990">┄</code>╭─╮<code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>
+             0.0┼─────╯   ╰─╯   ╰───────╯ ╰───────╯ ╰─╯ ╰─────────╯       ╰─────╯ ╰─╯ ╰─╯
                  F M       A         M       J       u         A       S         O       N       D   
 
 
                                  Commit Allocation Among Most Active Projects                                 
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
-      chasenunez┤                                                                                    
+      chasenunez┤                                                                           <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡁</code>
          voronoi┤                                                                                   <code style="color : #8dc990">⣿</code>
           trmnlp┤       <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡑</code>   <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡑</code>     <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡑</code>   <code style="color : #8dc990">⡁</code>           <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code>                              
          tui_log┤       <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⣿</code>             <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡁</code>             <code style="color : #8dc990">⣽</code>     <code style="color : #8dc990">⡑</code>         <code style="color : #8dc990">⡁</code>                         <code style="color : #8dc990">⡀</code>  
@@ -33,7 +33,7 @@
         data_HUD┤                                                                         <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⣽</code>     <code style="color : #8dc990">⡀</code>  
 recursive_shrink┤                                                         <code style="color : #8dc990">⣿</code>                       <code style="color : #8dc990">⡀</code>  
    etani_shordul┤                                                                 <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡀</code>             <code style="color : #8dc990">⡀</code>  
-envidat_entrails┤                                                                                    
+envidat_entrails┤                                                                     <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣿</code>   <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code>  
                  F M       A         M       J       u         A       S         O       N       D  
 
                 low   <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣽</code> <code style="color : #8dc990">⣿</code>  high
@@ -42,7 +42,30 @@ envidat_entrails┤
                                      Commit Allocation By Hour Of The Day                                     
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
-(no commit timestamps)
+              00┤  0
+              01┤  0
+              02┤  6
+              03┤  0
+              04┤  0
+              05┤  0
+              06┤  2
+              07┤  15
+              08┤  21
+              09┤  5
+              10┤  25
+              11┤  27
+              12┤  22
+              13┤  7
+              14┤  18
+              15┤  11
+              16┤  12
+              17┤  10
+              18┤  19
+              19┤  9
+              20┤  14
+              21┤  7
+              22┤  1
+              23┤  0
 
 
                                        Recently Active Project Details                                        
@@ -51,7 +74,7 @@ envidat_entrails┤
 ╔═══════════════════╦════════════════╦══════════════╦════════════════╦══════════════════╦══════════╗
 ║     Repository    ║ Main Language  ║ Total Bytes  ║ Total Commits  ║ Last Commit Date ║ Branches ║
 ╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>        ║     Python     ║    27369     ║      559       ║    2025-12-09    ║    2     ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>        ║     Python     ║    27394     ║      563       ║    2025-12-09    ║    2     ║
 ╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
 ║ <a href="https://github.com/chasenunez/voronoi">voronoi</a>           ║   JavaScript   ║      7       ║       3        ║    2025-12-08    ║    1     ║
 ╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
@@ -73,5 +96,5 @@ envidat_entrails┤
 ╚═══════════════════╩════════════════╩══════════════╩════════════════╩══════════════════╩══════════╝
 
 
-                              ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Tuesday Morning At 10:55 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                               
+                             ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Tuesday Afternoon At 12:18 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                              
 </pre>
