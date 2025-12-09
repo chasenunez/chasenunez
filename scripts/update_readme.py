@@ -1155,14 +1155,15 @@ def main():
             weeks=WEEKS,
             show_repo_labels=True,
             show_x_axis_labels=True,
-            svg_width=800,
-            svg_height=360,
-            line_width=1.2,
-            smoothing_sigma=1.2,
-            max_relative_height=2.0,     # allow up to 200%
-            left_margin_frac=0.16,
+            svg_width=LINE_LENGTH,
+            svg_height=PLOT_HEIGHT,
+            line_width=1.1,
+            smoothing_sigma=1.0,
+            max_relative_height=3.0,     # allow up to 200%
+            left_margin_frac=0.32,
             max_label_chars=28
         )
+
     except Exception as e:
         print("Failed to create pulsar svg:", e, file=sys.stderr)
     weekly_totals = [0.0]*WEEKS
