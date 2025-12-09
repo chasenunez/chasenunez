@@ -1114,7 +1114,7 @@ def main():
         if not use_cache and sum(series) > 0:
             updated_cache[repo] = series
     save_cache(updated_cache)
-        # --- create pulsar SVG for README (optional) ---
+
     try:
         create_pulsar_svg(
             repo_weekly=repo_weekly,
@@ -1122,11 +1122,11 @@ def main():
             out_path="pulsar.svg",
             weeks=WEEKS,
             show_repo_labels=True,     # toggle repo labels left side
-            show_x_axis_labels=False,  # toggle month initials on bottom
-            svg_width=1200,
-            svg_height=500,
-            line_width=1.2,
-            smoothing_sigma=1.6
+            show_x_axis_labels=True,  # toggle month initials on bottom
+            svg_width=MAX_WIDTH,#1200,
+            svg_height=PLOT_HEIGHT,#500,
+            line_width=1.5,
+            smoothing_sigma=1.2
         )
     except Exception as e:
         print("Failed to create pulsar svg:", e, file=sys.stderr)
