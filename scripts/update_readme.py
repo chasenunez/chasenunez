@@ -1067,8 +1067,8 @@ def create_pulsar_svg(repo_weekly: Dict[str, List[int]],
                 )
     svg_style = (
         '<defs>\n<style type="text/css"><![CDATA[\n'
-        ':root { --line: #8dc990; }\n'
-        '@media (prefers-color-scheme: dark) { :root { --line: #8dc990; } }\n'
+        ':root { --line: #000000; }\n'
+        '@media (prefers-color-scheme: dark) { :root { --line: #ffffff; } }\n'
         'path { stroke: var(--line); }\n'
         'text { fill: var(--line); }\n'
         'svg { background: transparent; }\n'
