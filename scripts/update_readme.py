@@ -817,7 +817,7 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
     svg_block = (
         '<p align="center">\n'
-        '  <img src="pulsar.svg" alt="Activity pulsar" style="max-width:100%; height:auto;" />\n'
+        '  <img src="scripts/pulsar.svg" alt="Activity pulsar" style="max-width:100%; height:auto;" />\n'
         '</p>\n\n'
     )
 

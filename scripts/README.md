@@ -1,58 +1,65 @@
+<p align="center">
+  <img src="pulsar.svg" alt="Activity pulsar" style="max-width:100%; height:auto;" />
+</p>
+
 <pre>
-                              Weekly Commits Relative To Rolling Annual Average                               
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                                     Commits Per-Week With Annual Average                                     
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+
+(no activity data)
 
 
-               8.0┼                                                                           ╭─╮
-               7.2┤                                                                           │ │
-               6.4┤                                                                           │ │
-               5.6┤                                                                           │ │
-               4.8┤                                                                       ╭─╮ │ │
-               4.0┤                                                                       │ │ │ │
-               3.2┤                                                                       │ ╰─╯ │
-               2.4┤                                                                       │     │
-               1.6┤                                                                       │     │
-               0.8┤╴╭─╮╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴│╴╴╴╴╴│╴╭───╴
-               0.0┼─╯ ╰───────────────────────────────────────────────────────────────────╯     ╰─╯
-<a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                                                                                             |
-<a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>                                                                                          |
-<a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>                                                                                         |
-<a href="https://github.com/chasenunez/logue">logue</a>                                                                                                  |
-<a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>                                                                           ⠟ ⠇ ⣿   ⠁ ⠁ |
-<a href="https://github.com/chasenunez/asciichart">asciichart</a>           ⣿                                                                                 |
-<a href="https://github.com/chasenunez/data_HUD">data_HUD</a>                                                                                               |
-<a href="https://github.com/chasenunez/byos_django">byos_django</a>                                                                                            |
-<a href="https://github.com/chasenunez/trmnlp">trmnlp</a>                                                                                                 |
-<a href="https://github.com/chasenunez/contribution_chart">contribution_chart</a>                                                                                     |
-                   F     M       A       M         J       J         A       S       O         N      
+                                 Commit Allocation Among Most Active Projects                                 
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
-                  low   ⠁ ⠃ ⠇ ⠏ ⠟ ⠿ ⡿ ⣿  high
+      chasenunez┤                                                                                    
+         voronoi┤                                                                                    
+          trmnlp┤                                                                                    
+         tui_log┤                                                                                    
+    sunburst_nav┤                                                                                    
+  DEVO_validator┤                                                                                    
+        data_HUD┤                                                                                    
+recursive_shrink┤                                                                                    
+   etani_shordul┤                                                                                    
+envidat_entrails┤                                                                                    
+                 F M       A         M       J       u         A       S         O       N       D  
+
+                low   <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣽</code> <code style="color : #8dc990">⣿</code>  high
 
 
-                                         Recently Active Repositories                                         
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                                     Commit Allocation By Hour Of The Day                                     
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
-╔══════════════════════╦═════════════════════╦══════════════╦════════════════╦═══════════════════╦═══════════╗
-║      Repository      ║    Main Language    ║ Total Bytes  ║ Total Commits  ║  Last Commit Date ║  Branches ║
-╠══════════════════════╬═════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>           ║    Python (100%)    ║    27270     ║      324       ║     2025-11-27    ║     1     ║
-╠══════════════════════╬═════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>        ║    Python (100%)    ║    25489     ║       50       ║     2025-11-26    ║     1     ║
-╠══════════════════════╬═════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>       ║    Python (100%)    ║     9464     ║      124       ║     2025-11-26    ║     1     ║
-╠══════════════════════╬═════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/logue">logue</a>                ║    Python (100%)    ║    31168     ║       71       ║     2025-11-26    ║     2     ║
-╠══════════════════════╬═════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>     ║     HTML (100%)     ║   19470081   ║       19       ║     2025-11-24    ║     1     ║
-╠══════════════════════╬═════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/asciichart">asciichart</a>           ║     Python (44%)    ║    23203     ║      303       ║     2025-11-18    ║     1     ║
-╠══════════════════════╬═════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/data_HUD">data_HUD</a>             ║   JavaScript (69%)  ║    17069     ║       58       ║     2025-11-19    ║     1     ║
-╠══════════════════════╬═════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/byos_django">byos_django</a>          ║     Python (87%)    ║    38825     ║       7        ║     2025-04-28    ║     1     ║
-╠══════════════════════╬═════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/trmnlp">trmnlp</a>               ║   JavaScript (47%)  ║    88360     ║      134       ║     2025-08-26    ║     1     ║
-╠══════════════════════╬═════════════════════╬══════════════╬════════════════╬═══════════════════╬═══════════╣
-║ <a href="https://github.com/chasenunez/contribution_chart">contribution_chart</a>   ║  TypeScript (100%)  ║    181371    ║      213       ║     2025-09-13    ║     1     ║
-╚══════════════════════╩═════════════════════╩══════════════╩════════════════╩═══════════════════╩═══════════╝
+(no commit timestamps)
+
+
+                                       Recently Active Project Details                                        
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+
+╔═══════════════════╦════════════════╦══════════════╦════════════════╦══════════════════╦══════════╗
+║     Repository    ║ Main Language  ║ Total Bytes  ║ Total Commits  ║ Last Commit Date ║ Branches ║
+╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>        ║     Python     ║    27280     ║      551       ║    2025-12-09    ║    2     ║
+╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
+║ <a href="https://github.com/chasenunez/voronoi">voronoi</a>           ║   JavaScript   ║      7       ║       3        ║    2025-12-08    ║    1     ║
+╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
+║ <a href="https://github.com/chasenunez/trmnlp">trmnlp</a>            ║   JavaScript   ║     2122     ║      135       ║    2025-12-04    ║    1     ║
+╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
+║ <a href="https://github.com/chasenunez/tui_log">tui_log</a>           ║      Rust      ║     4438     ║      917       ║    2025-12-04    ║    8     ║
+╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
+║ <a href="https://github.com/chasenunez/sunburst_nav">sunburst_nav</a>      ║      HTML      ║      21      ║       28       ║    2025-12-04    ║    1     ║
+╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
+║ <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>    ║     Python     ║     146      ║      125       ║    2025-12-04    ║    1     ║
+╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
+║ <a href="https://github.com/chasenunez/data_HUD">data_HUD</a>          ║   JavaScript   ║     436      ║       59       ║    2025-12-04    ║    1     ║
+╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
+║ <a href="https://github.com/chasenunez/recursive_shrink">recursive_shrink</a>  ║     Shell      ║      9       ║       8        ║    2025-12-04    ║    1     ║
+╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
+║ <a href="https://github.com/chasenunez/etani_shordul">etani_shordul</a>     ║     Python     ║      20      ║       16       ║    2025-12-04    ║    1     ║
+╠═══════════════════╬════════════════╬══════════════╬════════════════╬══════════════════╬══════════╣
+║ <a href="https://github.com/chasenunez/envidat_entrails">envidat_entrails</a>  ║      HTML      ║     2972     ║       20       ║    2025-12-04    ║    1     ║
+╚═══════════════════╩════════════════╩══════════════╩════════════════╩══════════════════╩══════════╝
+
+
+                              ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Tuesday Morning At 09:05 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                               
 </pre>
