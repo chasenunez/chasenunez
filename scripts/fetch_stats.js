@@ -14,6 +14,28 @@ if (!TOKEN) {
   process.exit(1);
 }
 
+// --- cache-first guard: do not call GitHub API if cache is fresh ---
+const CACHE_FILE = path.join(process.cwd(), 'data', 'stats_cache.json');
+const MAX_CACHE_AGE_MS = process.env.MAX_CACHE_AGE_MS ? Number(process.env.MAX_CACHE_AGE_MS) : 7 * 24 * 60 * 60 * 1000; // 7 days default
+
+try {
+  if (fs.existsSync(CACHE_FILE)) {
+    const stat = fs.statSync(CACHE_FILE);
+    const ageMs = Date.now() - stat.mtimeMs;
+    console.log(`Cache file ${CACHE_FILE} exists (age ${Math.round(ageMs/1000)}s). Max allowed age ${Math.round(MAX_CACHE_AGE_MS/1000)}s.`);
+    if (ageMs < MAX_CACHE_AGE_MS) {
+      console.log('Cache is fresh — skipping API calls and exiting early.');
+      process.exit(0); // success; skip API calls
+    } else {
+      console.log('Cache is stale — proceeding to fetch new stats from GitHub API.');
+    }
+  } else {
+    console.log(`Cache file ${CACHE_FILE} not found — will fetch from GitHub API.`);
+  }
+} catch (e) {
+  console.warn('Cache check failed:', e.message, '— proceeding to fetch from API.');
+}
+
 const OUT_STATS = 'stats_cache.json';
 const OUT_LAST = 'last_totals.json';
 

@@ -15,6 +15,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # do NOT persist the default GITHUB_TOKEN so we can set origin with our GH_PAT
+          persist-credentials: false
+
 
       - name: Setup Node
         uses: actions/setup-node@v3
@@ -39,18 +42,33 @@ jobs:
       - name: Build README
         run: npm run build:readme
 
-      - name: Commit changes
+            - name: Commit changes
         env:
+          GH_PAT: ${{ secrets.GH_PAT }}
           GIT_AUTHOR_NAME: "github-actions[bot]"
           GIT_AUTHOR_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
-          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
+          set -e
           git config user.name "$GIT_AUTHOR_NAME"
           git config user.email "$GIT_AUTHOR_EMAIL"
-          git add README.md data/stats_cache.json data/last_totals.json visuals/fig1_top_repos.svg visuals/fig2_langs_weekly.svg || true
+
+          # Add files
+          git add README.md data/stats_cache.json data/last_totals.json visuals/*.svg || true
+
+          # If there are no changes staged, exit cleanly
           if git diff --staged --quiet; then
             echo "No changes to commit"
-          else
-            git commit -m "Weekly: update profile stats and visuals"
-            git push https://x-access-token:${GH_PAT}@github.com/${{ github.repository }} HEAD:${GITHUB_REF#refs/heads/}
+            exit 0
           fi
+
+          git commit -m "chore: weekly update of profile stats / visuals"
+
+          # Configure origin to use the provided GH_PAT (must have repo write permissions)
+          echo "Setting remote URL to use GH_PAT and pushing changes..."
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}
+
+          # Determine the branch name and push
+          # On GitHub Actions, $GITHUB_REF is like "refs/heads/main"
+          ref=${GITHUB_REF#refs/heads/}
+          echo "Pushing to branch: $ref"
+          git push origin HEAD:${ref}
