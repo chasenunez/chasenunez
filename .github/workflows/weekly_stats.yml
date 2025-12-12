@@ -1,74 +1,63 @@
 name: VULPECULA CURRIT
 
+# run once a day + allow manual runs
 on:
   schedule:
-    # Monday 06:00 CEST -> 04:00 UTC (standard). Use 0 4 * * 1
-    - cron: '0 4 * * 1'
+    - cron: '0 0 * * *'   # daily at 00:00 UTC
   workflow_dispatch:
 
+# allow workflow to push updates using the built-in token
+permissions:
+  contents: write
+
 jobs:
-  update:
+  update-readme:
     runs-on: ubuntu-latest
 
+    # Make GH_PAT available to the job steps via env (set GH_PAT as a repo secret)
+    env:
+      GH_PAT: ${{ secrets.GH_PAT }}
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # do NOT persist the default GITHUB_TOKEN so we can set origin with our GH_PAT
-          persist-credentials: false
+          persist-credentials: true   # keep GITHUB_TOKEN configured for git push
 
-
-      - name: Setup Node
-        uses: actions/setup-node@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          node-version: 18
+          python-version: '3.11'
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Fetch stats (API) and update cache
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-          USERNAME: chasenunez
-          FETCH_GLOBAL_TIMEOUT_MS: 600000 
-        run: npm run fetch
-
-      - name: Generate visualizations
-        env:
-          USERNAME: chasenunez
-        run: npm run build:viz
-
-      - name: Build README
-        run: npm run build:readme
-
-      - name: Commit changes
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-          GIT_AUTHOR_NAME: "github-actions[bot]"
-          GIT_AUTHOR_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
         run: |
-          set -e
-          git config user.name "$GIT_AUTHOR_NAME"
-          git config user.email "$GIT_AUTHOR_EMAIL"
-
-          # Add files
-          git add README.md data/stats_cache.json data/last_totals.json visuals/*.svg || true
-
-          # If there are no changes staged, exit cleanly
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-            exit 0
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
           fi
 
-          git commit -m "chore: weekly update of profile stats / visuals"
+      - name: Debug token presence
+        run: |
+          echo "GH_PAT present? ${GH_PAT:+yes}"
+          python -c "import os; print('GH_PAT length:', len(os.getenv('GH_PAT') or ''))"
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
 
-          # Configure origin to use the provided GH_PAT (must have repo write permissions)
-          echo "Setting remote URL to use GH_PAT and pushing changes..."
-          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}
+      - name: Run update script
+        # GH_PAT will be available to the script via environment variable GH_PAT
+        run: |
+          python scripts/update_readme.py
 
-          # Determine the branch name and push
-          # On GitHub Actions, $GITHUB_REF is like "refs/heads/main"
-          ref=${GITHUB_REF#refs/heads/}
-          echo "Pushing to branch: $ref"
-          git push origin HEAD:${ref}
+      - name: Commit & push changes (if any)
+        run: |
+          # Use the checked-out credentials (GITHUB_TOKEN) to push
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "chore(readme): daily automated update"
+            git push
+          else
+            echo "No changes to commit"
+          fi
