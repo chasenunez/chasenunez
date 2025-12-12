@@ -42,7 +42,7 @@ jobs:
       - name: Build README
         run: npm run build:readme
 
-            - name: Commit changes
+      - name: Commit changes
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
           GIT_AUTHOR_NAME: "github-actions[bot]"
