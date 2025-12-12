@@ -62,7 +62,7 @@ LINE = "▔"
 TOP_N = 10
 WEEKS = 42
 MAX_WIDTH = 100
-LINE_LENGTH = 100
+LINE_LENGTH = 110
 RESTRICTED_NAME = "restricted"
 PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
@@ -392,7 +392,7 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
     widths = [w + PAD for w in inner_widths]
     def total_table_width(col_widths: List[int]) -> int:
         return sum(col_widths) + (len(col_widths) + 1)
-    target_total = MAX_WIDTH if MAX_WIDTH and MAX_WIDTH > 0 else total_table_width(widths)
+    target_total = LINE_LENGTHH if LINE_LENGTH and LINE_LENGTH > 0 else total_table_width(widths)
     current_total = total_table_width(widths)
     min_inner = [max(1, len(h)) for h in cols]
     min_widths = [m + PAD for m in min_inner]

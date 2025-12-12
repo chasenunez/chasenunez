@@ -1,5 +1,6 @@
 node_modules/
 .env
+.DS_Store
 # optionally ignore local dev data that you don't want to commit:
 # data/
 # visuals/
