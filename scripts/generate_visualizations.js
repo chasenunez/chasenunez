@@ -112,7 +112,10 @@ const cache = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
       .attr('font-weight', '600')
       .text('Top 10 repos — commit density (last 365 days)');
 
-    fs.writeFileSync(outPath, dom.serialize());
+    // write only the raw <svg> element, not the whole HTML document
+    const svgElement = dom.window.document.querySelector('svg');
+    fs.writeFileSync(outPath, svgElement.outerHTML);
+
     console.log('Wrote', outPath);
   }
 
@@ -182,7 +185,10 @@ const cache = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
       .attr('font-weight', '600')
       .text('Weekly language composition (last 52 weeks)');
 
-    fs.writeFileSync(outPath, dom.serialize());
+    // write only the raw <svg> element, not the whole HTML document
+    const svgElement = dom.window.document.querySelector('svg');
+    fs.writeFileSync(outPath, svgElement.outerHTML);
+
     console.log('Wrote', outPath);
   }
 
