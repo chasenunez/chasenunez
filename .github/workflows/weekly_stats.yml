@@ -1,44 +1,55 @@
-# .github/workflows/weekly_stats.yml
-name: Weekly Stats Update
+name: Weekly Profile README Update
+
 on:
   schedule:
-    - cron: '0 4 * * 1'    # Monday 06:00 CEST (4:00 UTC):contentReference[oaicite:28]{index=28} 
+    # Monday 06:00 CEST -> 04:00 UTC (standard). Use 0 4 * * 1
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
 
 jobs:
-  update-stats:
+  update:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      - name: Set up Node.js
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
       - name: Install dependencies
-        run: npm install node-fetch d3 jsdom
+        run: npm ci
 
-      - name: Fetch GitHub stats
-        run: node stats_fetch.js
+      - name: Fetch stats (API) and update cache
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
-          USERNAME: 'chasenunez'
+          USERNAME: chasenunez
+        run: npm run fetch
 
-      - name: Generate charts
-        run: node charts_generate.js
+      - name: Generate visualizations
         env:
-          USERNAME: 'chasenunez'
+          USERNAME: chasenunez
+        run: npm run build:viz
 
-      - name: Update README
+      - name: Build README
+        run: npm run build:readme
+
+      - name: Commit changes
+        env:
+          GIT_AUTHOR_NAME: "github-actions[bot]"
+          GIT_AUTHOR_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          # Re-generate README.md including the SVGs (if not already done by scripts)
-          # e.g., embed images with markdown: ![Top repos](fig1_top_repos.svg)
-          # (Add instructions or content as needed)
-          git config user.name "github-actions[bot]"
-          git config user.email "actions@github.com"
-          git add stats_cache.json fig1_top_repos.svg fig2_langs.svg README.md
-          git commit -m "Weekly update of commit stats" || echo "No changes to commit"
-          git push
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-
+          git config user.name "$GIT_AUTHOR_NAME"
+          git config user.email "$GIT_AUTHOR_EMAIL"
+          git add README.md data/stats_cache.json data/last_totals.json visuals/fig1_top_repos.svg visuals/fig2_langs_weekly.svg || true
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Weekly: update profile stats and visuals"
+            git push https://x-access-token:${GH_PAT}@github.com/${{ github.repository }} HEAD:${GITHUB_REF#refs/heads/}
+          fi
