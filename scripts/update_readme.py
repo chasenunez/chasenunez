@@ -811,18 +811,18 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_his
         "<pre>\n"
         f"{HEADERB: ^{LINE_LENGTH}}\n"
         f"{LINE:▔^{LINE_LENGTH}}\n\n"
-        f"{ascii_plot}\n\n\n"
+        f"{ascii_plot}\n"#\n\n"
 
-        f"{HEADERC: ^{LINE_LENGTH}}\n"
-        f"{LINE:▔^{LINE_LENGTH}}\n\n"
+        #f"{HEADERC: ^{LINE_LENGTH}}\n"
+        #f"{LINE:▔^{LINE_LENGTH}}\n\n"
         f"{contrib_grid}\n\n\n"
 
-        f"{HEADERD: ^{LINE_LENGTH}}\n"
-        f"{LINE:▔^{LINE_LENGTH}}\n\n"
-        f"{ascii_hist}\n\n\n"
+        #f"{HEADERD: ^{LINE_LENGTH}}\n"
+        #f"{LINE:▔^{LINE_LENGTH}}\n\n"
+        #f"{ascii_hist}\n\n\n"
 
-        f"{HEADERE: ^{LINE_LENGTH}}\n"
-        f"{LINE:▔^{LINE_LENGTH}}\n\n"
+        #f"{HEADERE: ^{LINE_LENGTH}}\n"
+        #f"{LINE:▔^{LINE_LENGTH}}\n\n"
         f"{ascii_table}\n\n\n"
 
         f"{HEADERA: ^{LINE_LENGTH}}\n"
