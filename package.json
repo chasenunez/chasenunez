@@ -1,0 +1,23 @@
+{
+  "name": "github-profile-stats",
+  "version": "1.0.0",
+  "description": "Auto-generate GitHub profile README visualizations (weekly).",
+  "main": "scripts/build_readme.js",
+  "scripts": {
+    "fetch": "node scripts/fetch_stats.js",
+    "build:viz": "node scripts/generate_visualizations.js",
+    "build:readme": "node scripts/build_readme.js",
+    "build": "npm run fetch && npm run build:viz && npm run build:readme"
+  },
+  "author": "auto-generated",
+  "license": "MIT",
+  "dependencies": {
+    "d3": "^7.8.6",
+    "jsdom": "^22.1.0",
+    "node-fetch": "^2.6.12",
+    "lodash": "^4.17.21"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

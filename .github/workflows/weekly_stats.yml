@@ -1,0 +1,44 @@
+# .github/workflows/weekly_stats.yml
+name: Weekly Stats Update
+on:
+  schedule:
+    - cron: '0 4 * * 1'    # Monday 06:00 CEST (4:00 UTC):contentReference[oaicite:28]{index=28} 
+
+jobs:
+  update-stats:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install node-fetch d3 jsdom
+
+      - name: Fetch GitHub stats
+        run: node stats_fetch.js
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          USERNAME: 'chasenunez'
+
+      - name: Generate charts
+        run: node charts_generate.js
+        env:
+          USERNAME: 'chasenunez'
+
+      - name: Update README
+        run: |
+          # Re-generate README.md including the SVGs (if not already done by scripts)
+          # e.g., embed images with markdown: ![Top repos](fig1_top_repos.svg)
+          # (Add instructions or content as needed)
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@github.com"
+          git add stats_cache.json fig1_top_repos.svg fig2_langs.svg README.md
+          git commit -m "Weekly update of commit stats" || echo "No changes to commit"
+          git push
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+
