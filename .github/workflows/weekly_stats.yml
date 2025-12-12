@@ -28,6 +28,7 @@ jobs:
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
           USERNAME: chasenunez
+          FETCH_GLOBAL_TIMEOUT_MS: 600000 
         run: npm run fetch
 
       - name: Generate visualizations

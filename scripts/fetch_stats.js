@@ -1,6 +1,6 @@
 // scripts/fetch_stats.js
 // Fetch all accessible repos, find user's contributor entry and languages, store cache.
-// Usage: GH_PAT env required. USERNAME optional (defaults to chasenunez).
+// Adds global runtime guard and handles GH 202 responses gracefully.
 
 const { ghFetch, ghFetchAll } = require('./utils/api');
 const { readJSON, writeJSON, detectChanges } = require('./utils/cache');
@@ -17,28 +17,50 @@ if (!TOKEN) {
 const OUT_STATS = 'stats_cache.json';
 const OUT_LAST = 'last_totals.json';
 
+// global run-time guard (milliseconds). If exceeded, script will stop cleanly.
+const GLOBAL_TIMEOUT_MS = process.env.FETCH_GLOBAL_TIMEOUT_MS ? Number(process.env.FETCH_GLOBAL_TIMEOUT_MS) : 10 * 60 * 1000; // 10 minutes
+const startTs = Date.now();
+
+function elapsed() {
+  return Date.now() - startTs;
+}
+
 (async () => {
   try {
-    // 1) list repos user can access (owner + collaborator). Use /user/repos?affiliation=owner,collaborator,organization_member
-    const repoList = await ghFetchAll('/user/repos?affiliation=owner,collaborator,organization_member', TOKEN);
+    console.log(`fetch_stats starting for user=${USERNAME} at ${new Date().toISOString()}`);
+    // 1) list repos user can access (owner + collaborator + org_member)
+    const repoList = await ghFetchAll('/user/repos?affiliation=owner,collaborator,organization_member', TOKEN, { timeout: 20000 });
+    console.log(`Discovered ${repoList.length} repos (note: some may be forks/archived and will be skipped).`);
 
     const newCache = {};
     const newTotals = {};
+    let processed = 0;
 
     for (const repo of repoList) {
-      // Skip forks optionally; keep them if you want commit counts from forks
-      if (repo.archived) continue; // skip archived for clarity
+      // Check global timeout
+      if (elapsed() > GLOBAL_TIMEOUT_MS) {
+        console.warn(`fetch_stats: global timeout ${GLOBAL_TIMEOUT_MS}ms exceeded; stopping further repo processing.`);
+        break;
+      }
+
+      // Skip archived repos to save time
+      if (repo.archived) {
+        console.log(`Skipping archived: ${repo.full_name}`);
+        continue;
+      }
+
       const full = repo.full_name; // e.g. owner/repo
+      processed++;
+
       try {
-        // contributors stats (may return 202; api wrapper handles retry)
-        const contributors = await ghFetch(`/repos/${repo.owner.login}/${repo.name}/stats/contributors`, TOKEN);
+        // Note: the stats endpoints may return 202 while computing; ghFetch enforces a max202 retry and will throw if not ready.
+        const contributors = await ghFetch(`/repos/${repo.owner.login}/${repo.name}/stats/contributors`, TOKEN, { timeout: 30000, max202: 3 });
         // find user's contributor entry
         const me = Array.isArray(contributors) ? contributors.find(c => c.author && c.author.login === USERNAME) : null;
-        // languages
-        const langs = await ghFetch(`/repos/${repo.owner.login}/${repo.name}/languages`, TOKEN);
+      // fetch languages with a short timeout
+        const langs = await ghFetch(`/repos/${repo.owner.login}/${repo.name}/languages`, TOKEN, { timeout: 15000 });
 
         if (me) {
-          // keep weeks (array of {w, a, d, c}) where w: unix timestamp (seconds), c: commits
           newCache[full] = {
             private: !!repo.private,
             totalCommits: me.total || 0,
@@ -46,31 +68,36 @@ const OUT_LAST = 'last_totals.json';
             languages: langs || {}
           };
           newTotals[full] = me.total || 0;
+          console.log(`Processed ${full}: commits=${newTotals[full]} languages=${Object.keys(langs||{}).join(',') || 'none'}`);
         } else {
-          // Optionally include repos where user has no commits (skip to reduce noise)
-          // If you want them, uncomment:
-          // newCache[full] = { private: !!repo.private, totalCommits: 0, weeks: [], languages: langs || {} };
-          // newTotals[full] = 0;
+          // no contributions from this user for this repo -- skip
+          // optional: collect zero-entry if you prefer
+          console.log(`No contributions found for ${full}, skipping.`);
         }
       } catch (err) {
-        console.warn(`Skipping ${full} due to error: ${err.message}`);
+        // Handle specific GH 202-too-long case gracefully (code set in api.js)
+        if (err && err.message && err.message.includes('GH_STATS_202')) {
+          console.warn(`Stats not ready for ${full} (GitHub still computing). Skipping this repo this run.`);
+        } else {
+          console.warn(`Error processing ${full}: ${err.message}`);
+        }
+        // continue to next repo (do not throw)
         continue;
       }
     }
 
+    // Persist caches
     const prevTotals = readJSON(OUT_LAST, {});
-    // Write caches
     writeJSON(OUT_STATS, newCache);
     writeJSON(OUT_LAST, newTotals);
 
     if (!detectChanges(prevTotals, newTotals)) {
       console.log('No changes in totals since last run.');
-      // still write cache so that timestamps are fresh
     } else {
-      console.log('Changes detected: will re-generate visuals.');
+      console.log('Changes detected since last run.');
     }
 
-    console.log('Wrote', OUT_STATS);
+    console.log(`fetch_stats completed. Processed ${processed} repos in ${Math.round(elapsed()/1000)}s. Wrote ${OUT_STATS}.`);
   } catch (err) {
     console.error('fetch_stats error:', err);
     process.exit(2);
