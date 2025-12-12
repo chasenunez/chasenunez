@@ -54,7 +54,7 @@ TIMECONSTRUCT = datetime.now().strftime("%H")
 MINUTECONSTRUCT = datetime.now().strftime("%M")
 APPROXTIME = getTimeOfDay(TIMECONSTRUCT)
 HEADERA = f"⢀⣠⣴⣾⣿ Updated {DAY} {APPROXTIME} At {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST ⣿⣷⣦⣄⡀"
-HEADERB = "Commits Per-Week With Annual Average"
+HEADERB = "Commits Per-Week With Allocation Among 10 Recently Active Projects"
 HEADERC = "Commit Allocation Among Most Active Projects"
 HEADERD = "Commit Allocation By Hour Of The Day"
 HEADERE = "Recently Active Project Details"
@@ -1006,7 +1006,7 @@ def main():
         ascii_body = plot_with_mean(scaled_series, cfg)
         axis_labels = month_initials_for_weeks(WEEKS, use_three_letter=False)
         axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
-        ascii_plot = "\n" + ascii_body + "\n" + axis_line
+        ascii_plot = "\n" + ascii_body #+ "\n" + axis_line
     ascii_hist = build_histogram_ascii(hours, max_width=MAX_WIDTH, label_w=used_label_w, use_braille=True)
     readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
 
