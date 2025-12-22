@@ -2,14 +2,25 @@
                        Commits Per-Week With Allocation Among 10 Recently Active Projects                       
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
-(no activity data)
-  chasenunez┤                                                                                              
-   pro_logue┤                                                                                              
-sunburst_nav┤                                                                                              
-    entrails┤                                                                                              
-       logue┤                                                                                              
-      rubigo┤                                                                                              
-  restricted┤                                                                                              
+
+       389.0┼                                                                                   ╭─╮
+       350.1┤                                                                                   │ │
+       311.2┤                                                                                   │ │
+       272.3┤                                                                                   │ │
+       233.4┤                                                                                   │ ╰─╮
+       194.5┤                                                                               ╭───╯   ╰───╮
+       155.6┤                                                                     ╭─╮ ╭─╮ ╭─╯           │
+       116.7┤                                                               ╭─╮ ╭─╯ │ │ │ │             │
+        77.8┤ long-term mean                                              ╭─╯ ╰─╯   ╰─╯ ╰─╯             │
+        38.9┤<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>│<code style="color : #8dc990">┄</code><code style="color : #8dc990">┄</code>
+         0.0┼─────────────────────────────────────────────────────────────╯                             ╰─
+  chasenunez┤                                                                                 <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⡀</code>  
+   pro_logue┤                                                                                           <code style="color : #8dc990">⣿</code>  
+sunburst_nav┤                                                             <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡀</code>           <code style="color : #8dc990">⡁</code>   <code style="color : #8dc990">⡝</code>         <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code>  
+    entrails┤                                                                           <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣿</code>   <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡀</code>  
+       logue┤                                                               <code style="color : #8dc990">⣿</code>     <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡁</code>                      
+      rubigo┤                                                                                         <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡕</code>  
+  restricted┤                                                                 <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣝</code>  
              F       M         A       M       J         u       A       S         O       N       D      
 
             low   <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣽</code> <code style="color : #8dc990">⣿</code>  high
@@ -18,7 +29,7 @@ sunburst_nav┤
 ╔══════════════════╦═══════════════════╦════════════════╦══════════════════╦═════════════════════╦═════════════╗
 ║    Repository    ║   Main Language   ║  Total Bytes   ║  Total Commits   ║   Last Commit Date  ║   Branches  ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>       ║       Python      ║     27429      ║       646        ║      2025-12-21     ║      2      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>       ║       Python      ║     27430      ║       647        ║      2025-12-22     ║      2      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/pro_logue">pro_logue</a>        ║        Rust       ║       42       ║        9         ║      2025-12-19     ║      3      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
@@ -32,5 +43,5 @@ sunburst_nav┤
 ╚══════════════════╩═══════════════════╩════════════════╩══════════════════╩═════════════════════╩═════════════╝
 
 
-                                ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Monday Morning At 02:10 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                                
+                                ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Monday Morning At 07:54 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                                
 </pre>
