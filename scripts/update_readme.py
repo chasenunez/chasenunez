@@ -848,6 +848,25 @@ def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
         except Exception:
             commits = 0
             branches = 0
+        # If the main language is HTML, try to fetch language breakdown and pick
+        # the next-most-common language (by bytes) that is NOT HTML.
+        try:
+            if language and language.strip().lower() == 'html':
+                langs = fetch_languages(owner, name, token)
+                if isinstance(langs, dict) and langs:
+                    # sort by bytes descending
+                    sorted_langs = sorted(langs.items(), key=lambda kv: kv[1], reverse=True)
+                    next_lang = None
+                    for lang_name, _ in sorted_langs:
+                        if lang_name and lang_name.strip().lower() != 'html':
+                            next_lang = lang_name
+                            break
+                    if next_lang:
+                        language = next_lang
+        except Exception:
+            # on any error, fall back to the original language value
+            pass
+
         last = r.get('pushed_at') or r.get('updated_at') or ''
         last_commit = ''
         if last:
@@ -880,6 +899,7 @@ def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
             except Exception:
                 results[idx] = None
     return [r for r in results if r]
+
 
 def main():
     token = auth_token()
