@@ -29,19 +29,19 @@ sunburst_nav┤                                                             <cod
 ╔══════════════════╦═══════════════════╦════════════════╦══════════════════╦═════════════════════╦═════════════╗
 ║    Repository    ║   Main Language   ║  Total Bytes   ║  Total Commits   ║   Last Commit Date  ║   Branches  ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>       ║       Python      ║     27431      ║       648        ║      2025-12-22     ║      2      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>       ║       Python      ║     27432      ║       650        ║      2025-12-23     ║      2      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/pro_logue">pro_logue</a>        ║        Rust       ║       42       ║        9         ║      2025-12-19     ║      3      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/sunburst_nav">sunburst_nav</a>     ║        HTML       ║       21       ║        29        ║      2025-12-18     ║      1      ║
+║ <a href="https://github.com/chasenunez/sunburst_nav">sunburst_nav</a>     ║        CSS        ║       21       ║        29        ║      2025-12-18     ║      1      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/entrails">entrails</a>         ║        HTML       ║      2977      ║        21        ║      2025-12-18     ║      1      ║
+║ <a href="https://github.com/chasenunez/entrails">entrails</a>         ║       Python      ║      2977      ║        21        ║      2025-12-18     ║      1      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/logue">logue</a>            ║       Python      ║      134       ║        72        ║      2025-12-17     ║      2      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/rubigo">rubigo</a>           ║        HTML       ║     27223      ║        9         ║      2025-12-17     ║      1      ║
+║ <a href="https://github.com/chasenunez/rubigo">rubigo</a>           ║      Makefile     ║     27223      ║        9         ║      2025-12-17     ║      1      ║
 ╚══════════════════╩═══════════════════╩════════════════╩══════════════════╩═════════════════════╩═════════════╝
 
 
-                               ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Tuesday Morning At 02:05 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                                
+                               ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Tuesday Morning At 07:51 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                                
 </pre>
