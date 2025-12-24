@@ -20,8 +20,8 @@ sunburst_nav┤                                                             <cod
     entrails┤                                                                           <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣿</code>   <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡀</code>  
        logue┤                                                               <code style="color : #8dc990">⣿</code>     <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡁</code>                      
       rubigo┤                                                                                         <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡕</code>  
-  restricted┤                                                                 <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⡀</code>
-             F       M       A         M       J       u         A       S         O       N       D      
+  restricted┤                                                                 <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⡁</code>
+             F       M       A         M       J       u         A       S       O         N       D      
 
             low   <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣽</code> <code style="color : #8dc990">⣿</code>  high
 
@@ -29,7 +29,7 @@ sunburst_nav┤                                                             <cod
 ╔══════════════════╦═══════════════════╦════════════════╦══════════════════╦═════════════════════╦═════════════╗
 ║    Repository    ║   Main Language   ║  Total Bytes   ║  Total Commits   ║   Last Commit Date  ║   Branches  ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>       ║       Python      ║     27432      ║       650        ║      2025-12-23     ║      2      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>       ║       Python      ║     27434      ║       651        ║      2025-12-23     ║      2      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/pro_logue">pro_logue</a>        ║        Rust       ║       42       ║        9         ║      2025-12-19     ║      3      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
@@ -43,5 +43,5 @@ sunburst_nav┤                                                             <cod
 ╚══════════════════╩═══════════════════╩════════════════╩══════════════════╩═════════════════════╩═════════════╝
 
 
-                               ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Tuesday Morning At 07:51 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                                
+                              ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Wednesday Morning At 02:03 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                               
 </pre>
