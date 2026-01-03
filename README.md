@@ -17,10 +17,10 @@
   chasenunez┤                                                                               <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code>  
    pro_logue┤                                                                                         <code style="color : #8dc990">⣿</code>   <code style="color : #8dc990">⡁</code>
       APOLLO┤                                                                                             <code style="color : #8dc990">⣿</code>
-sunburst_nav┤                                                                                              
+sunburst_nav┤                                                           <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡀</code>           <code style="color : #8dc990">⡁</code>   <code style="color : #8dc990">⡝</code>         <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code>    
     entrails┤                                                                         <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣿</code>   <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡀</code>    
-  restricted┤                                                               <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡕</code>
-             F     M       A       M         J       u       A         S       O         N       D       J
+  restricted┤                                                               <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡕</code>
+             F   M         A       M         J       u       A         S       O       N         D       J
 
             low   <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣽</code> <code style="color : #8dc990">⣿</code>  high
 
@@ -28,7 +28,7 @@ sunburst_nav┤
 ╔══════════════════╦═══════════════════╦════════════════╦══════════════════╦═════════════════════╦═════════════╗
 ║    Repository    ║   Main Language   ║  Total Bytes   ║  Total Commits   ║   Last Commit Date  ║   Branches  ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>       ║       Python      ║     27447      ║       664        ║      2026-01-01     ║      2      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>       ║       Python      ║     27449      ║       665        ║      2026-01-02     ║      2      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/pro_logue">pro_logue</a>        ║        Rust       ║       49       ║        12        ║      2025-12-30     ║      4      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
@@ -40,5 +40,5 @@ sunburst_nav┤
 ╚══════════════════╩═══════════════════╩════════════════╩══════════════════╩═════════════════════╩═════════════╝
 
 
-                                ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Friday Morning At 02:07 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                                
+                               ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Saturday Morning At 02:01 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                               
 </pre>
