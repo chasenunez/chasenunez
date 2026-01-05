@@ -20,7 +20,7 @@
 sunburst_nav┤                                                         <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡀</code>           <code style="color : #8dc990">⡁</code>   <code style="color : #8dc990">⡝</code>         <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code>      
     entrails┤                                                                       <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣿</code>   <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡀</code>   <code style="color : #8dc990">⡀</code>      
   restricted┤                                                             <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣿</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡕</code>  
-             F   M         A       M       J         u       A         S       O       N         D       J
+             F   M         A       M       J         u       A       S         O       N       D         J
 
             low   <code style="color : #8dc990">⡀</code> <code style="color : #8dc990">⡁</code> <code style="color : #8dc990">⡑</code> <code style="color : #8dc990">⡕</code> <code style="color : #8dc990">⡝</code> <code style="color : #8dc990">⣝</code> <code style="color : #8dc990">⣽</code> <code style="color : #8dc990">⣿</code>  high
 
@@ -28,7 +28,7 @@ sunburst_nav┤                                                         <code st
 ╔══════════════════╦═══════════════════╦════════════════╦══════════════════╦═════════════════════╦═════════════╗
 ║    Repository    ║   Main Language   ║  Total Bytes   ║  Total Commits   ║   Last Commit Date  ║   Branches  ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>       ║       Python      ║     27449      ║       666        ║      2026-01-03     ║      2      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>       ║       Python      ║     27451      ║       667        ║      2026-01-04     ║      2      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/pro_logue">pro_logue</a>        ║        Rust       ║       49       ║        12        ║      2025-12-30     ║      4      ║
 ╠══════════════════╬═══════════════════╬════════════════╬══════════════════╬═════════════════════╬═════════════╣
@@ -40,5 +40,5 @@ sunburst_nav┤                                                         <code st
 ╚══════════════════╩═══════════════════╩════════════════╩══════════════════╩═════════════════════╩═════════════╝
 
 
-                                ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Sunday Morning At 02:24 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                                
+                                ⢀⣠⣴⣾<code style="color : #8dc990">⣿</code> Updated Monday Morning At 02:24 CEST <code style="color : #8dc990">⣿</code>⣷⣦⣄<code style="color : #8dc990">⡀</code>                                
 </pre>
