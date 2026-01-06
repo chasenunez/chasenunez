@@ -510,9 +510,9 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
                        repo_urls: Optional[Dict[str,str]]=None) -> Tuple[str,int]:
     if label_w is None:
         label_w = max(10, max((len(r) for r in repo_order), default=10))
-        label_w = min(label_w, 28)
+        label_w = min(label_w, 10)#28)
     else:
-        label_w = max(10, min(label_w, 28))
+        label_w = max(10, min(label_w, 10))#28))
     glyph_widths = [max(1, wcswidth(s)) for s in SHADES]
     slot_w = max(1, max(glyph_widths))
     sep = " "
@@ -981,7 +981,7 @@ def main():
     timestamps = fetch_commit_timestamps_for_repos(repo_pairs, token, per_repo_limit=300, max_workers=6)
     hours = build_commit_hour_values(timestamps)
     native_label_w = max(10, max((len(r) for r in repo_order), default=10))
-    native_label_w = min(native_label_w, 28)
+    native_label_w = min(native_label_w, 10)#28)
     if not weekly_totals or all(v == 0 for v in weekly_totals):
         ascii_plot = "(no activity data)"
         contrib_grid, used_label_w = build_contrib_grid(repo_weekly, repo_order, label_w=native_label_w, repo_urls=repo_urls)
