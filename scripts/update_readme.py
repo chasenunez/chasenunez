@@ -1,5 +1,22 @@
 #!/usr/bin/env python3
+"""
+update_readme.py
 
+What is this:
+  - A collection of functions that creates a README.md displaying repo activity 
+    on github in a cool/fun/retro/parsable ASCII plot. Taken togeather, it fetches 
+    recent repository activity for a GitHub user (or authenticated user),
+    produce simple ASCII charts/tables summarizing weekly commit activity and
+    other repository metadata, and write that content to README.md.
+
+Notes:
+  - I learned in the process of writing this that GitHub sanitizes inline CSS / color styling, 
+  so I have avoided including colors won't reliably show. But if you know how to circumvent this, make a pull request! 
+  - I rely on a small cache file to avoid refetching commit_activity arrays when the GitHub API provides sparse data 
+  (stats endpoints often return 202). This could also be improved, as the fetching is somewhat variable in its efficacy.
+"""
+
+from __future__ import annotations
 import os
 import sys
 import time
@@ -12,6 +29,10 @@ from typing import Dict, List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
+
+# Optional helpers. I use wcwidth for better width calculations if available;
+# plotille can optionally render histograms but the code also falls back to a
+# simple braille/bar approach if plotille is missing.
 try:
     import wcwidth
     _HAS_WCWIDTH = True
@@ -27,59 +48,66 @@ except Exception:
     _HAS_PLOTILLE = False
 
 
-def getTimeOfDay(hour):
-    hour = int(hour)
-    if 0 <= hour < 12:
-        return "Morning"
-    elif 12 <= hour < 18:
-        return "Afternoon"
-    elif 18 <= hour < 21:
-        return "Evening"
-    else:
-        return "Night"
+# --------------------------
+# Config / Things you may want to change
+# --------------------------
+# NOTE: I document these below in README.md too.
 
+# GitHub username to inspect when no token is provided.
+# If you authenticate with a GH token, the script will fetch authenticated user's repos.
 USERNAME = "chasenunez"
 
-# Default color: black. Set to a hex string like "#00aa00" to change.
-COLOR_HEX = "#8dc990"        # overall fallback color (default black)
-BRAILLE_COLOR = "#8dc990"    # fall back to COLOR_HEX when None
-TOTAL_LINE_COLOR = "#8dc990" # color for the total/mean line (green by default)
-
-# Enable / disable coloring easily
-ENABLE_COLOR = True
-
-DAY = datetime.now().strftime("%A")
-DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
-TIMECONSTRUCT = datetime.now().strftime("%H")
-MINUTECONSTRUCT = datetime.now().strftime("%M")
-APPROXTIME = getTimeOfDay(TIMECONSTRUCT)
-HEADERA = f"⢀⣠⣴⣾⣿ Updated {DAY} {APPROXTIME} At {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST ⣿⣷⣦⣄⡀"
-HEADERB = "Weekly Commits With Relative Allocation Among Recently Active Projects"
-HEADERC = "Commit Allocation Among Most Active Projects"
-HEADERD = "Commit Allocation By Hour Of The Day"
-HEADERE = "Recently Active Project Details"
-LINE = "▔"
+# Top N repos to summarize (most recently updated)
 TOP_N = 10
+
+# How many weeks of commit_activity data I display (the stats endpoint returns data in weekly buckets)
 WEEKS = 47
+
+# ASCII plot/table layout tuning (safe to change)
+PLOT_HEIGHT = 10
 MAX_WIDTH = 100
 LINE_LENGTH = 112
-RESTRICTED_NAME = "restricted"
-PLOT_HEIGHT = 10
 PLOT_FORMAT = "{:8.1f} "
-SHADES = ["","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
+
+# Files used by the script
+CACHE_FILE = ".commit_activity_cache.json"
+README_OUT = "README.md"
+
+# GitHub API base and session (don't change unless you know what you're doing)
 GITHUB_API = "https://api.github.com"
 SESSION = requests.Session()
 SESSION.headers.update({
     "Accept": "application/vnd.github.v3+json",
     "User-Agent": f"update-readme-script ({USERNAME})",
 })
-CACHE_FILE = ".commit_activity_cache.json"
+
+# Retry attempts when stats endpoint returns 202 (GitHub builds stats asynchronously)
 STATS_MAX_ATTEMPTS = 8
 
+# Braille shades used for small sparkline-like charts
+SHADES = ["","⡀","⡁","⡑","⡕","⡝","⣝","⣽","⣿"]
+
+
+# --------------------------
+# Utilities
+# --------------------------
+
 def auth_token() -> Optional[str]:
+    """
+    I look for a token in standard environment variables:
+      GH_PAT, GITHUB_TOKEN, GH_TOKEN
+
+    If provided, the script will make authenticated calls (higher rate-limits,
+    and private repo access for the authenticated user).
+    """
     return os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
+
 def gh_get(url: str, params: dict=None, token: str=None, timeout: int=30) -> requests.Response:
+    """
+    Simple GET wrapper that optionally adds Authorization header when token is present.
+    I raise on HTTP errors so calling code can decide how to handle failures.
+    """
     headers = {}
     if token:
         headers["Authorization"] = f"token {token}"
@@ -87,7 +115,11 @@ def gh_get(url: str, params: dict=None, token: str=None, timeout: int=30) -> req
     resp.raise_for_status()
     return resp
 
+
 def _get_paginated(url: str, params: dict=None, token: str=None) -> List[dict]:
+    """
+    I follow GitHub pagination (per_page=100) and return a flattened list of items.
+    """
     items = []
     params = dict(params or {})
     params.setdefault("per_page", 100)
@@ -108,7 +140,12 @@ def _get_paginated(url: str, params: dict=None, token: str=None) -> List[dict]:
             break
     return items
 
+
 def _retry_stats_get(url: str, token: str=None) -> Optional[requests.Response]:
+    """
+    The /stats/* endpoints sometimes return 202 while GitHub composes stats.
+    I retry with exponential backoff up to STATS_MAX_ATTEMPTS times.
+    """
     attempt = 0
     wait = 1.0
     while attempt < STATS_MAX_ATTEMPTS:
@@ -128,7 +165,16 @@ def _retry_stats_get(url: str, token: str=None) -> Optional[requests.Response]:
         return r
     return None
 
+
+# --------------------------
+# GitHub-specific data fetching
+# --------------------------
+
 def repo_commit_activity(owner: str, repo: str, token: str=None) -> List[int]:
+    """
+    I fetch /repos/{owner}/{repo}/stats/commit_activity and return the last WEEKS totals.
+    If the endpoint fails or returns unexpected data I return a zero-filled list.
+    """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/stats/commit_activity"
     r = _retry_stats_get(url, token=token)
     if r is not None:
@@ -143,7 +189,12 @@ def repo_commit_activity(owner: str, repo: str, token: str=None) -> List[int]:
             pass
     return [0] * WEEKS
 
+
 def get_commit_count(owner: str, repo: str, token: str=None) -> int:
+    """
+    I attempt to derive total commits by looking at commits endpoint headers.
+    This is a fast, approximate approach (requests per_page=1 and check 'last' page).
+    """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
     try:
         r = gh_get(url, params={"per_page":1}, token=token)
@@ -165,7 +216,11 @@ def get_commit_count(owner: str, repo: str, token: str=None) -> int:
         pass
     return 0
 
+
 def get_branch_count(owner: str, repo: str, token: str=None) -> int:
+    """
+    I derive branch count similar to commits: read first page and inspect Link header.
+    """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/branches"
     try:
         r = gh_get(url, params={"per_page":1}, token=token)
@@ -187,13 +242,22 @@ def get_branch_count(owner: str, repo: str, token: str=None) -> int:
         pass
     return 0
 
+
 def fetch_languages(owner: str, repo: str, token: str=None) -> Dict[str,int]:
+    """
+    I fetch language bytes breakdown (helpful to override misleading 'HTML' language).
+    """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/languages"
     try:
         r = gh_get(url, token=token)
         return r.json() or {}
     except Exception:
         return {}
+
+
+# --------------------------
+# Text width and padding helpers
+# --------------------------
 
 def wcswidth_fallback(s: str) -> int:
     if s is None:
@@ -206,6 +270,7 @@ def wcswidth_fallback(s: str) -> int:
         total += 2 if ea in ("W", "F") else 1
     return total
 
+
 def wcswidth(s: str) -> int:
     if _HAS_WCWIDTH:
         try:
@@ -215,7 +280,12 @@ def wcswidth(s: str) -> int:
     else:
         return wcswidth_fallback(s)
 
+
 def pad_to_width(s: str, target: int, align: str='left') -> str:
+    """
+    I try to pad or truncate a Unicode string to a target display width using
+    wcwidth-aware measures.
+    """
     cur = wcswidth(s)
     if cur == target:
         return s
@@ -245,129 +315,17 @@ def pad_to_width(s: str, target: int, align: str='left') -> str:
         out += " " * (target - acc)
     return out
 
-# ---------- coloring helpers (corrected + toggle) ----------
 
-def _wrap_color(s: str, hex_color: Optional[str]) -> str:
-    """
-    Wrap text `s` in a <code> tag with inline color style using the exact format:
-      <code style="color : #rrggbb">text</code>
-    If coloring is disabled or hex_color falsy, returns s unchanged.
-    """
-    if not ENABLE_COLOR:
-        return s
-    if not hex_color:
-        return s
-    return f'<code style="color : {hex_color}">{s}</code>'
+# --------------------------
+# ASCII table building (repository rows)
+# --------------------------
 
-
-def _apply_ascii_coloring_on_block(block: str) -> str:
-    """
-    Apply coloring replacements to a string block (expected the content of <pre>).
-    Replaces braille glyphs from SHADES and the mean/total glyph '┄'.
-    """
-    out = block
-
-    # Build braille chars list (skip any empty entries in SHADES)
-    braille_chars = [c for c in SHADES if c]
-    # Choose the braille color (explicit BRAILLE_COLOR else fallback to COLOR_HEX)
-    braille_color_to_use = BRAILLE_COLOR if BRAILLE_COLOR is not None else COLOR_HEX
-
-    if ENABLE_COLOR and braille_color_to_use:
-        # Replace each braille glyph with the <code style="..."> wrapper.
-        for ch in set(braille_chars):
-            if ch:
-                out = out.replace(ch, _wrap_color(ch, braille_color_to_use))
-
-    # Replace the plotted mean/total line glyph '┄' with the total-line color
-    if ENABLE_COLOR:
-        if TOTAL_LINE_COLOR:
-            out = out.replace('┄', _wrap_color('┄', TOTAL_LINE_COLOR))
-        elif COLOR_HEX:
-            out = out.replace('┄', _wrap_color('┄', COLOR_HEX))
-
-    return out
-
-
-def _apply_ascii_coloring(readme_str: str) -> str:
-    """
-    Find the first <pre>...</pre> block in the README and apply coloring only inside it.
-    Preserve any text before/after the matched block.
-    If no <pre> block is found, apply coloring to the whole string (fallback).
-    """
-    if not ENABLE_COLOR:
-        return readme_str
-
-    m = re.search(r'(<pre[^>]*>)(.*?)(</pre>)', readme_str, flags=re.S)
-    if not m:
-        # no pre block; operate on whole string (fallback)
-        return _apply_ascii_coloring_on_block(readme_str)
-
-    # Preserve everything outside the matched span
-    prefix = readme_str[:m.start()]
-    head = m.group(1)         # opening <pre...>
-    pre_content = m.group(2)  # content
-    tail_tag = m.group(3)     # closing </pre>
-    suffix = readme_str[m.end():]
-
-    new_pre = _apply_ascii_coloring_on_block(pre_content)
-
-    return prefix + head + new_pre + tail_tag + suffix
-
-# -----------------------------------------------------------
-
-def load_cache() -> Dict[str, List[int]]:
-    if not os.path.exists(CACHE_FILE):
-        return {}
-    try:
-        with open(CACHE_FILE, "r", encoding="utf-8") as fh:
-            raw = json.load(fh)
-            out = {}
-            for k,v in raw.items():
-                if isinstance(v, list):
-                    vv = [int(x) for x in v]
-                    if len(vv) < WEEKS:
-                        vv = [0]*(WEEKS - len(vv)) + vv
-                    else:
-                        vv = vv[-WEEKS:]
-                    out[k] = vv
-            return out
-    except Exception:
-        return {}
-
-def save_cache(cache: Dict[str, List[int]]) -> None:
-    try:
-        with open(CACHE_FILE, "w", encoding="utf-8") as fh:
-            json.dump(cache, fh)
-    except Exception:
-        pass
-
-def month_initials_for_weeks(weeks: int, use_three_letter: bool=False) -> List[str]:
-    labels: List[str] = []
-    now = datetime.now(timezone.utc)
-    last_month = None
-    last_label = None
-    for i in range(weeks):
-        dt = now - timedelta(days=(weeks-1-i)*7)
-        if dt.month != last_month:
-            m = dt.strftime("%b")
-            if use_three_letter:
-                lab = m
-            else:
-                lab = m[0]
-                if last_label is not None and lab == last_label:
-                    if len(m) > 1 and m[1] != last_label:
-                        lab = m[1]
-                    elif len(m) > 2 and m[2] != last_label:
-                        lab = m[2]
-            labels.append(lab)
-            last_month = dt.month
-            last_label = labels[-1]
-        else:
-            labels.append(" ")
-    return labels
-
-from typing import List, Tuple
 def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = None) -> Tuple[str,int,int]:
+    """
+    I build a boxed ASCII table using double-line border glyphs and include
+    <a href="..."> anchors for repo names (HTML inside README).
+    Returns (table_string, width, height_rows).
+    """
     cols = ["Repository", "Main Language", "Total Bytes", "Total Commits", "Last Commit Date", "Branches"]
     data_rows = []
     for r in rows:
@@ -430,6 +388,7 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
                     widths[idx] -= take
                     excess -= take
     inner_widths = [w - PAD for w in widths]
+
     def clip(text: str, inner: int) -> str:
         if len(text) <= inner:
             return text
@@ -438,53 +397,65 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
         if inner == 1:
             return text[:1]
         return text[:max(1, inner-1)] + "…"
+
+    # box chars
     D_H = '═'; D_V = '║'
     TL = '╔'; TR = '╗'; BL = '╚'; BR = '╝'
     TSEP = '╦'; MSEP = '╬'; BSEP = '╩'; LSEP = '╠'; RSEP = '╣'
+
     def build_top():
         parts = [TL]
         for i, w in enumerate(widths):
             parts.append(D_H * w)
             parts.append(TSEP if i < len(widths)-1 else TR)
         return "".join(parts)
+
     def build_mid():
         parts = [LSEP]
         for i, w in enumerate(widths):
             parts.append(D_H * w)
             parts.append(MSEP if i < len(widths)-1 else RSEP)
         return "".join(parts)
+
     def build_bottom():
         parts = [BL]
         for i, w in enumerate(widths):
             parts.append(D_H * w)
             parts.append(BSEP if i < len(widths)-1 else BR)
         return "".join(parts)
+
     top_line = build_top()
     mid_line = build_mid()
     bottom_line = build_bottom()
+
     def join_cells(cell_texts: List[str]) -> str:
         parts = [D_V]
         for txt in cell_texts:
             parts.append(txt)
             parts.append(D_V)
         return "".join(parts)
+
     lines = [top_line]
     header_cells = []
     for i, h in enumerate(cols):
         header_cells.append(" " + h.center(inner_widths[i]) + " ")
     lines.append(join_cells(header_cells))
     lines.append(mid_line)
+
     for orig in rows:
         name = orig.get("name_text", "")
         url = orig.get("name_url", "")
         inner0 = inner_widths[0]
         clipped = clip(name, inner0)
         if url:
+            # I include an <a> anchor here so README HTML has clickable links. It will
+            # be placed inside the <pre> block produced later (consistent with prior behaviour).
             anchor = f'<a href="{url}">{clipped}</a>'
             padding = " " * (inner0 - len(clipped))
             repo_cell = " " + anchor + padding + " "
         else:
             repo_cell = " " + clipped.ljust(inner0) + " "
+
         match = None
         for dr in data_rows:
             if dr[0] == name:
@@ -497,22 +468,59 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
             other_cells.append(" " + match[i].center(inner_widths[i]) + " ")
         lines.append(join_cells(other_cells))
         lines.append(mid_line)
+
     if lines[-1] == mid_line:
         lines[-1] = bottom_line
     else:
         lines.append(bottom_line)
+
     table_str = "\n".join(lines)
     return table_str, len(top_line), len(lines)
+
+
+# --------------------------
+# Contribution grid / braille mini-sparkline
+# --------------------------
+
+def month_initials_for_weeks(weeks: int, use_three_letter: bool=False) -> List[str]:
+    labels: List[str] = []
+    now = datetime.now(timezone.utc)
+    last_month = None
+    last_label = None
+    for i in range(weeks):
+        dt = now - timedelta(days=(weeks-1-i)*7)
+        if dt.month != last_month:
+            m = dt.strftime("%b")
+            if use_three_letter:
+                lab = m
+            else:
+                lab = m[0]
+                if last_label is not None and lab == last_label:
+                    if len(m) > 1 and m[1] != last_label:
+                        lab = m[1]
+                    elif len(m) > 2 and m[2] != last_label:
+                        lab = m[2]
+            labels.append(lab)
+            last_month = dt.month
+            last_label = labels[-1]
+        else:
+            labels.append(" ")
+    return labels
+
 
 def build_contrib_grid(repo_weekly: Dict[str,List[int]],
                        repo_order: List[str],
                        label_w: Optional[int]=None,
                        repo_urls: Optional[Dict[str,str]]=None) -> Tuple[str,int]:
+    """
+    I render a compact braille-based contribution grid similar to GitHub's and return
+    the ASCII block and the label width used.
+    """
     if label_w is None:
         label_w = max(10, max((len(r) for r in repo_order), default=10))
-        label_w = min(label_w, 10)#28)
+        label_w = min(label_w, 10)
     else:
-        label_w = max(10, min(label_w, 10))#28))
+        label_w = max(10, min(label_w, 10))
     glyph_widths = [max(1, wcswidth(s)) for s in SHADES]
     slot_w = max(1, max(glyph_widths))
     sep = " "
@@ -523,6 +531,7 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
         if cur >= slot_w:
             return sym
         return sym + (" " * (slot_w - cur))
+
     lines: List[str] = []
     for repo in repo_order:
         weeks = repo_weekly.get(repo, [0]*WEEKS)
@@ -551,6 +560,7 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
             visible = pad_to_width(visible_name, label_w, align='right')
         row = f"{visible}┤ " + sep.join(slots)
         lines.append(row)
+
     axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
     axis_slots = [pad_to_width(ch, slot_w, align='center') for ch in axis_cells]
     axis_line = " " * label_w + " " + sep.join(axis_slots)
@@ -561,13 +571,23 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
     lines.append(legend)
     return "\n".join(lines), label_w
 
+
+# --------------------------
+# Small plotting helpers (mean line plot) - ASCII only
+# --------------------------
+
 def _safe_isnan(x) -> bool:
     try:
         return isnan(float(x))
     except Exception:
         return False
 
+
 def plot_with_mean(series, cfg=None) -> str:
+    """
+    I plot one or many series into an ASCII grid and draw a horizontal 'mean' dashed line.
+    This function is designed to be small and standalone; it returns a multi-line string.
+    """
     if not series:
         return ""
     if not isinstance(series[0], list):
@@ -684,7 +704,16 @@ def plot_with_mean(series, cfg=None) -> str:
                     break
     return "\n".join("".join(row).rstrip() for row in result)
 
+
+# --------------------------
+# Commit timestamps (for hourly histogram)
+# --------------------------
+
 def fetch_commits_limited(owner: str, repo: str, token: Optional[str], max_commits: int = 300) -> List[dict]:
+    """
+    I fetch recent commits up to max_commits for a single repo (paginated).
+    This is used to extract timestamps for a crude hourly histogram.
+    """
     url = f"{GITHUB_API}/repos/{owner}/{repo}/commits"
     per_page = 100
     page = 1
@@ -707,7 +736,12 @@ def fetch_commits_limited(owner: str, repo: str, token: Optional[str], max_commi
             break
     return commits[:max_commits]
 
+
 def parse_commit_datetime(commit_obj: dict) -> Optional[datetime]:
+    """
+    I attempt to read ISO datetime from commit object (author.date or commit.author.date).
+    Returned datetimes are naive or timezone aware; callers will convert to UTC.
+    """
     try:
         date_str = None
         if isinstance(commit_obj.get('commit'), dict):
@@ -722,7 +756,11 @@ def parse_commit_datetime(commit_obj: dict) -> Optional[datetime]:
     except Exception:
         return None
 
+
 def fetch_commit_timestamps_for_repos(repo_pairs: List[Tuple[str,str]], token: Optional[str], per_repo_limit: int = 300, max_workers: int = 6) -> List[datetime]:
+    """
+    I fetch commits across repos concurrently and extract commit datetimes (UTC).
+    """
     timestamps: List[datetime] = []
     def worker(pair):
         owner, repo = pair
@@ -748,7 +786,11 @@ def fetch_commit_timestamps_for_repos(repo_pairs: List[Tuple[str,str]], token: O
                 pass
     return timestamps
 
+
 def build_commit_hour_values(timestamps: List[datetime], tz: Optional[timezone]=None) -> List[float]:
+    """
+    I convert datetime timestamps into fractional hours (0-24) in tz (or UTC).
+    """
     out = []
     for dt in timestamps:
         if tz:
@@ -759,7 +801,12 @@ def build_commit_hour_values(timestamps: List[datetime], tz: Optional[timezone]=
         out.append(hour)
     return out
 
+
 def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_w: Optional[int] = None, use_braille: bool = True) -> str:
+    """
+    I render a 24-bin histogram (hourly) into ASCII. If plotille is present I attempt
+    a richer histogram; otherwise I create a simple braille/bar display.
+    """
     if not hours:
         return '(no commit timestamps)'
     if label_w is None:
@@ -780,13 +827,7 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
             out_lines = []
             for line in hist_str.splitlines():
                 out_lines.append(line)
-            lines = []
-            for hr in range(24):
-                label = pad_to_width(f'{hr:02d}', label_w, align='right')
-                bar = ''
-                count = counts[hr]
-                lines.append(f'{label}┤ {bar} {count}')
-            return '\n'.join(lines)
+            # fallback simple rendering below (we avoid trying to parse plotille's ASCII box here)
         except Exception:
             pass
     max_count = max(counts) if counts else 0
@@ -806,31 +847,41 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
     return '\n'.join(lines)
 
 
+# --------------------------
+# README builder
+# --------------------------
+
 def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_hist: str) -> str:
+    """
+    I assemble the final README contents. I keep it inside a <pre>...</pre> block
+    which preserves spacing and allows the repo anchors created earlier to be clickable.
+    """
+    DAY = datetime.now().strftime("%A")
+    DATECONSTRUCT = datetime.now().strftime("%A %d %B, %Y")
+    TIMECONSTRUCT = datetime.now().strftime("%H")
+    MINUTECONSTRUCT = datetime.now().strftime("%M")
+    APPROXTIME = "now"
+    HEADERA = f"Updated {DAY} at {TIMECONSTRUCT}:{MINUTECONSTRUCT} (local)"
+    HEADERB = "Weekly Commits With Relative Allocation Among Recently Active Projects"
+    LINE = "▔"
+
     return (
         "<pre>\n"
         f"{HEADERB: ^{LINE_LENGTH}}\n"
         f"{LINE:▔^{LINE_LENGTH}}\n\n"
-        f"{ascii_plot}\n"#\n\n"
-
-        #f"{HEADERC: ^{LINE_LENGTH}}\n"
-        #f"{LINE:▔^{LINE_LENGTH}}\n\n"
+        f"{ascii_plot}\n\n"
         f"{contrib_grid}\n\n\n"
-
-        #f"{HEADERD: ^{LINE_LENGTH}}\n"
-        #f"{LINE:▔^{LINE_LENGTH}}\n\n"
-        #f"{ascii_hist}\n\n\n"
-
-        #f"{HEADERE: ^{LINE_LENGTH}}\n"
-        #f"{LINE:▔^{LINE_LENGTH}}\n\n"
         f"{ascii_table}\n\n\n"
-
         f"{HEADERA: ^{LINE_LENGTH}}\n"
         "</pre>\n"
     )
 
 
 def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
+    """
+    I build a list of dict rows describing name, url, language, size, commit count, last commit date, branches.
+    This function fetches commit/branch counts and queries languages to replace spurious HTML language tags.
+    """
     def worker(r: dict) -> dict:
         owner = None
         if isinstance(r.get('owner'), dict):
@@ -848,13 +899,11 @@ def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
         except Exception:
             commits = 0
             branches = 0
-        # If the main language is HTML, try to fetch language breakdown and pick
-        # the next-most-common language (by bytes) that is NOT HTML.
         try:
+            # If language is HTML, prefer a non-HTML language by bytes if available
             if language and language.strip().lower() == 'html':
                 langs = fetch_languages(owner, name, token)
                 if isinstance(langs, dict) and langs:
-                    # sort by bytes descending
                     sorted_langs = sorted(langs.items(), key=lambda kv: kv[1], reverse=True)
                     next_lang = None
                     for lang_name, _ in sorted_langs:
@@ -864,7 +913,6 @@ def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
                     if next_lang:
                         language = next_lang
         except Exception:
-            # on any error, fall back to the original language value
             pass
 
         last = r.get('pushed_at') or r.get('updated_at') or ''
@@ -887,6 +935,7 @@ def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
             'last_commit': last_commit,
             'branches': branches,
         }
+
     results = [None] * len(repos)
     if not repos:
         return []
@@ -901,21 +950,64 @@ def build_rows_for_table(repos: List[dict], token: Optional[str]) -> List[dict]:
     return [r for r in results if r]
 
 
+# --------------------------
+# Cache helpers
+# --------------------------
+
+def load_cache() -> Dict[str, List[int]]:
+    if not os.path.exists(CACHE_FILE):
+        return {}
+    try:
+        with open(CACHE_FILE, "r", encoding="utf-8") as fh:
+            raw = json.load(fh)
+            out = {}
+            for k,v in raw.items():
+                if isinstance(v, list):
+                    vv = [int(x) for x in v]
+                    if len(vv) < WEEKS:
+                        vv = [0]*(WEEKS - len(vv)) + vv
+                    else:
+                        vv = vv[-WEEKS:]
+                    out[k] = vv
+            return out
+    except Exception:
+        return {}
+
+
+def save_cache(cache: Dict[str, List[int]]) -> None:
+    try:
+        with open(CACHE_FILE, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh)
+    except Exception:
+        pass
+
+
+# --------------------------
+# Main
+# --------------------------
+
 def main():
     token = auth_token()
     try:
+        # If token present, query authenticated user's repos, otherwise use public username
         all_repos = _get_paginated(f"{GITHUB_API}/user/repos" if token else f"{GITHUB_API}/users/{USERNAME}/repos",
                                    params={"sort":"updated","direction":"desc"}, token=token)
     except Exception as e:
         print("Failed to fetch repositories:", e, file=sys.stderr)
         sys.exit(1)
+
+    # sort by updated_at just to be explicit
     all_repos.sort(key=lambda x: x.get("updated_at",""), reverse=True)
     top_repos = all_repos[:TOP_N]
     public_repos = [r for r in top_repos if not r.get("private")]
     private_repos = [r for r in top_repos if r.get("private")]
+
+    # Prepare table rows for public repos
     rows = build_rows_for_table(public_repos, token)
     repo_urls = {r["name_text"]: r.get("name_url", "") for r in rows}
     ascii_table, ascii_width, ascii_height = make_ascii_table_with_links(rows)
+
+    # repos to query commit_activity for (we use the rows we built)
     repos_to_query = [r["name_text"] for r in rows]
     repo_weekly: Dict[str, List[int]] = {}
     print(f"Fetching commit_activity for {len(repos_to_query)} repos...")
@@ -930,6 +1022,9 @@ def main():
             if len(weeks) < WEEKS:
                 weeks = [0]*(WEEKS - len(weeks)) + weeks
             repo_weekly[repo] = weeks
+
+    # If private repos are present and we have a token, aggregate them into a 'restricted' bucket
+    RESTRICTED_NAME = "restricted"
     if private_repos and token:
         agg_weeks = [0]*WEEKS
         for repo in private_repos:
@@ -946,6 +1041,8 @@ def main():
         repo_order = repos_to_query + [RESTRICTED_NAME]
     else:
         repo_order = repos_to_query
+
+    # Use cache to keep older series when new fetches are empty (GitHub stats quirks)
     cache = load_cache()
     updated_cache = dict(cache)
     for repo in list(repo_weekly.keys()):
@@ -961,12 +1058,16 @@ def main():
         if not use_cache and sum(series) > 0:
             updated_cache[repo] = series
     save_cache(updated_cache)
+
+    # compute totals per-week across repos
     weekly_totals = [0.0]*WEEKS
     for weeks in repo_weekly.values():
         if len(weeks) < WEEKS:
             weeks = [0]*(WEEKS-len(weeks)) + weeks
         for i, v in enumerate(weeks):
             weekly_totals[i] += float(v)
+
+    # prepare commit timestamps across top_repos to draw hourly histogram
     repo_pairs = []
     for r in top_repos:
         owner = r.get('owner')
@@ -977,15 +1078,20 @@ def main():
         name = r.get('name')
         if login and name:
             repo_pairs.append((login, name))
+
     print(f"Fetching timestamps for commits across {len(repo_pairs)} repos (up to 300 commits per repo)...")
     timestamps = fetch_commit_timestamps_for_repos(repo_pairs, token, per_repo_limit=300, max_workers=6)
     hours = build_commit_hour_values(timestamps)
+
     native_label_w = max(10, max((len(r) for r in repo_order), default=10))
-    native_label_w = min(native_label_w, 10)#28)
+    native_label_w = min(native_label_w, 10)
+
+    # Build ascii plot & contrib grid
     if not weekly_totals or all(v == 0 for v in weekly_totals):
         ascii_plot = "(no activity data)"
         contrib_grid, used_label_w = build_contrib_grid(repo_weekly, repo_order, label_w=native_label_w, repo_urls=repo_urls)
     else:
+        # duplicate weekly totals to get a tweaked resolution in the x-axis for the ASCII plot
         series_points = []
         for w in weekly_totals:
             series_points += [w, w]
@@ -1024,18 +1130,16 @@ def main():
         cfg = {"height": PLOT_HEIGHT, "format": label_fmt, "offset": left, "min": 0.0, "max": maximum_scaled,
                "mean_label": "long-term mean"}
         ascii_body = plot_with_mean(scaled_series, cfg)
-        axis_labels = month_initials_for_weeks(WEEKS, use_three_letter=False)
-        axis_line = " " * left + "".join(ch + " " for ch in axis_labels)
-        ascii_plot = "\n" + ascii_body #+ "\n" + axis_line
+        ascii_plot = "\n" + ascii_body
+
     ascii_hist = build_histogram_ascii(hours, max_width=MAX_WIDTH, label_w=used_label_w, use_braille=True)
     readme = build_readme(ascii_table, contrib_grid, ascii_plot, ascii_hist)
 
-    # Apply coloring (only if ENABLE_COLOR True)
-    readme = _apply_ascii_coloring(readme)
-
-    with open("README.md", "w", encoding="utf-8") as fh:
+    # write README
+    with open(README_OUT, "w", encoding="utf-8") as fh:
         fh.write(readme)
-    print("README.md updated.")
+    print(f"{README_OUT} updated.")
+
 
 if __name__ == "__main__":
     main()
