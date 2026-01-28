@@ -862,7 +862,7 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_his
     MINUTECONSTRUCT = datetime.now().strftime("%M")
     APPROXTIME = "now"
     HEADERA = f"⣀⣤⣶⣾⣿ Updated {DAY} at {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST ⣿⣷⣶⣤⣀"
-    HEADERB = "Weekly Commits With Relative Allocation Among Recently Active Projects"
+    HEADERB = "⣀⣤⣶⣾⣿ Weekly Commits With Relative Allocation Among Recently Active Projects ⣿⣷⣶⣤⣀"
     LINE = "▔"
 
     return (
