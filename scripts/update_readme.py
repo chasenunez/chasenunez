@@ -561,7 +561,7 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
         row = f"{visible}┤ " + sep.join(slots)
         lines.append(row)
 
-    axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=False)
+    axis_cells = month_initials_for_weeks(WEEKS, use_three_letter=True)
     axis_slots = [pad_to_width(ch, slot_w, align='center') for ch in axis_cells]
     axis_line = " " * label_w + " " + sep.join(axis_slots)
     lines.append(axis_line)
@@ -844,7 +844,7 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
         bar = bar_char * bar_len
         label = pad_to_width(f'{hr:02d}', label_w, align='right')
         lines.append(f'{label}┤ {bar} {c}')
-    return '\n'.join(lines)
+    return '\n\n'.join(lines)
 
 
 # --------------------------
@@ -862,7 +862,7 @@ def build_readme(ascii_table: str, contrib_grid: str, ascii_plot: str, ascii_his
     MINUTECONSTRUCT = datetime.now().strftime("%M")
     APPROXTIME = "now"
     HEADERA = f"⣀⣤⣶⣾⣿ Updated {DAY} at {TIMECONSTRUCT}:{MINUTECONSTRUCT} CEST ⣿⣷⣶⣤⣀"
-    HEADERB = "⣀⣤⣶⣾⣿ Weekly Commits With Relative Allocation Among Recently Active Projects ⣿⣷⣶⣤⣀"
+    HEADERB = "⣀⣤⣶⣾⣿ Contribution Timeseries With Relative Allocation Among Recently Active Projects ⣿⣷⣶⣤⣀"
     LINE = "▔"
 
     return (
