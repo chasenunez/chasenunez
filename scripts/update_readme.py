@@ -482,7 +482,7 @@ def make_ascii_table_with_links(rows: List[dict], max_repo_name_width: int = Non
 # Contribution grid / braille mini-sparkline
 # --------------------------
 
-def month_initials_for_weeks(weeks: int, use_three_letter: bool=False) -> List[str]:
+def month_initials_for_weeks(weeks: int, use_three_letter: bool=True) -> List[str]:
     labels: List[str] = []
     now = datetime.now(timezone.utc)
     last_month = None
@@ -569,7 +569,7 @@ def build_contrib_grid(repo_weekly: Dict[str,List[int]],
     legend = " " * label_w + "low " + sep.join(legend_slots) + "  high"
     lines.append("")
     lines.append(legend)
-    return "\n".join(lines), label_w
+    return "\n\n".join(lines), label_w
 
 
 # --------------------------
@@ -844,7 +844,7 @@ def build_histogram_ascii(hours: List[float], max_width: int = MAX_WIDTH, label_
         bar = bar_char * bar_len
         label = pad_to_width(f'{hr:02d}', label_w, align='right')
         lines.append(f'{label}┤ {bar} {c}')
-    return '\n\n'.join(lines)
+    return '\n'.join(lines)
 
 
 # --------------------------
