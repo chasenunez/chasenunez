@@ -600,14 +600,14 @@ def build_readme(sections: Dict[str, str], *, now: Optional[datetime] = None) ->
         centered(header_top),
         rule,
         "",
-        #centered("DAY-OF-WEEK DISTRIBUTION"),
-        #sections["weekday"],
-        #"",
-        #divider,
-        #"",
-        #centered("PER-REPO WEEKLY ACTIVITY"),
-        #sections["per_repo"],
-        #"",
+        centered("DAY-OF-WEEK DISTRIBUTION"),
+        sections["weekday"],
+        "",
+        divider,
+        "",
+        centered("PER-REPO WEEKLY ACTIVITY"),
+        sections["per_repo"],
+        "",
         divider,
         "",
         centered("LANGUAGE MIX"),
@@ -772,8 +772,8 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # 5. Render sections.
     sections = {
-        #"weekday": render_weekday_histogram(calendar_days),
-        #"per_repo": render_per_repo_grid(repo_weekly, repo_order),
+        "weekday": render_weekday_histogram(calendar_days),
+        "per_repo": render_per_repo_grid(repo_weekly, repo_order),
         "languages": render_language_bar(lang_stats),
         "table": render_repo_table([r for r in rows if not r.get("private")]),
     }
