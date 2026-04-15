@@ -1,10 +1,8 @@
 from datetime import date, timedelta
 
 from update_readme import (
-    CALENDAR_WEEKS,
     SHADES,
     WEEKS_PER_REPO,
-    render_daily_calendar,
     render_language_bar,
     render_per_repo_grid,
     render_repo_table,
@@ -30,20 +28,6 @@ def test_shade_for_bounds():
 def test_shade_for_never_index_zero_for_positive_counts():
     # Any positive value should use at least the lowest non-empty shade.
     assert shade_for(1, 1_000_000) == SHADES[1]
-
-
-def test_daily_calendar_shape():
-    days = _synthetic_days()
-    out = render_daily_calendar(days)
-    lines = out.splitlines()
-    # Header row + 7 weekday rows + legend + total row.
-    assert len(lines) == 10
-    # Last line should mention contributions.
-    assert "contributions" in lines[-1]
-
-
-def test_daily_calendar_handles_empty():
-    assert render_daily_calendar([]) == "(no contribution data)"
 
 
 def test_weekday_histogram_shape():
@@ -78,22 +62,28 @@ def test_per_repo_grid_has_one_row_per_repo_plus_axis():
     assert "beta" in lines[1]
 
 
-def test_language_bar_percentages_sum_to_100():
-    totals = {"Python": 80, "JavaScript": 15, "Go": 5}
-    out = render_language_bar(totals, width=50)
+def test_language_bar_percentages_sum_to_full_width():
+    stats = {"Python": (80, 3), "JavaScript": (15, 2), "Go": (5, 1)}
+    out = render_language_bar(stats, width=50)
     bar, legend = out.split("\n")
     assert len(bar) == 50
-    # All three languages appear (5% Go is at threshold = 2%).
-    for lang in totals:
+    for lang in stats:
         assert lang in legend
 
 
+def test_language_bar_shows_repo_counts():
+    stats = {"Python": (80, 6), "Rust": (20, 1)}
+    legend = render_language_bar(stats, width=40).splitlines()[1]
+    assert "in 6 repos" in legend
+    assert "in 1 repo" in legend  # singular
+
+
 def test_language_bar_groups_small_into_other():
-    totals = {"Python": 99, "A": 1, "B": 1, "C": 1}
-    out = render_language_bar(totals, width=50, min_fraction=0.05)
+    stats = {"Python": (99, 1), "A": (1, 1), "B": (1, 1), "C": (1, 1)}
+    out = render_language_bar(stats, width=50, min_fraction=0.05)
     legend = out.splitlines()[1]
     assert "Other" in legend
-    assert "A" not in legend.split("Other")[0]  # A grouped into Other
+    assert "A" not in legend.split("Other")[0]
 
 
 def test_language_bar_empty():

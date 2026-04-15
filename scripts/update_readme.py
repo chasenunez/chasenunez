@@ -54,12 +54,16 @@ except ImportError:  # pragma: no cover - fallback tested via wcswidth()
 # ---------------------------------------------------------------------------
 USERNAME = "chasenunez"
 TOP_N = 10
-WEEKS_PER_REPO = 47          # columns in the secondary per-repo heat grid
-CALENDAR_WEEKS = 53          # columns in the primary daily calendar
+WEEKS_PER_REPO = 47          # columns in the per-repo heat grid
 LINE_LENGTH = 112
 CACHE_FILE = ".activity_cache.json"
 README_OUT = "README.md"
 RESTRICTED_ROW = "restricted"
+
+# Languages to drop from the language-mix bar. HTML is almost always template
+# boilerplate / GH Pages output and swamps the bar for no real signal. Add
+# others here if they keep showing up as noise (e.g. "CSS", "SCSS").
+EXCLUDED_LANGUAGES: set = {"HTML"}
 
 # 9-level braille shade ramp (index 0 == empty).
 SHADES: List[str] = [" ", "⡀", "⡁", "⡑", "⡕", "⡝", "⣝", "⣽", "⣿"]
@@ -396,60 +400,6 @@ def shade_for(value: int, max_value: int) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Rendering — daily contribution calendar
-# ---------------------------------------------------------------------------
-def render_daily_calendar(days: Sequence[Tuple[date, int]],
-                          weeks: int = CALENDAR_WEEKS) -> str:
-    """Render a GitHub-style 7-row × ``weeks``-column braille calendar.
-
-    Columns are Sunday-anchored weeks; rows are Sun..Sat (top to bottom).
-    """
-    if not days:
-        return "(no contribution data)"
-    counts = {d: c for d, c in days}
-    last_day = days[-1][0]
-    # End on the Saturday on-or-after ``last_day``. Python weekday: Mon=0..Sun=6.
-    end = last_day + timedelta(days=(5 - last_day.weekday()) % 7)
-    start = end - timedelta(days=weeks * 7 - 1)
-    # Snap start back to Sunday.
-    start -= timedelta(days=(start.weekday() - 6) % 7)
-
-    max_c = max((c for _, c in days), default=0)
-
-    grid: List[List[str]] = [[" "] * weeks for _ in range(7)]
-    for i in range(weeks * 7):
-        d = start + timedelta(days=i)
-        if d > end:
-            break
-        col = i // 7
-        # weekday(): Mon=0..Sun=6 -> Sun-first: Sun=0,...,Sat=6
-        row = (d.weekday() + 1) % 7
-        grid[row][col] = shade_for(counts.get(d, 0), max_c)
-
-    # Month label row: one-letter initial at the first week of each month. We
-    # keep it to a single char per column because each grid cell is one week.
-    # Adjacent months would otherwise collide with 3-letter labels.
-    month_row = [" "] * weeks
-    seen_month: Optional[int] = None
-    for col in range(weeks):
-        week_start = start + timedelta(days=col * 7)
-        if week_start.month != seen_month:
-            month_row[col] = week_start.strftime("%b")[0]
-            seen_month = week_start.month
-
-    label_w = 4
-    row_labels = ["   ", "Mon", "   ", "Wed", "   ", "Fri", "   "]
-    out = [" " * (label_w + 1) + "".join(month_row)]
-    for row in range(7):
-        out.append(pad_to_width(row_labels[row], label_w, "right") + " " + "".join(grid[row]))
-    legend = " " * (label_w + 1) + "low " + " ".join(SHADES[1:]) + " high"
-    out.append(legend)
-    total = sum(c for _, c in days)
-    out.append(pad_to_width(f"{total} contributions in the last year", LINE_LENGTH, "center"))
-    return "\n".join(out)
-
-
-# ---------------------------------------------------------------------------
 # Rendering — weekday histogram
 # ---------------------------------------------------------------------------
 def render_weekday_histogram(days: Sequence[Tuple[date, int]], width: int = 60) -> str:
@@ -471,27 +421,35 @@ def render_weekday_histogram(days: Sequence[Tuple[date, int]], width: int = 60) 
 # ---------------------------------------------------------------------------
 # Rendering — language breakdown bar
 # ---------------------------------------------------------------------------
-def render_language_bar(lang_totals: Dict[str, int], width: int = 80,
+def render_language_bar(lang_stats: Dict[str, Tuple[int, int]], width: int = 80,
                         min_fraction: float = 0.02) -> str:
-    """Stacked horizontal bar showing language byte share across repos."""
-    total = sum(lang_totals.values())
+    """Stacked horizontal bar of language byte share across repos.
+
+    ``lang_stats`` is ``{lang: (bytes, repo_count)}``. The legend annotates
+    each segment with the number of repos the language appears in so that a
+    language with few bytes but wide adoption is still visible as "diverse".
+    Languages in ``EXCLUDED_LANGUAGES`` are assumed already filtered out.
+    """
+    total = sum(b for b, _ in lang_stats.values())
     if total <= 0:
         return "(no language data)"
-    items = sorted(lang_totals.items(), key=lambda kv: kv[1], reverse=True)
-    kept: List[Tuple[str, int]] = []
-    other = 0
-    for lang, b in items:
+    items = sorted(lang_stats.items(), key=lambda kv: kv[1][0], reverse=True)
+    kept: List[Tuple[str, int, int]] = []
+    other_bytes = 0
+    other_repos = 0
+    for lang, (b, n) in items:
         if b / total < min_fraction:
-            other += b
+            other_bytes += b
+            other_repos = max(other_repos, n)  # Other's repo count is informational
         else:
-            kept.append((lang, b))
-    if other > 0:
-        kept.append(("Other", other))
+            kept.append((lang, b, n))
+    if other_bytes > 0:
+        kept.append(("Other", other_bytes, other_repos))
 
     bar_parts: List[str] = []
     legend_parts: List[str] = []
     used = 0
-    for i, (lang, b) in enumerate(kept):
+    for i, (lang, b, n) in enumerate(kept):
         # Last segment soaks up rounding drift so the bar is exactly ``width``.
         if i == len(kept) - 1:
             seg = max(0, width - used)
@@ -501,7 +459,8 @@ def render_language_bar(lang_totals: Dict[str, int], width: int = 80,
         glyph = LANG_SEGMENTS[i % len(LANG_SEGMENTS)]
         bar_parts.append(glyph * seg)
         pct = b / total * 100
-        legend_parts.append(f"{glyph} {lang} {pct:.0f}%")
+        repo_note = "" if lang == "Other" else f" (in {n} repo{'s' if n != 1 else ''})"
+        legend_parts.append(f"{glyph} {lang} {pct:.0f}%{repo_note}")
     return "".join(bar_parts) + "\n" + "  ".join(legend_parts)
 
 
@@ -641,11 +600,6 @@ def build_readme(sections: Dict[str, str], *, now: Optional[datetime] = None) ->
         centered(header_top),
         rule,
         "",
-        centered("DAILY CONTRIBUTIONS"),
-        sections["calendar"],
-        "",
-        divider,
-        "",
         centered("DAY-OF-WEEK DISTRIBUTION"),
         sections["weekday"],
         "",
@@ -675,22 +629,37 @@ def build_readme(sections: Dict[str, str], *, now: Optional[datetime] = None) ->
 # ---------------------------------------------------------------------------
 # Aggregation helpers
 # ---------------------------------------------------------------------------
-def aggregate_language_totals(session: requests.Session, rows: List[dict]) -> Dict[str, int]:
-    """Sum byte counts per language across all non-private rows."""
-    totals: Dict[str, int] = {}
+def aggregate_language_stats(session: requests.Session,
+                             rows: List[dict]) -> Dict[str, Tuple[int, int]]:
+    """Return ``{lang: (total_bytes, repo_count)}`` across non-private rows.
+
+    ``repo_count`` is how many repos the language appears in at all (not just
+    as the primary one) — this is the "diversity" metric surfaced in the
+    language-bar legend. ``EXCLUDED_LANGUAGES`` are dropped here so every
+    downstream consumer sees a pre-filtered dict.
+    """
     def one(r):
         if r.get("private"):
             return {}
         return fetch_languages(session, r["owner"], r["name_text"])
+
+    per_repo: List[Dict[str, int]] = []
     with ThreadPoolExecutor(max_workers=min(METADATA_WORKERS, max(1, len(rows)))) as ex:
         for fut in as_completed([ex.submit(one, r) for r in rows]):
             try:
-                data = fut.result()
+                per_repo.append(fut.result())
             except Exception:
                 continue
-            for lang, b in data.items():
-                totals[lang] = totals.get(lang, 0) + int(b)
-    return totals
+
+    totals: Dict[str, int] = {}
+    repo_counts: Dict[str, int] = {}
+    for langs in per_repo:
+        for lang, b in langs.items():
+            if lang in EXCLUDED_LANGUAGES:
+                continue
+            totals[lang] = totals.get(lang, 0) + int(b)
+            repo_counts[lang] = repo_counts.get(lang, 0) + 1
+    return {lang: (totals[lang], repo_counts[lang]) for lang in totals}
 
 
 def gather_per_repo_weekly(session: requests.Session, rows: List[dict],
@@ -787,14 +756,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     save_cache(updated_cache, args.cache)
 
     # 4. Language mix.
-    lang_totals = aggregate_language_totals(session, rows)
+    lang_stats = aggregate_language_stats(session, rows)
 
     # 5. Render sections.
     sections = {
-        "calendar": render_daily_calendar(calendar_days),
         "weekday": render_weekday_histogram(calendar_days),
         "per_repo": render_per_repo_grid(repo_weekly, repo_order),
-        "languages": render_language_bar(lang_totals),
+        "languages": render_language_bar(lang_stats),
         "table": render_repo_table([r for r in rows if not r.get("private")]),
     }
     readme = build_readme(sections)

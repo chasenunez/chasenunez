@@ -5,26 +5,27 @@ graphics. It is designed to run daily from `.github/workflows/update_readme.yml`
 
 ## Visual sections (top to bottom)
 
-1. **Daily contributions calendar** — 7 rows × 53 weeks, GitHub-style, driven by
-   the GraphQL `contributionsCollection` endpoint. This is the authoritative
-   source of activity (public + private when authenticated).
-2. **Day-of-week distribution** — horizontal histogram of contributions
-   aggregated per weekday.
-3. **Per-repo weekly activity** — braille heat grid, one row per top-N
+1. **Day-of-week distribution** — horizontal histogram of contributions
+   aggregated per weekday, driven by the GraphQL `contributionsCollection`
+   endpoint (authoritative source; includes private contributions when authed).
+2. **Per-repo weekly activity** — braille heat grid, one row per top-N
    repository, using `/stats/commit_activity`. Private repos in the top-N are
    summed into a single `restricted` row.
-4. **Language mix** — single horizontal stacked bar of language byte shares
-   across public repos, with segments below 2% collapsed into `Other`.
-5. **Repository summary** — box-drawing table of repo metadata.
+3. **Language mix** — single horizontal stacked bar of language byte shares
+   across public repos, with segments below 2% collapsed into `Other`. The
+   legend annotates each segment with the number of repos the language appears
+   in (a "diversity" signal). Languages in `EXCLUDED_LANGUAGES` (HTML by
+   default) are dropped since they are typically template boilerplate.
+4. **Repository summary** — box-drawing table of repo metadata.
 
 ## Data sources
 
-| View                           | Endpoint                                         |
-| ------------------------------ | ------------------------------------------------ |
-| Daily calendar + weekday hist  | GraphQL `user.contributionsCollection`           |
-| Per-repo weekly heat grid      | REST `/repos/:o/:r/stats/commit_activity`        |
-| Language mix                   | REST `/repos/:o/:r/languages`                    |
-| Table                          | REST `/user/repos` (+ commits, branches headers) |
+| View                      | Endpoint                                         |
+| ------------------------- | ------------------------------------------------ |
+| Weekday histogram         | GraphQL `user.contributionsCollection`           |
+| Per-repo weekly heat grid | REST `/repos/:o/:r/stats/commit_activity`        |
+| Language mix              | REST `/repos/:o/:r/languages`                    |
+| Table                     | REST `/user/repos` (+ commits, branches headers) |
 
 `/stats/commit_activity` is unreliable (returns `202` or `200 []` while GitHub
 is still computing), so every non-empty response is persisted to
@@ -50,7 +51,7 @@ Top of `update_readme.py`:
 | `USERNAME`        | Account to query when no token is available.          |
 | `TOP_N`           | Repos to pull metadata for (most recently updated).   |
 | `WEEKS_PER_REPO`  | Columns in the per-repo heat grid.                    |
-| `CALENDAR_WEEKS`  | Columns in the daily calendar.                        |
+| `EXCLUDED_LANGUAGES` | Languages to drop from the language-mix bar.       |
 | `LINE_LENGTH`     | Target width for the rendered README.                 |
 | `CACHE_FILE`      | Path of the persisted weekly-commits cache.           |
 | `README_OUT`      | Path of the README to overwrite.                      |
