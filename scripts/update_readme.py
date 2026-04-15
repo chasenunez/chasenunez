@@ -755,8 +755,20 @@ def main(argv: Optional[List[str]] = None) -> int:
     repo_weekly, repo_order, updated_cache = gather_per_repo_weekly(session, rows, cache)
     save_cache(updated_cache, args.cache)
 
-    # 4. Language mix.
-    lang_stats = aggregate_language_stats(session, rows)
+    # 4. Language mix — deliberately uses the *full* repo list (not just the
+    # recently-active top-N) so the bar reflects every language we've ever
+    # shipped, not just the top few repos that happen to be active now.
+    all_lang_inputs = [
+        {
+            "owner": (r.get("owner") or {}).get("login"),
+            "name_text": r.get("name"),
+            "private": bool(r.get("private")),
+        }
+        for r in all_repos
+        if (r.get("owner") or {}).get("login") and r.get("name")
+    ]
+    print(f"Aggregating languages across {len(all_lang_inputs)} repos...", file=sys.stderr)
+    lang_stats = aggregate_language_stats(session, all_lang_inputs)
 
     # 5. Render sections.
     sections = {

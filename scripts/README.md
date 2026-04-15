@@ -12,10 +12,11 @@ graphics. It is designed to run daily from `.github/workflows/update_readme.yml`
    repository, using `/stats/commit_activity`. Private repos in the top-N are
    summed into a single `restricted` row.
 3. **Language mix** — single horizontal stacked bar of language byte shares
-   across public repos, with segments below 2% collapsed into `Other`. The
-   legend annotates each segment with the number of repos the language appears
-   in (a "diversity" signal). Languages in `EXCLUDED_LANGUAGES` (HTML by
-   default) are dropped since they are typically template boilerplate.
+   across *all* public repos (not just the recently-active top-N), with
+   segments below 2% collapsed into `Other`. The legend annotates each segment
+   with the number of repos the language appears in (a "diversity" signal).
+   Languages in `EXCLUDED_LANGUAGES` (HTML by default) are dropped since they
+   are typically template boilerplate.
 4. **Repository summary** — box-drawing table of repo metadata.
 
 ## Data sources
@@ -24,7 +25,7 @@ graphics. It is designed to run daily from `.github/workflows/update_readme.yml`
 | ------------------------- | ------------------------------------------------ |
 | Weekday histogram         | GraphQL `user.contributionsCollection`           |
 | Per-repo weekly heat grid | REST `/repos/:o/:r/stats/commit_activity`        |
-| Language mix              | REST `/repos/:o/:r/languages`                    |
+| Language mix (all repos)  | REST `/repos/:o/:r/languages`                    |
 | Table                     | REST `/user/repos` (+ commits, branches headers) |
 
 `/stats/commit_activity` is unreliable (returns `202` or `200 []` while GitHub
