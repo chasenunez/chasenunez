@@ -1,12 +1,12 @@
 name: VULPECULA CURRIT
 
-# run once a day + allow manual runs
+# Run once a day + allow manual runs.
 on:
   schedule:
     - cron: '0 0 * * *'   # daily at 00:00 UTC
   workflow_dispatch:
 
-# allow workflow to push updates using the built-in token
+# Allow the workflow to push README + cache updates using GITHUB_TOKEN.
 permissions:
   contents: write
 
@@ -14,7 +14,6 @@ jobs:
   update-readme:
     runs-on: ubuntu-latest
 
-    # Make GH_PAT available to the job steps via env (set GH_PAT as a repo secret)
     env:
       GH_PAT: ${{ secrets.GH_PAT }}
 
@@ -23,39 +22,36 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: true   # keep GITHUB_TOKEN configured for git push
+          persist-credentials: true
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: pip
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          fi
+          pip install -r requirements.txt
 
-      - name: Debug token presence
+      - name: Report token presence
         run: |
           echo "GH_PAT present? ${GH_PAT:+yes}"
           python -c "import os; print('GH_PAT length:', len(os.getenv('GH_PAT') or ''))"
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
 
-      - name: Run update script
-        # GH_PAT will be available to the script via environment variable GH_PAT
-        run: |
-          python scripts/update_readme.py
+      - name: Render README
+        run: python scripts/update_readme.py
+
+      - name: Run tests (after rendering)
+        run: pytest -q
 
       - name: Commit & push changes (if any)
         run: |
-          # Use the checked-out credentials (GITHUB_TOKEN) to push
-          if [ -n "$(git status --porcelain)" ]; then
+          if [ -n "$(git status --porcelain README.md .activity_cache.json)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add README.md
+            git add README.md .activity_cache.json
             git commit -m "chore(readme): daily automated update"
             git push
           else

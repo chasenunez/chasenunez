@@ -1,122 +1,72 @@
 # update-readme script
 
-This script (`update_readme.py`) fetches recent GitHub activity for a user (or for the authenticated user when a token is provided), assembles ASCII charts and an ASCII table summarizing repository activity, and writes an updated `README.md` in the repository root.
+`update_readme.py` renders a README showing GitHub activity as ASCII / braille
+graphics. It is designed to run daily from `.github/workflows/update_readme.yml`.
 
-I wrote the script to be robust and simple: it avoids injecting inline color styles (GitHub sanitizes those so they won't show consistently). The output is placed inside a `<pre>...</pre>` block so spacing is preserved and repo links are clickable.
+## Visual sections (top to bottom)
 
-is it flashy? no. is it colorful? no. 
-But is it effecient? also no.
+1. **Daily contributions calendar** — 7 rows × 53 weeks, GitHub-style, driven by
+   the GraphQL `contributionsCollection` endpoint. This is the authoritative
+   source of activity (public + private when authenticated).
+2. **Day-of-week distribution** — horizontal histogram of contributions
+   aggregated per weekday.
+3. **Per-repo weekly activity** — braille heat grid, one row per top-N
+   repository, using `/stats/commit_activity`. Private repos in the top-N are
+   summed into a single `restricted` row.
+4. **Language mix** — single horizontal stacked bar of language byte shares
+   across public repos, with segments below 2% collapsed into `Other`.
+5. **Repository summary** — box-drawing table of repo metadata.
 
-## What this does (high level)
-- Fetches the most recently updated repositories (configurable `TOP_N`).
-- Queries `/stats/commit_activity` for weekly commit counts (last `WEEKS` weeks).
-- Builds:
-  - an ASCII "area" plot showing weekly totals (with mean line),
-  - a compact braille-based contribution grid per repo,
-  - an ASCII table listing repo name, language, bytes, commits, last pushed date, and branch count,
-  - an hourly histogram showing commit timestamps (from up to `per_repo_limit` most recent commits per repo).
-- Writes a `README.md` that embeds the ASCII output inside `<pre>` so it renders well in GitHub.
+## Data sources
 
+| View                           | Endpoint                                         |
+| ------------------------------ | ------------------------------------------------ |
+| Daily calendar + weekday hist  | GraphQL `user.contributionsCollection`           |
+| Per-repo weekly heat grid      | REST `/repos/:o/:r/stats/commit_activity`        |
+| Language mix                   | REST `/repos/:o/:r/languages`                    |
+| Table                          | REST `/user/repos` (+ commits, branches headers) |
 
-## Requirements
-- Python 3.8+ recommended
-- `requests`
-- Optional but recommended for nicer width handling: `wcwidth`
-- Optional: `plotille` (if installed, it can produce a fancier histogram fallback)
+`/stats/commit_activity` is unreliable (returns `202` or `200 []` while GitHub
+is still computing), so every non-empty response is persisted to
+`.activity_cache.json`. The cache is **committed to the repo** so it survives
+between workflow runs; a stale cache is a far better default than an empty grid.
 
-Install required packages:
+## Authentication
 
-```bash
-pip install requests wcwidth plotille
-````
+Set `GH_PAT` (or `GITHUB_TOKEN` / `GH_TOKEN`) in the environment. Without a
+token the script falls back to public data for `USERNAME`. A token is required
+for private contributions to show up in the calendar.
 
-(If you don't want `plotille` or `wcwidth`, the script still works with sensible fallbacks.)
+Minimum scopes for a classic PAT: `read:user` + `repo` (the latter only if you
+want private repo activity included). Fine-grained PATs need
+`Contents: Read` and `Metadata: Read` on the repos of interest.
 
+## Config
 
-## Authentication / tokens
+Top of `update_readme.py`:
 
-* For unauthenticated runs the script fetches public info for `USERNAME` (default set inside the script).
-* For private repos and higher rate limits, provide a Personal Access Token (PAT) via environment variable:
+| Name              | Meaning                                               |
+| ----------------- | ----------------------------------------------------- |
+| `USERNAME`        | Account to query when no token is available.          |
+| `TOP_N`           | Repos to pull metadata for (most recently updated).   |
+| `WEEKS_PER_REPO`  | Columns in the per-repo heat grid.                    |
+| `CALENDAR_WEEKS`  | Columns in the daily calendar.                        |
+| `LINE_LENGTH`     | Target width for the rendered README.                 |
+| `CACHE_FILE`      | Path of the persisted weekly-commits cache.           |
+| `README_OUT`      | Path of the README to overwrite.                      |
 
-  * `GH_PAT` or `GITHUB_TOKEN` or `GH_TOKEN`.
+## Running locally
 
-Token scopes:
-
-* To read private repo info you need `repo` scope. For public data only, no scope is needed.
-
-Example (POSIX shell):
-
-```bash
-export GH_PAT="ghp_xxx..."
-python update_readme.py
+```sh
+pip install -r requirements.txt
+export GH_PAT="ghp_..."
+python scripts/update_readme.py             # writes README.md + cache
+python scripts/update_readme.py --print     # render to stdout only
+pytest -q                                   # run the rendering tests
 ```
 
+## Tests
 
-## Where to customize (safe to change)
-
-Open `update_readme.py` and edit the top `Config` block:
-
-* `USERNAME` — username to fetch when you don't supply a token.
-* `TOP_N` — how many of the most recently updated repos to summarise.
-* `WEEKS` — how many weekly buckets from `/stats/commit_activity` to display.
-* `PLOT_HEIGHT` — height of the ASCII area plot (rows).
-* `MAX_WIDTH` / `LINE_LENGTH` — tune layout width preferences.
-* `CACHE_FILE` — file where I store recent commit_activity arrays to handle GitHub stats inconsistencies.
-* `README_OUT` — path of the output file written by the script (default `README.md`).
-
-These are high-level presentation parameters and safe to edit as needed.
-
-
-## Things that should NOT be changed (unless you know what you are doing)
-
-* `GITHUB_API` (unless you target a GitHub Enterprise instance; in that case adapt URLs).
-* The logic that builds `repo_weekly` and the caching logic if you want consistent behaviour.
-* The names/format of the cache file if you rely on the cache elsewhere.
-
-
-## GitHub Action example
-
-You can run this on a schedule with a GitHub Action. Below is a minimal workflow you can drop into `.github/workflows/update-readme.yml`:
-
-```yaml
-name: Update README with activity
-on:
-  schedule:
-    - cron: '0 */6 * * *'   # every 6 hours (adjust as desired)
-  workflow_dispatch:
-
-jobs:
-  update-readme:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-      - name: Install deps
-        run: pip install requests wcwidth plotille
-      - name: Run update script
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}   # set this in your repo secrets if you need private access
-        run: python script/update_readme.py
-      - name: Commit updated README
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md
-          git commit -m "Automated README update: repo activity" || echo "No changes"
-          git push
-```
-
-If you only need public repo data for a single user, you can omit the token.
-
-
-## Notes, tips & troubleshooting
-
-* The GitHub `/stats/*` endpoints can return `202` while GitHub generates stats. The script retries (exponential backoff) but sometimes the endpoint remains empty; that's why I maintain a small JSON cache of last-known series.
-* Rate limits: without a token you'll hit lower rate limits; with a token you get higher limits.
-* The script preserves anchor tags for repo links inside the ASCII table to keep them clickable in the README.
-* If the ASCII table seems too wide on small screens, reduce `LINE_LENGTH` and/or `TOP_N`.
-* If you want color in a rendered terminal, run the script locally and pipe output into a terminal-friendly renderer. I removed the inline coloring because GitHub strips those attributes; the core data is preserved.
-
+Rendering is verified via `pytest` under `tests/`. Tests use synthetic fixtures
+and do not hit the network. The GitHub Actions workflow runs tests **after**
+rendering — a failing test blocks the commit+push step.
