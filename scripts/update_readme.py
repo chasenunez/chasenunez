@@ -6,39 +6,34 @@ Render a GitHub activity README using ASCII / braille graphics.
 
 Data sources
 ------------
-* GraphQL ``contributionsCollection`` — authoritative daily contribution calendar
-  for the authenticated user (includes private contributions when authed).
-  Used for: daily heat map, weekday histogram, weekly totals sparkline.
-* REST ``/user/repos`` (or ``/users/:u/repos``) — top-N most recently updated
-  repositories, used for the metadata table.
+* GraphQL ``contributionsCollection`` — authoritative daily contribution
+  stream, feeds the weekday histogram. Includes private contributions when
+  authenticated.
+* REST ``/user/repos`` (or ``/users/:u/repos``) — full repo list. The top-N
+  most recently updated go into the metadata table; the full list drives the
+  language mix.
 * REST ``/repos/:o/:r/{commits,branches,languages}`` — per-repo metadata.
-* REST ``/repos/:o/:r/stats/commit_activity`` — per-repo weekly totals feeding
-  the secondary per-repo heat grid. Results are cached to ``CACHE_FILE`` so
-  sparse responses from GitHub never zero out a row silently.
 
 Auth
 ----
 Reads ``GH_PAT`` / ``GITHUB_TOKEN`` / ``GH_TOKEN`` from the environment.
 Unauthenticated runs fall back to public data for ``USERNAME``.
 
-Outputs
--------
-* ``README.md`` — the rendered dashboard, wrapped in ``<pre>`` so braille /
-  column alignment survives GitHub's markdown pipeline.
-* ``.activity_cache.json`` — persistent cache committed alongside the README.
+Output
+------
+``README.md`` — the rendered dashboard wrapped in ``<pre>`` so braille /
+column alignment survives GitHub's markdown pipeline.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import re
 import sys
-import time
 import unicodedata
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import requests
@@ -54,19 +49,14 @@ except ImportError:  # pragma: no cover - fallback tested via wcswidth()
 # ---------------------------------------------------------------------------
 USERNAME = "chasenunez"
 TOP_N = 10
-WEEKS_PER_REPO = 47          # columns in the per-repo heat grid
 LINE_LENGTH = 112
-CACHE_FILE = ".activity_cache.json"
 README_OUT = "README.md"
-RESTRICTED_ROW = "restricted"
 
 # Languages to drop from the language-mix bar. HTML is almost always template
 # boilerplate / GH Pages output and swamps the bar for no real signal. Add
 # others here if they keep showing up as noise (e.g. "CSS", "SCSS").
 EXCLUDED_LANGUAGES: set = {"HTML"}
 
-# 9-level braille shade ramp (index 0 == empty).
-SHADES: List[str] = [" ", "⡀", "⡁", "⡑", "⡕", "⡝", "⣝", "⣽", "⣿"]
 # Segment glyphs used by the language bar.
 LANG_SEGMENTS: List[str] = ["█", "▓", "▒", "░", "▚", "▞", "▙", "▜", "▛"]
 
@@ -74,9 +64,6 @@ LANG_SEGMENTS: List[str] = ["█", "▓", "▒", "░", "▚", "▞", "▙", "�
 GITHUB_REST = "https://api.github.com"
 GITHUB_GRAPHQL = "https://api.github.com/graphql"
 HTTP_TIMEOUT = 30
-STATS_ATTEMPTS = 6
-STATS_BACKOFF_INITIAL = 1.0
-STATS_BACKOFF_CAP = 8.0
 METADATA_WORKERS = 8
 
 
@@ -263,44 +250,6 @@ def fetch_languages(session: requests.Session, owner: str, repo: str) -> Dict[st
         return {}
 
 
-def fetch_weekly_commits(session: requests.Session, owner: str, repo: str,
-                         weeks: int = WEEKS_PER_REPO) -> Optional[List[int]]:
-    """Return the last ``weeks`` weekly totals, or ``None`` if unavailable.
-
-    Handles the common GitHub quirks:
-    * ``202 Accepted`` while stats are being computed -> retry with backoff
-    * ``200`` with empty body or empty list -> also treated as "not ready yet"
-    """
-    url = f"{GITHUB_REST}/repos/{owner}/{repo}/stats/commit_activity"
-    backoff = STATS_BACKOFF_INITIAL
-    for _ in range(STATS_ATTEMPTS):
-        try:
-            r = session.get(url, timeout=HTTP_TIMEOUT)
-        except requests.RequestException:
-            return None
-        if r.status_code == 202 or (r.status_code == 200 and not r.content):
-            time.sleep(min(backoff, STATS_BACKOFF_CAP))
-            backoff *= 2
-            continue
-        if r.status_code != 200:
-            return None
-        try:
-            data = r.json()
-        except Exception:
-            return None
-        if not isinstance(data, list):
-            return None
-        if not data:
-            time.sleep(min(backoff, STATS_BACKOFF_CAP))
-            backoff *= 2
-            continue
-        totals = [int(w.get("total", 0)) for w in data]
-        if len(totals) >= weeks:
-            return totals[-weeks:]
-        return [0] * (weeks - len(totals)) + totals
-    return None
-
-
 def build_repo_rows(session: requests.Session, repos: List[dict]) -> List[dict]:
     """Return table row dicts concurrently (commits, branches, language fixup)."""
     def one(r: dict) -> Optional[dict]:
@@ -353,53 +302,6 @@ def build_repo_rows(session: requests.Session, repos: List[dict]) -> List[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Cache
-# ---------------------------------------------------------------------------
-def load_cache(path: str = CACHE_FILE) -> dict:
-    if not os.path.exists(path):
-        return {}
-    try:
-        with open(path, "r", encoding="utf-8") as fh:
-            d = json.load(fh)
-        return d if isinstance(d, dict) else {}
-    except Exception:
-        return {}
-
-
-def save_cache(cache: dict, path: str = CACHE_FILE) -> None:
-    try:
-        with open(path, "w", encoding="utf-8") as fh:
-            json.dump(cache, fh, sort_keys=True, indent=2)
-            fh.write("\n")
-    except Exception:
-        pass
-
-
-def merge_weekly_with_cache(repo: str, fresh: Optional[List[int]], cache: dict) -> List[int]:
-    """Prefer ``fresh`` if it has signal; otherwise fall back to cached series."""
-    zeros = [0] * WEEKS_PER_REPO
-    cached = cache.get(repo)
-    cached_ok = isinstance(cached, list) and len(cached) == WEEKS_PER_REPO and any(cached)
-    if fresh and any(fresh):
-        return fresh
-    if cached_ok:
-        return cached  # type: ignore[return-value]
-    return fresh if fresh is not None else zeros
-
-
-# ---------------------------------------------------------------------------
-# Rendering — shade / helper
-# ---------------------------------------------------------------------------
-def shade_for(value: int, max_value: int) -> str:
-    """Map a value in ``[0, max_value]`` to a braille shade glyph."""
-    if max_value <= 0 or value <= 0:
-        return SHADES[0]
-    ratio = min(1.0, value / max_value)
-    idx = int(round(ratio * (len(SHADES) - 1)))
-    return SHADES[max(1, min(len(SHADES) - 1, idx))]
-
-
-# ---------------------------------------------------------------------------
 # Rendering — weekday histogram
 # ---------------------------------------------------------------------------
 def render_weekday_histogram(days: Sequence[Tuple[date, int]], width: int = 60) -> str:
@@ -421,11 +323,13 @@ def render_weekday_histogram(days: Sequence[Tuple[date, int]], width: int = 60) 
 # ---------------------------------------------------------------------------
 # Rendering — language breakdown bar
 # ---------------------------------------------------------------------------
-def render_language_bar(lang_stats: Dict[str, Tuple[int, int]], width: int = 80,
+def render_language_bar(lang_stats: Dict[str, Tuple[int, int]], width: int = LINE_LENGTH,
                         min_fraction: float = 0.02) -> str:
     """Stacked horizontal bar of language byte share across repos.
 
-    ``lang_stats`` is ``{lang: (bytes, repo_count)}``. The legend annotates
+    ``lang_stats`` is ``{lang: (bytes, repo_count)}``. The bar is always
+    exactly ``width`` columns wide; the legend is greedy-wrapped to the same
+    width so nothing ever spills past the container edge. The legend annotates
     each segment with the number of repos the language appears in so that a
     language with few bytes but wide adoption is still visible as "diverse".
     Languages in ``EXCLUDED_LANGUAGES`` are assumed already filtered out.
@@ -440,14 +344,15 @@ def render_language_bar(lang_stats: Dict[str, Tuple[int, int]], width: int = 80,
     for lang, (b, n) in items:
         if b / total < min_fraction:
             other_bytes += b
-            other_repos = max(other_repos, n)  # Other's repo count is informational
+            other_repos = max(other_repos, n)
         else:
             kept.append((lang, b, n))
     if other_bytes > 0:
         kept.append(("Other", other_bytes, other_repos))
 
+    # Build the bar and the per-language legend entry in one pass.
     bar_parts: List[str] = []
-    legend_parts: List[str] = []
+    entries: List[str] = []
     used = 0
     for i, (lang, b, n) in enumerate(kept):
         # Last segment soaks up rounding drift so the bar is exactly ``width``.
@@ -460,42 +365,19 @@ def render_language_bar(lang_stats: Dict[str, Tuple[int, int]], width: int = 80,
         bar_parts.append(glyph * seg)
         pct = b / total * 100
         repo_note = "" if lang == "Other" else f" (in {n} repo{'s' if n != 1 else ''})"
-        legend_parts.append(f"{glyph} {lang} {pct:.0f}%{repo_note}")
-    return "".join(bar_parts) + "\n" + "  ".join(legend_parts)
+        entries.append(f"{glyph} {lang} {pct:.0f}%{repo_note}")
 
-
-# ---------------------------------------------------------------------------
-# Rendering — per-repo weekly heat grid
-# ---------------------------------------------------------------------------
-def render_per_repo_grid(repo_weekly: Dict[str, List[int]],
-                         repo_order: Sequence[str],
-                         label_w: int = 10) -> str:
-    """Braille-shaded grid, one row per repo, ``WEEKS_PER_REPO`` columns."""
-    if not repo_order:
-        return ""
-    lines: List[str] = []
-    for repo in repo_order:
-        weeks = repo_weekly.get(repo) or [0] * WEEKS_PER_REPO
-        if len(weeks) < WEEKS_PER_REPO:
-            weeks = [0] * (WEEKS_PER_REPO - len(weeks)) + weeks
-        max_val = max(weeks) or 1
-        cells = " ".join(shade_for(w, max_val) for w in weeks)
-        label = pad_to_width(repo, label_w, "right")
-        lines.append(f"{label}┤ {cells}")
-    # Month x-axis.
-    axis_cells: List[str] = []
-    last_month: Optional[int] = None
-    now = datetime.now(timezone.utc)
-    for i in range(WEEKS_PER_REPO):
-        dt = now - timedelta(days=(WEEKS_PER_REPO - 1 - i) * 7)
-        if dt.month != last_month:
-            axis_cells.append(dt.strftime("%b")[0])
-            last_month = dt.month
+    # Greedy-wrap the legend so no line exceeds ``width``.
+    sep = "  "
+    legend_lines: List[str] = [""]
+    for entry in entries:
+        current = legend_lines[-1]
+        candidate = entry if not current else current + sep + entry
+        if wcswidth(candidate) > width and current:
+            legend_lines.append(entry)
         else:
-            axis_cells.append(" ")
-    axis = " " * label_w + " " + " ".join(axis_cells)
-    lines.append(axis)
-    return "\n".join(lines)
+            legend_lines[-1] = candidate
+    return "".join(bar_parts) + "\n" + "\n".join(legend_lines)
 
 
 # ---------------------------------------------------------------------------
@@ -600,13 +482,8 @@ def build_readme(sections: Dict[str, str], *, now: Optional[datetime] = None) ->
         centered(header_top),
         rule,
         "",
-        centered("DAY-OF-WEEK DISTRIBUTION"),
-        sections["weekday"],
-        "",
-        divider,
-        "",
-        centered("PER-REPO WEEKLY ACTIVITY"),
-        sections["per_repo"],
+        centered("REPOSITORY SUMMARY"),
+        sections["table"],
         "",
         divider,
         "",
@@ -615,8 +492,8 @@ def build_readme(sections: Dict[str, str], *, now: Optional[datetime] = None) ->
         "",
         divider,
         "",
-        centered("REPOSITORY SUMMARY"),
-        sections["table"],
+        centered("DAY-OF-WEEK DISTRIBUTION"),
+        sections["weekday"],
         "",
         rule,
         centered(header_bot),
@@ -662,64 +539,12 @@ def aggregate_language_stats(session: requests.Session,
     return {lang: (totals[lang], repo_counts[lang]) for lang in totals}
 
 
-def gather_per_repo_weekly(session: requests.Session, rows: List[dict],
-                           cache: dict) -> Tuple[Dict[str, List[int]], List[str], dict]:
-    """Return (repo_weekly, repo_order, updated_cache).
-
-    Public repos get their own row (keyed by repo name). Private repos are
-    aggregated into a single ``RESTRICTED_ROW`` series.
-    """
-    updated_cache = dict(cache)
-    repo_weekly: Dict[str, List[int]] = {}
-    public_order: List[str] = []
-    private_rows = [r for r in rows if r.get("private")]
-    public_rows = [r for r in rows if not r.get("private")]
-
-    def fetch(r):
-        return r["name_text"], fetch_weekly_commits(session, r["owner"], r["name_text"])
-
-    with ThreadPoolExecutor(max_workers=min(METADATA_WORKERS, max(1, len(public_rows)))) as ex:
-        for fut in as_completed([ex.submit(fetch, r) for r in public_rows]):
-            try:
-                name, fresh = fut.result()
-            except Exception:
-                continue
-            merged = merge_weekly_with_cache(name, fresh, cache)
-            repo_weekly[name] = merged
-            if fresh and any(fresh):
-                updated_cache[name] = fresh
-
-    # Preserve repo_order based on original row order (most recently updated).
-    for r in public_rows:
-        if r["name_text"] in repo_weekly:
-            public_order.append(r["name_text"])
-
-    if private_rows:
-        agg = [0] * WEEKS_PER_REPO
-        any_signal = False
-        for r in private_rows:
-            fresh = fetch_weekly_commits(session, r["owner"], r["name_text"])
-            if fresh:
-                for i, v in enumerate(fresh):
-                    agg[i] += v
-                if any(fresh):
-                    any_signal = True
-        merged = merge_weekly_with_cache(RESTRICTED_ROW, agg if any_signal else None, cache)
-        repo_weekly[RESTRICTED_ROW] = merged
-        if any_signal:
-            updated_cache[RESTRICTED_ROW] = agg
-        public_order.append(RESTRICTED_ROW)
-
-    return repo_weekly, public_order, updated_cache
-
-
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Render a GitHub activity README.")
     p.add_argument("--output", default=README_OUT, help="Path to write the README to.")
-    p.add_argument("--cache", default=CACHE_FILE, help="Path for the persistent cache file.")
     p.add_argument("--print", dest="print_only", action="store_true",
                    help="Print the rendered README to stdout instead of writing.")
     return p.parse_args(argv)
@@ -734,30 +559,24 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("No token — falling back to unauthenticated public data.", file=sys.stderr)
     session = make_session(token)
 
-    # 1. Overall contributions (primary graphic).
+    # 1. Overall contributions (drives the weekday histogram).
     try:
         calendar_days = fetch_contribution_calendar(session, USERNAME)
     except Exception as exc:
         print(f"GraphQL contribution calendar fetch failed: {exc}", file=sys.stderr)
         calendar_days = []
 
-    # 2. Repo list (most recent first), then metadata table.
+    # 2. Repo list (most recent first) -> metadata table for the top-N.
     try:
         all_repos = fetch_repos(session, token)
     except Exception as exc:
         print(f"Failed to fetch repositories: {exc}", file=sys.stderr)
         return 1
-    top_repos = all_repos[:TOP_N]
-    rows = build_repo_rows(session, top_repos)
+    rows = build_repo_rows(session, all_repos[:TOP_N])
 
-    # 3. Per-repo weekly activity with cache merge.
-    cache = load_cache(args.cache)
-    repo_weekly, repo_order, updated_cache = gather_per_repo_weekly(session, rows, cache)
-    save_cache(updated_cache, args.cache)
-
-    # 4. Language mix — deliberately uses the *full* repo list (not just the
-    # recently-active top-N) so the bar reflects every language we've ever
-    # shipped, not just the top few repos that happen to be active now.
+    # 3. Language mix — deliberately uses the *full* repo list so the bar
+    # reflects every language we've shipped, not just the recently-active
+    # top-N.
     all_lang_inputs = [
         {
             "owner": (r.get("owner") or {}).get("login"),
@@ -770,12 +589,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"Aggregating languages across {len(all_lang_inputs)} repos...", file=sys.stderr)
     lang_stats = aggregate_language_stats(session, all_lang_inputs)
 
-    # 5. Render sections.
+    # 4. Render sections.
     sections = {
-        "weekday": render_weekday_histogram(calendar_days),
-        "per_repo": render_per_repo_grid(repo_weekly, repo_order),
-        "languages": render_language_bar(lang_stats),
         "table": render_repo_table([r for r in rows if not r.get("private")]),
+        "languages": render_language_bar(lang_stats),
+        "weekday": render_weekday_histogram(calendar_days),
     }
     readme = build_readme(sections)
 

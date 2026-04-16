@@ -5,33 +5,27 @@ graphics. It is designed to run daily from `.github/workflows/update_readme.yml`
 
 ## Visual sections (top to bottom)
 
-1. **Day-of-week distribution** — horizontal histogram of contributions
-   aggregated per weekday, driven by the GraphQL `contributionsCollection`
-   endpoint (authoritative source; includes private contributions when authed).
-2. **Per-repo weekly activity** — braille heat grid, one row per top-N
-   repository, using `/stats/commit_activity`. Private repos in the top-N are
-   summed into a single `restricted` row.
-3. **Language mix** — single horizontal stacked bar of language byte shares
+1. **Repository summary** — box-drawing table of repo metadata for the top-N
+   most recently updated repos.
+2. **Language mix** — single horizontal stacked bar of language byte shares
    across *all* public repos (not just the recently-active top-N), with
-   segments below 2% collapsed into `Other`. The legend annotates each segment
-   with the number of repos the language appears in (a "diversity" signal).
+   segments below 2% collapsed into `Other`. The bar is always exactly
+   `LINE_LENGTH` columns wide; the legend is greedy-wrapped to that same width
+   so it never spills past the table border. Each legend entry annotates the
+   language with the number of repos it appears in (a "diversity" signal).
    Languages in `EXCLUDED_LANGUAGES` (HTML by default) are dropped since they
    are typically template boilerplate.
-4. **Repository summary** — box-drawing table of repo metadata.
+3. **Day-of-week distribution** — horizontal histogram of contributions
+   aggregated per weekday, driven by the GraphQL `contributionsCollection`
+   endpoint (authoritative source; includes private contributions when authed).
 
 ## Data sources
 
 | View                      | Endpoint                                         |
 | ------------------------- | ------------------------------------------------ |
-| Weekday histogram         | GraphQL `user.contributionsCollection`           |
-| Per-repo weekly heat grid | REST `/repos/:o/:r/stats/commit_activity`        |
+| Repo table                | REST `/user/repos` (+ commits, branches headers) |
 | Language mix (all repos)  | REST `/repos/:o/:r/languages`                    |
-| Table                     | REST `/user/repos` (+ commits, branches headers) |
-
-`/stats/commit_activity` is unreliable (returns `202` or `200 []` while GitHub
-is still computing), so every non-empty response is persisted to
-`.activity_cache.json`. The cache is **committed to the repo** so it survives
-between workflow runs; a stale cache is a far better default than an empty grid.
+| Weekday histogram         | GraphQL `user.contributionsCollection`           |
 
 ## Authentication
 
@@ -51,10 +45,8 @@ Top of `update_readme.py`:
 | ----------------- | ----------------------------------------------------- |
 | `USERNAME`        | Account to query when no token is available.          |
 | `TOP_N`           | Repos to pull metadata for (most recently updated).   |
-| `WEEKS_PER_REPO`  | Columns in the per-repo heat grid.                    |
 | `EXCLUDED_LANGUAGES` | Languages to drop from the language-mix bar.       |
 | `LINE_LENGTH`     | Target width for the rendered README.                 |
-| `CACHE_FILE`      | Path of the persisted weekly-commits cache.           |
 | `README_OUT`      | Path of the README to overwrite.                      |
 
 ## Running locally
@@ -62,7 +54,7 @@ Top of `update_readme.py`:
 ```sh
 pip install -r requirements.txt
 export GH_PAT="ghp_..."
-python scripts/update_readme.py             # writes README.md + cache
+python scripts/update_readme.py             # writes README.md
 python scripts/update_readme.py --print     # render to stdout only
 pytest -q                                   # run the rendering tests
 ```
