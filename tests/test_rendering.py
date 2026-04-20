@@ -1,109 +1,105 @@
-from datetime import date, timedelta
+import re
 
 from update_readme import (
-    render_language_bar,
+    TABLE_COLS,
+    _fmt_lifespan,
+    filter_recently_active,
     render_repo_table,
-    render_weekday_histogram,
 )
+from datetime import datetime, timezone
 
 
-def _synthetic_days(n: int = 365, pattern=lambda i: i % 7):
-    """Return ``n`` (date, count) tuples ending today."""
-    today = date.today()
-    return [(today - timedelta(days=n - 1 - i), pattern(i)) for i in range(n)]
+def test_fmt_lifespan_none():
+    assert _fmt_lifespan(None) == "—"
 
 
-def test_weekday_histogram_shape():
-    days = _synthetic_days(14, lambda i: 1)  # every day has 1 contribution
-    out = render_weekday_histogram(days)
-    lines = out.splitlines()
-    assert len(lines) == 7
-    names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    for line, name in zip(lines, names):
-        assert line.startswith(name)
+def test_fmt_lifespan_zero_days():
+    # Brand-new repo, first commit today.
+    assert _fmt_lifespan(0) == "<1 d"
 
 
-def test_weekday_histogram_aggregates():
-    # Two mondays only.
-    monday = date(2026, 4, 13)  # verified: weekday() == 0
-    assert monday.weekday() == 0
-    days = [(monday, 3), (monday + timedelta(days=7), 4)]
-    out = render_weekday_histogram(days)
-    mon_line = out.splitlines()[0]
-    assert mon_line.endswith("7")
+def test_fmt_lifespan_thousands_separator():
+    assert _fmt_lifespan(1234) == "1,234 d"
 
 
-def test_language_bar_percentages_sum_to_full_width():
-    stats = {"Python": (80, 3), "JavaScript": (15, 2), "Go": (5, 1)}
-    out = render_language_bar(stats, width=50)
-    lines = out.split("\n")
-    bar = lines[0]
-    legend = "\n".join(lines[1:])
-    assert len(bar) == 50
-    for lang in stats:
-        assert lang in legend
-
-
-def test_language_bar_legend_never_exceeds_width():
-    # Many languages force multi-line legend; every line must fit within width.
-    stats = {
-        "Python": (40, 8),
-        "JavaScript": (25, 5),
-        "Go": (15, 3),
-        "Rust": (10, 2),
-        "TypeScript": (10, 4),
-    }
-    width = 60
-    out = render_language_bar(stats, width=width, min_fraction=0.0)
-    lines = out.split("\n")
-    for line in lines:
-        assert len(line) <= width, f"line exceeded width {width}: {line!r}"
-
-
-def test_language_bar_shows_repo_counts():
-    stats = {"Python": (80, 6), "Rust": (20, 1)}
-    out = render_language_bar(stats, width=80)
-    # Legend may be on subsequent lines; join them all.
-    legend = "\n".join(out.splitlines()[1:])
-    assert "in 6 repos" in legend
-    assert "in 1 repo" in legend  # singular
-
-
-def test_language_bar_groups_small_into_other():
-    stats = {"Python": (99, 1), "A": (1, 1), "B": (1, 1), "C": (1, 1)}
-    out = render_language_bar(stats, width=50, min_fraction=0.05)
-    legend = "\n".join(out.splitlines()[1:])
-    assert "Other" in legend
-    # Small languages must not appear as named entries before "Other".
-    before_other = legend.split("Other")[0]
-    assert " A " not in before_other
-    assert " B " not in before_other
-    assert " C " not in before_other
-
-
-def test_language_bar_empty():
-    assert render_language_bar({}) == "(no language data)"
-
-
-def test_repo_table_basic():
-    import re
-    rows = [
-        {"name_text": "alpha", "name_url": "https://example/alpha", "language": "Python",
-         "size": 123, "commits": 10, "branches": 1, "last_commit": "2026-04-01"},
-        {"name_text": "beta", "name_url": "", "language": "Go",
-         "size": 456, "commits": 42, "branches": 2, "last_commit": "2026-03-30"},
+def test_filter_recently_active_keeps_in_window_drops_out():
+    now = datetime(2026, 4, 20, tzinfo=timezone.utc)
+    repos = [
+        {"name": "fresh", "pushed_at": "2026-04-10T00:00:00Z"},            # 10d ago
+        {"name": "stale", "pushed_at": "2025-01-01T00:00:00Z"},            # ~475d ago
+        {"name": "edge", "pushed_at": "2025-10-23T00:00:00Z"},             # ~179d ago (in)
+        {"name": "nothing"},                                                # no timestamp
     ]
-    out = render_repo_table(rows, target_width=80)
+    out = [r["name"] for r in filter_recently_active(repos, now=now, window_days=180)]
+    assert "fresh" in out
+    assert "edge" in out
+    assert "stale" not in out
+    assert "nothing" not in out
+
+
+def _sample_rows():
+    return [
+        {
+            "name_text": "alpha",
+            "name_url": "https://example/alpha",
+            "language": "Python",
+            "size": 12345,
+            "commits": 128,
+            "lifespan_days": 365,
+            "team_size": 3,
+        },
+        {
+            "name_text": "beta",
+            "name_url": "",
+            "language": "Go",
+            "size": 200,
+            "commits": 5,
+            "lifespan_days": None,  # unknown first-commit date
+            "team_size": 1,
+        },
+    ]
+
+
+def test_repo_table_has_all_new_columns():
+    out = render_repo_table(_sample_rows(), target_width=100)
+    header = out.splitlines()[1]
+    for col in TABLE_COLS:
+        assert col in header
+    # Legacy columns must be gone.
+    assert "Last Commit Date" not in out
+    assert "Branches" not in out
+
+
+def test_repo_table_rows_render_new_metrics():
+    out = render_repo_table(_sample_rows(), target_width=100)
+    # Commits formatted with thousands separator.
+    assert "128" in out
+    # Lifespan formatted with "d" suffix.
+    assert "365 d" in out
+    # Unknown lifespan falls back to em-dash.
+    assert "—" in out
+    # Team size rendered.
+    assert " 3 " in out and " 1 " in out
+
+
+def test_repo_table_width_and_borders():
+    out = render_repo_table(_sample_rows(), target_width=100)
     lines = out.splitlines()
     assert lines[0].startswith("╔") and lines[0].endswith("╗")
     assert lines[-1].startswith("╚") and lines[-1].endswith("╝")
-    # Every line has the same *visible* width once HTML anchors are stripped.
+    # Every line has the same visible width once HTML anchors are stripped.
     strip_html = lambda s: re.sub(r"<[^>]+>", "", s)
     widths = {len(strip_html(line)) for line in lines}
     assert len(widths) == 1, widths
-    joined = "\n".join(lines)
-    assert "Python" in joined and "alpha" in joined
-    # Anchor emitted for rows that have a url.
-    assert '<a href="https://example/alpha">' in joined
-    # Row without a url gets plain text.
-    assert "beta" in joined
+    assert widths.pop() == 100
+
+
+def test_repo_table_anchor_emitted_for_urls():
+    out = render_repo_table(_sample_rows(), target_width=100)
+    assert '<a href="https://example/alpha">' in out
+    # Row without a url stays plain text.
+    assert "beta" in out
+
+
+def test_repo_table_empty_returns_empty_string():
+    assert render_repo_table([]) == ""
