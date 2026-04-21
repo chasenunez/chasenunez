@@ -59,7 +59,7 @@ except ImportError:  # pragma: no cover - fallback tested via wcswidth()
 # Config — safe to tune
 # ---------------------------------------------------------------------------
 USERNAME = "chasenunez"
-ACTIVE_WINDOW_DAYS = 180          # ~6 months of "recently active"
+ACTIVE_WINDOW_DAYS = 90          # ~6 months of "recently active"
 LINE_LENGTH = 112                 # target width of the rendered dashboard
 README_OUT = "README.md"
 
