@@ -539,9 +539,11 @@ def build_readme(sections: dict, *, now: Optional[datetime] = None,
     """Wrap ``sections`` in the dashboard's header/footer chrome."""
     now = now or datetime.now(timezone.utc)
     months = max(1, active_window_days // 30)
-    header_top = (
-        f"⣀⣤⣶⣾⣿ Repositories Active in the Last {months} Months ⣿⣷⣶⣤⣀"
-    )
+    header_top = printf "
+            ┏━┓╻ ╻┏┳┓┏┳┓┏━┓┏━┓╻ ╻   ┏━┓┏━╸   ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸   ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻
+            ┗━┓┃ ┃┃┃┃┃┃┃┣━┫┣┳┛┗┳┛   ┃ ┃┣╸    ┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃    ┣━┫┃   ┃ ┃┃┏┛┃ ┃ ┗┳┛
+            ┗━┛┗━┛╹ ╹╹ ╹╹ ╹╹┗╸ ╹    ┗━┛╹     ╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹    ╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹ "
+    
     header_bot = f"⠉⠛⠿⢿⣿ Updated {now.strftime('%A %Y-%m-%d %H:%M UTC')} ⣿⡿⠿⠛⠉"
     rule = "▔" * LINE_LENGTH
 
@@ -599,6 +601,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                                                                 
         file=sys.stderr,
     )
+    
 
     rows = build_repo_rows(session, active, today=now.date())
     public_rows = [r for r in rows if not r.get("private")]
