@@ -14,8 +14,6 @@ def test_build_readme_contains_table_and_chrome():
     assert "</pre>" in out
     assert "TABLE_PLACEHOLDER" in out
     assert "Updated Wednesday 2026-04-15 12:00 UTC" in out
-    # Header reflects the active window in months.
-    assert "Repositories Active in the Last 6 Months" in out
 
 
 def test_build_readme_no_legacy_sections():

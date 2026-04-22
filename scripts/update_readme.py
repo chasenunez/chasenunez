@@ -551,13 +551,13 @@ def build_readme(sections: dict, *, now: Optional[datetime] = None,
     def centered(text: str) -> str:
         return pad_to_width(text, LINE_LENGTH, "center")
 
-    subheader = f""#Repositories Active in the Last {months} Months"
+    subheader = f"Repositories Active in the Last {months} Months"
     parts = [
         "<pre>",
         *[centered(line) for line in header_top.splitlines()],
         "",
-        centered(subheader),
-        "",
+        #centered(subheader),
+        #"",
         sections.get("table", ""),
         "",
         centered(header_bot),
