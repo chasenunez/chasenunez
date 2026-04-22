@@ -538,7 +538,6 @@ def build_readme(sections: dict, *, now: Optional[datetime] = None,
                  active_window_days: int = ACTIVE_WINDOW_DAYS) -> str:
     """Wrap ``sections`` in the dashboard's header/footer chrome."""
     now = now or datetime.now(timezone.utc)
-    months = max(1, active_window_days // 30)
     header_top = (
         "┏━┓╻ ╻┏┳┓┏┳┓┏━┓┏━┓╻ ╻   ┏━┓┏━╸   ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸   ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻\n"
         "┗━┓┃ ┃┃┃┃┃┃┃┣━┫┣┳┛┗┳┛   ┃ ┃┣╸    ┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃    ┣━┫┃   ┃ ┃┃┏┛┃ ┃ ┗┳┛\n"
@@ -546,18 +545,14 @@ def build_readme(sections: dict, *, now: Optional[datetime] = None,
     )
     
     header_bot = f"⠉⠛⠿⢿⣿ Updated {now.strftime('%A %Y-%m-%d %H:%M UTC')} ⣿⡿⠿⠛⠉"
-    rule = "▔" * LINE_LENGTH
 
     def centered(text: str) -> str:
         return pad_to_width(text, LINE_LENGTH, "center")
 
-    subheader = f"Repositories Active in the Last {months} Months"
     parts = [
         "<pre>",
         *[centered(line) for line in header_top.splitlines()],
         "",
-        #centered(subheader),
-        #"",
         sections.get("table", ""),
         "",
         centered(header_bot),

@@ -32,10 +32,10 @@ def test_build_readme_no_legacy_sections():
 
 
 def test_build_readme_handles_small_window():
-    # 30-day window should render "1 Months" (we don't pluralize — simplest).
     out = build_readme(
         {"table": "X"},
         now=datetime(2026, 4, 15, 12, 0, tzinfo=timezone.utc),
         active_window_days=30,
     )
-    assert "1 Months" in out
+    assert out.startswith("<pre>")
+    assert "X" in out
