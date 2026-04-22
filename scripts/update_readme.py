@@ -539,10 +539,11 @@ def build_readme(sections: dict, *, now: Optional[datetime] = None,
     """Wrap ``sections`` in the dashboard's header/footer chrome."""
     now = now or datetime.now(timezone.utc)
     months = max(1, active_window_days // 30)
-    header_top = printf "
-            ┏━┓╻ ╻┏┳┓┏┳┓┏━┓┏━┓╻ ╻   ┏━┓┏━╸   ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸   ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻
-            ┗━┓┃ ┃┃┃┃┃┃┃┣━┫┣┳┛┗┳┛   ┃ ┃┣╸    ┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃    ┣━┫┃   ┃ ┃┃┏┛┃ ┃ ┗┳┛
-            ┗━┛┗━┛╹ ╹╹ ╹╹ ╹╹┗╸ ╹    ┗━┛╹     ╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹    ╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹ "
+    header_top = (
+        "┏━┓╻ ╻┏┳┓┏┳┓┏━┓┏━┓╻ ╻   ┏━┓┏━╸   ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸   ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻\n"
+        "┗━┓┃ ┃┃┃┃┃┃┃┣━┫┣┳┛┗┳┛   ┃ ┃┣╸    ┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃    ┣━┫┃   ┃ ┃┃┏┛┃ ┃ ┗┳┛\n"
+        "┗━┛┗━┛╹ ╹╹ ╹╹ ╹╹┗╸ ╹    ┗━┛╹     ╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹    ╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹ "
+    )
     
     header_bot = f"⠉⠛⠿⢿⣿ Updated {now.strftime('%A %Y-%m-%d %H:%M UTC')} ⣿⡿⠿⠛⠉"
     rule = "▔" * LINE_LENGTH
