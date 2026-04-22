@@ -539,7 +539,7 @@ def build_readme(sections: dict, *, now: Optional[datetime] = None,
     """Wrap ``sections`` in the dashboard's header/footer chrome."""
     now = now or datetime.now(timezone.utc)
     months = max(1, active_window_days // 30)
-    header_top = (
+    header_top = printf(
         "┏━┓╻ ╻┏┳┓┏┳┓┏━┓┏━┓╻ ╻   ┏━┓┏━╸   ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸   ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻\n"
         "┗━┓┃ ┃┃┃┃┃┃┃┣━┫┣┳┛┗┳┛   ┃ ┃┣╸    ┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃    ┣━┫┃   ┃ ┃┃┏┛┃ ┃ ┗┳┛\n"
         "┗━┛┗━┛╹ ╹╹ ╹╹ ╹╹┗╸ ╹    ┗━┛╹     ╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹    ╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹ "
