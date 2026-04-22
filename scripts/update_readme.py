@@ -594,11 +594,8 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     active = filter_recently_active(all_repos, now=now, window_days=args.window_days)
     print(
-        #f"Found {len(active)} / {len(all_repos)} repos active in the last "
-        #f"{args.window_days} days.",
-        f"┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸╻  ╻ ╻   ┏━┓┏━╸╺┳╸╻╻ ╻┏━╸   ┏━┓┏━╸┏━┓┏━┓┏━┓╻╺┳╸┏━┓┏━┓╻┏━╸┏━┓"
-        f"┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃ ┃  ┗┳┛   ┣━┫┃   ┃ ┃┃┏┛┣╸    ┣┳┛┣╸ ┣━┛┃ ┃┗━┓┃ ┃ ┃ ┃┣┳┛┃┣╸ ┗━┓"
-        f"╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹ ┗━╸ ╹    ╹ ╹┗━╸ ╹ ╹┗┛ ┗━╸   ╹┗╸┗━╸╹  ┗━┛┗━┛╹ ╹ ┗━┛╹┗╸╹┗━╸┗━┛",
+        f"Found {len(active)} / {len(all_repos)} repos active in the last "
+        f"{args.window_days} days.",
                                                                 
         file=sys.stderr,
     )
