@@ -6,9 +6,11 @@
 ╔═══════════════════════════╦═════════════════════╦═══════════════╦═════════════════╦════════════╦═════════════╗
 ║         Repository        ║    Main Language    ║  Total Bytes  ║  Total Commits  ║  Lifespan  ║  Team Size  ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/entrails">entrails</a>                  ║        Python       ║     12,625    ║        28       ║   182 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/DORA_DATA_AVAILABILITY">DORA_DATA_AVAILABILITY</a>    ║        Python       ║       19      ║        6        ║    <1 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║        Python       ║     27,562    ║       905       ║   164 d    ║      4      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║        Python       ║     27,564    ║       906       ║   164 d    ║      4      ║
+╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
+║ <a href="https://github.com/chasenunez/entrails">entrails</a>                  ║        Python       ║     12,625    ║        28       ║   182 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/BINGO">BINGO</a>                     ║      JavaScript     ║     5,471     ║        37       ║    42 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
@@ -41,5 +43,5 @@
 ║ <a href="https://github.com/Lib4RI/pub_db_lib">pub_db_lib</a>                ║         PHP         ║      228      ║        43       ║  2,628 d   ║      2      ║
 ╚═══════════════════════════╩═════════════════════╩═══════════════╩═════════════════╩════════════╩═════════════╝
 
-                               ⠉⠛⠿⢿⣿ Updated Thursday 2026-04-23 12:23 UTC ⣿⡿⠿⠛⠉                                
+                               ⠉⠛⠿⢿⣿ Updated Thursday 2026-04-23 14:03 UTC ⣿⡿⠿⠛⠉                                
 </pre>
