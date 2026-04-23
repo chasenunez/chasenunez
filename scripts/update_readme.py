@@ -2,7 +2,7 @@
 """
 update_readme.py
 
-Render a compact GitHub "portfolio table" README. Every repo with a push in
+Renders a compact GitHub "portfolio table" README. Every repo with a push in
 the last ``ACTIVE_WINDOW_DAYS`` days is listed with:
 
 * Main Language  — primary language (HTML falls back to the largest non-HTML
@@ -33,7 +33,7 @@ token the script falls back to public data for ``USERNAME``.
 Output
 ------
 ``README.md`` — wrapped in ``<pre>`` so box-drawing + column alignment
-survive GitHub's markdown renderer.
+survive GitHub's markdown renderer. This is really killing my creativity though. 
 """
 
 from __future__ import annotations
@@ -56,17 +56,17 @@ except ImportError:  # pragma: no cover - fallback tested via wcswidth()
 
 
 # ---------------------------------------------------------------------------
-# Config — safe to tune
+# Config variables
 # ---------------------------------------------------------------------------
 USERNAME = "chasenunez"
-ACTIVE_WINDOW_DAYS = 90          # ~6 months of "recently active"
-LINE_LENGTH = 112                 # target width of the rendered dashboard
+ACTIVE_WINDOW_DAYS = 90         
+LINE_LENGTH = 112                 # target width of the rendered dashboard, not really sure why it is this width, but it is what fits before the scrollbars pop up
 README_OUT = "README.md"
 
 # Network tuning.
 GITHUB_REST = "https://api.github.com"
 HTTP_TIMEOUT = 30
-METADATA_WORKERS = 8              # concurrent repos processed at once
+METADATA_WORKERS = 8              # concurrent repos processed at once. 5-8 seems to work best.
 
 
 # ===========================================================================
@@ -75,9 +75,7 @@ METADATA_WORKERS = 8              # concurrent repos processed at once
 def wcswidth(s: str) -> int:
     """Return the display width of ``s`` in monospace columns.
 
-    Uses the ``wcwidth`` package when available (handles combining marks and
-    wide East-Asian characters correctly) and falls back to a reasonable
-    ``unicodedata``-based approximation otherwise.
+    Uses the ``wcwidth`` package 
     """
     if _wcwidth is not None:
         try:
@@ -140,7 +138,7 @@ def auth_token() -> Optional[str]:
 
 
 def make_session(token: Optional[str]) -> requests.Session:
-    """Create a ``requests.Session`` with sensible defaults for the GH API."""
+    """Create a ``requests.Session`` with 'sensible' defaults for the GH API."""
     s = requests.Session()
     s.headers.update({
         "Accept": "application/vnd.github.v3+json",
@@ -209,8 +207,7 @@ def _link_last_page(resp: requests.Response) -> Optional[int]:
 def count_via_link(session: requests.Session, url: str) -> int:
     """Approximate item count using ``per_page=1`` + ``rel=last``.
 
-    This is O(1) API calls regardless of how many items exist — perfect for
-    "how many commits / contributors does this repo have?" queries.
+    This is O(1) API calls regardless of how many items exist
     """
     try:
         r = gh_get(session, url, params={"per_page": 1})
@@ -290,15 +287,7 @@ def _commit_author_date(commit: dict) -> Optional[date]:
 def fetch_commit_stats(session: requests.Session, owner: str, repo: str
                        ) -> Tuple[int, Optional[date]]:
     """Return ``(total_commits, first_commit_date)`` for ``owner/repo``.
-
-    Strategy:
-        1. GET ``/commits?per_page=1`` — the response body is the newest
-           commit; the ``Link: rel="last"`` header's ``page=N`` equals the
-           total commit count.
-        2. GET the rel="last" URL — the body is exactly one commit (the
-           oldest), because per_page=1 is preserved in the Link URL.
-
-    Handles the documented 409 on empty repositories gracefully.
+    Handles the documented 409
     """
     url = f"{GITHUB_REST}/repos/{owner}/{repo}/commits"
     try:
@@ -348,8 +337,7 @@ def build_repo_rows(session: requests.Session, repos: List[dict],
     ``name_text``, ``name_url``, ``language``, ``size``, ``commits``,
     ``lifespan_days``, ``team_size``, ``private``.
 
-    Failed repos are silently dropped — the surrounding dashboard is more
-    useful with partial data than with an error bubble.
+    Failed repos are dropped
     """
     if not repos:
         return []
@@ -420,13 +408,8 @@ def _fmt_lifespan(days: Optional[int]) -> str:
 
 
 def _distribute_widths(cells: List[List[str]], target_width: int) -> List[int]:
-    """Compute per-column inner widths that make the table exactly target wide.
-
-    Rules:
-    * Start from the wider of (header length, widest cell in the column).
-    * Grow: distribute slack round-robin across all columns.
-    * Shrink: eat from the Repository column first, then from others (never
-      below each column's header-length floor).
+    """
+    Compute per-column inner widths that make the table exactly target wide.
     """
     PAD = 2
     n = len(TABLE_COLS)
@@ -474,10 +457,7 @@ def _clip(text: str, width: int) -> str:
 def render_repo_table(rows: List[dict], target_width: int = LINE_LENGTH) -> str:
     """Render ``rows`` as a Unicode box-drawing table.
 
-    The repository column carries an ``<a>`` tag when ``name_url`` is
-    present; the HTML is emitted after padding so column alignment in the
-    ``<pre>`` block is preserved (GitHub's renderer hides the tags
-    themselves but keeps their text content).
+    GitHub's renderer hides the tags themselves but keeps their text content.
     """
     if not rows:
         return ""
@@ -539,7 +519,7 @@ def build_readme(sections: dict, *, now: Optional[datetime] = None,
     """Wrap ``sections`` in the dashboard's header/footer chrome."""
     now = now or datetime.now(timezone.utc)
     header_top = (
-        "┏━┓╻ ╻┏┳┓┏┳┓┏━┓┏━┓╻ ╻   ┏━┓┏━╸   ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸   ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻\n"
+        "┏━┓╻ ╻┏┳┓┏┳┓┏━┓┏━┓╻ ╻   ┏━┓┏━╸   ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸   ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻\n" #got this font from: https://patorjk.com/software/taag/#p=display&f=Graffiti&t=Type+Something+&x=none&v=4&h=4&w=80&we=false
         "┗━┓┃ ┃┃┃┃┃┃┃┣━┫┣┳┛┗┳┛   ┃ ┃┣╸    ┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃    ┣━┫┃   ┃ ┃┃┏┛┃ ┃ ┗┳┛\n"
         "┗━┛┗━┛╹ ╹╹ ╹╹ ╹╹┗╸ ╹    ┗━┛╹     ╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹    ╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹ "
     )
