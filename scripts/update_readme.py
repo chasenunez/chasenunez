@@ -55,9 +55,7 @@ except ImportError:  # pragma: no cover - fallback tested via wcswidth()
     _wcwidth = None
 
 
-# ---------------------------------------------------------------------------
 # Config variables
-# ---------------------------------------------------------------------------
 USERNAME = "chasenunez"
 ACTIVE_WINDOW_DAYS = 90         
 LINE_LENGTH = 112                 # target width of the rendered dashboard, not really sure why it is this width, but it is what fits before the scrollbars pop up
@@ -69,9 +67,7 @@ HTTP_TIMEOUT = 30
 METADATA_WORKERS = 8              # concurrent repos processed at once. 5-8 seems to work best.
 
 
-# ===========================================================================
 # Display-width helpers
-# ===========================================================================
 def wcswidth(s: str) -> int:
     """Return the display width of ``s`` in monospace columns.
 
@@ -82,7 +78,7 @@ def wcswidth(s: str) -> int:
             w = _wcwidth.wcswidth(s)
             if w is not None and w >= 0:
                 return w
-        except Exception:
+        except TypeError:
             pass
     total = 0
     for ch in s:
@@ -125,9 +121,7 @@ def pad_to_width(s: str, target: int, align: str = "left") -> str:
     return out
 
 
-# ===========================================================================
 # HTTP / auth
-# ===========================================================================
 def auth_token() -> Optional[str]:
     """Return the first populated token env var, or ``None``."""
     for name in ("GH_PAT", "GITHUB_TOKEN", "GH_TOKEN"):
@@ -177,9 +171,7 @@ def gh_paginated(session: requests.Session, url: str,
     return items
 
 
-# ---------------------------------------------------------------------------
 # Link-header helpers — cheap "count" and "oldest item" via rel="last"
-# ---------------------------------------------------------------------------
 _LINK_NEXT_RE = re.compile(r'<([^>]+)>;\s*rel="next"')
 _LINK_LAST_RE = re.compile(r'<([^>]+)>;\s*rel="last"')
 _PAGE_PARAM_RE = re.compile(r'[?&]page=(\d+)')
@@ -211,7 +203,7 @@ def count_via_link(session: requests.Session, url: str) -> int:
     """
     try:
         r = gh_get(session, url, params={"per_page": 1})
-    except Exception:
+    except requests.RequestException:
         return 0
     last_page = _link_last_page(r)
     if last_page is not None:
@@ -220,13 +212,11 @@ def count_via_link(session: requests.Session, url: str) -> int:
     try:
         data = r.json()
         return len(data) if isinstance(data, list) else 0
-    except Exception:
+    except (requests.RequestException, ValueError):
         return 0
 
 
-# ===========================================================================
 # Data fetching
-# ===========================================================================
 def fetch_repos(session: requests.Session, token: Optional[str]) -> List[dict]:
     """Return the user's repos sorted by most recently pushed."""
     url = f"{GITHUB_REST}/user/repos" if token else f"{GITHUB_REST}/users/{USERNAME}/repos"
@@ -263,7 +253,7 @@ def fetch_non_html_primary(session: requests.Session, owner: str, repo: str
     try:
         r = gh_get(session, f"{GITHUB_REST}/repos/{owner}/{repo}/languages")
         langs = r.json()
-    except Exception:
+    except (requests.RequestException, ValueError):
         return None
     if not isinstance(langs, dict):
         return None
@@ -280,7 +270,7 @@ def _commit_author_date(commit: dict) -> Optional[date]:
         if not iso:
             return None
         return datetime.fromisoformat(iso.replace("Z", "+00:00")).date()
-    except Exception:
+    except (ValueError, AttributeError):
         return None
 
 
@@ -295,7 +285,7 @@ def fetch_commit_stats(session: requests.Session, owner: str, repo: str
     except requests.HTTPError as exc:
         # 409 Conflict = empty repo; any other error is treated as "unknown".
         return 0, None
-    except Exception:
+    except requests.RequestException:
         return 0, None
 
     last_url = _link_last_url(r)
@@ -303,7 +293,7 @@ def fetch_commit_stats(session: requests.Session, owner: str, repo: str
         # No pagination → this one commit is the only (therefore oldest) commit.
         try:
             data = r.json()
-        except Exception:
+        except (requests.RequestException, ValueError):
             return 0, None
         if not (isinstance(data, list) and data):
             return 0, None
@@ -313,7 +303,7 @@ def fetch_commit_stats(session: requests.Session, owner: str, repo: str
     try:
         r_last = gh_get(session, last_url)
         data = r_last.json()
-    except Exception:
+    except (requests.RequestException, ValueError):
         return total, None
     if isinstance(data, list) and data:
         return total, _commit_author_date(data[0])
@@ -325,9 +315,7 @@ def fetch_team_size(session: requests.Session, owner: str, repo: str) -> int:
     return count_via_link(session, f"{GITHUB_REST}/repos/{owner}/{repo}/contributors")
 
 
-# ===========================================================================
 # Row building — one concurrent worker per repo
-# ===========================================================================
 def build_repo_rows(session: requests.Session, repos: List[dict],
                     *, today: date,
                     max_workers: int = METADATA_WORKERS) -> List[dict]:
@@ -375,14 +363,12 @@ def build_repo_rows(session: requests.Session, repos: List[dict],
         for fut in as_completed(futures):
             try:
                 rows[futures[fut]] = fut.result()
-            except Exception:
+            except (requests.RequestException, ValueError, KeyError, RuntimeError):
                 pass
     return [r for r in rows if r]
 
 
-# ===========================================================================
 # Rendering — repo metadata table
-# ===========================================================================
 TABLE_COLS: List[str] = [
     "Repository", "Main Language", "Total Bytes",
     "Total Commits", "Lifespan", "Team Size",
@@ -511,9 +497,7 @@ def render_repo_table(rows: List[dict], target_width: int = LINE_LENGTH) -> str:
     return "\n".join(lines)
 
 
-# ===========================================================================
 # README assembly
-# ===========================================================================
 def build_readme(sections: dict, *, now: Optional[datetime] = None,
                  active_window_days: int = ACTIVE_WINDOW_DAYS) -> str:
     """Wrap ``sections`` in the dashboard's header/footer chrome."""
@@ -542,9 +526,7 @@ def build_readme(sections: dict, *, now: Optional[datetime] = None,
     return "\n".join(parts)
 
 
-# ===========================================================================
 # CLI
-# ===========================================================================
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Render a GitHub activity README.")
     p.add_argument("--output", default=README_OUT,
@@ -569,7 +551,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     try:
         all_repos = fetch_repos(session, token)
-    except Exception as exc:
+    except requests.RequestException as exc:
         print(f"Failed to fetch repositories: {exc}", file=sys.stderr)
         return 1
 
