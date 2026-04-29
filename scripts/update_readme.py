@@ -9,7 +9,8 @@ the last ``ACTIVE_WINDOW_DAYS`` days is listed with:
   language since HTML is almost always template/GH-Pages boilerplate).
 * Total Bytes    — repo size reported by the listing endpoint.
 * Total Commits  — counted cheaply via the ``Link: rel="last"`` header trick.
-* Lifespan       — days between the first commit's author date and today.
+* Lifespan       — days between the first and most recent commit (the
+  span of activity, not the age of the repo).
 * Team Size      — unique contributors to the default branch.
 
 Data sources
@@ -275,39 +276,53 @@ def _commit_author_date(commit: dict) -> Optional[date]:
 
 
 def fetch_commit_stats(session: requests.Session, owner: str, repo: str
-                       ) -> Tuple[int, Optional[date]]:
-    """Return ``(total_commits, first_commit_date)`` for ``owner/repo``.
-    Handles the documented 409
+                       ) -> Tuple[int, Optional[date], Optional[date]]:
+    """Return ``(total_commits, first_commit_date, last_commit_date)``.
+
+    Strategy:
+        1. GET ``/commits?per_page=1`` — the body is the *newest* commit (so
+           we read ``last_commit_date`` from it for free), and the
+           ``Link: rel="last"`` header's ``page=N`` equals the total commit
+           count.
+        2. GET the ``rel="last"`` URL — body is exactly one commit, the
+           *oldest*, because per_page=1 is preserved in the Link URL.
+
+    Both dates come back as ``date`` objects in UTC.  Returns ``None`` for
+    any field that couldn't be determined (empty repo, 409, network error).
     """
     url = f"{GITHUB_REST}/repos/{owner}/{repo}/commits"
     try:
         r = gh_get(session, url, params={"per_page": 1})
-    except requests.HTTPError as exc:
+    except requests.HTTPError:
         # 409 Conflict = empty repo; any other error is treated as "unknown".
-        return 0, None
+        return 0, None, None
     except requests.RequestException:
-        return 0, None
+        return 0, None, None
+
+    # Newest commit is in the body of the first request.
+    try:
+        first_page = r.json()
+    except (requests.RequestException, ValueError):
+        first_page = None
+    last_date = (_commit_author_date(first_page[0])
+                 if isinstance(first_page, list) and first_page else None)
 
     last_url = _link_last_url(r)
     if last_url is None:
-        # No pagination → this one commit is the only (therefore oldest) commit.
-        try:
-            data = r.json()
-        except (requests.RequestException, ValueError):
-            return 0, None
-        if not (isinstance(data, list) and data):
-            return 0, None
-        return len(data), _commit_author_date(data[0])
+        # No pagination → only one commit exists; first == last.
+        if not (isinstance(first_page, list) and first_page):
+            return 0, None, None
+        return len(first_page), last_date, last_date
 
     total = _link_last_page(r) or 1
     try:
         r_last = gh_get(session, last_url)
         data = r_last.json()
     except (requests.RequestException, ValueError):
-        return total, None
-    if isinstance(data, list) and data:
-        return total, _commit_author_date(data[0])
-    return total, None
+        return total, None, last_date
+    first_date = (_commit_author_date(data[0])
+                  if isinstance(data, list) and data else None)
+    return total, first_date, last_date
 
 
 def fetch_team_size(session: requests.Session, owner: str, repo: str) -> int:
@@ -317,8 +332,7 @@ def fetch_team_size(session: requests.Session, owner: str, repo: str) -> int:
 
 # Row building — one concurrent worker per repo
 def build_repo_rows(session: requests.Session, repos: List[dict],
-                    *, today: date,
-                    max_workers: int = METADATA_WORKERS) -> List[dict]:
+                    *, max_workers: int = METADATA_WORKERS) -> List[dict]:
     """Fetch per-repo metadata concurrently and return render-ready rows.
 
     Each returned dict has the keys consumed by :func:`render_repo_table`:
@@ -340,9 +354,14 @@ def build_repo_rows(session: requests.Session, repos: List[dict],
         if language.strip().lower() == "html":
             language = fetch_non_html_primary(session, owner, name) or language
 
-        commits, first_date = fetch_commit_stats(session, owner, name)
+        commits, first_date, last_date = fetch_commit_stats(session, owner, name)
         team_size = fetch_team_size(session, owner, name)
-        lifespan = (today - first_date).days if first_date else None
+        # Lifespan = span of activity = last_commit - first_commit. A single-
+        # commit repo therefore has lifespan 0 (rendered as "<1 d").
+        if first_date and last_date:
+            lifespan = max(0, (last_date - first_date).days)
+        else:
+            lifespan = None
 
         return {
             "owner": owner,
@@ -564,7 +583,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # )
     
 
-    rows = build_repo_rows(session, active, today=now.date())
+    rows = build_repo_rows(session, active)
     public_rows = [r for r in rows if not r.get("private")]
 
     sections = {"table": render_repo_table(public_rows)}
