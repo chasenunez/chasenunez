@@ -503,9 +503,9 @@ def build_readme(sections: dict, *, now: Optional[datetime] = None,
     """Wrap ``sections`` in the dashboard's header/footer chrome."""
     now = now or datetime.now(timezone.utc)
     header_top = (
-        "┏━┓╻ ╻┏┳┓┏┳┓┏━┓┏━┓╻ ╻   ┏━┓┏━╸   ┏━┓┏━╸┏━╸┏━╸┏┓╻╺┳╸   ┏━┓┏━╸╺┳╸╻╻ ╻╻╺┳╸╻ ╻\n" #got this font from: https://patorjk.com/software/taag/#p=display&f=Graffiti&t=Type+Something+&x=none&v=4&h=4&w=80&we=false
-        "┗━┓┃ ┃┃┃┃┃┃┃┣━┫┣┳┛┗┳┛   ┃ ┃┣╸    ┣┳┛┣╸ ┃  ┣╸ ┃┗┫ ┃    ┣━┫┃   ┃ ┃┃┏┛┃ ┃ ┗┳┛\n"
-        "┗━┛┗━┛╹ ╹╹ ╹╹ ╹╹┗╸ ╹    ┗━┛╹     ╹┗╸┗━╸┗━╸┗━╸╹ ╹ ╹    ╹ ╹┗━╸ ╹ ╹┗┛ ╹ ╹  ╹ "
+        "     ┏━┓┏━╸╺┳╸╻╻ ╻┏━╸   ┏━┓╻ ╻┏┓ ╻  ╻┏━╸   ┏━┓┏━┓┏━┓ ┏┓┏━╸┏━╸╺┳╸┏━┓    \n" #got this font from: https://patorjk.com/software/taag/#p=display&f=Graffiti&t=Type+Something+&x=none&v=4&h=4&w=80&we=false
+        " ╹   ┣━┫┃   ┃ ┃┃┏┛┣╸    ┣━┛┃ ┃┣┻┓┃  ┃┃     ┣━┛┣┳┛┃ ┃  ┃┣╸ ┃   ┃ ┗━┓   ╹\n"
+        "╹╹   ╹ ╹┗━╸ ╹ ╹┗┛ ┗━╸   ╹  ┗━┛┗━┛┗━╸╹┗━╸   ╹  ╹┗╸┗━┛┗━┛┗━╸┗━╸ ╹ ┗━┛   ╹╹"
     )
     
     header_bot = f"⠉⠛⠿⢿⣿ Updated {now.strftime('%A %Y-%m-%d %H:%M UTC')} ⣿⡿⠿⠛⠉"
