@@ -6,42 +6,42 @@
 ╔═══════════════════════════╦═════════════════════╦═══════════════╦═════════════════╦════════════╦═════════════╗
 ║         Repository        ║    Main Language    ║  Total Bytes  ║  Total Commits  ║  Lifespan  ║  Team Size  ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/DEVO">DEVO</a>                      ║        Python       ║     30,875    ║        22       ║   151 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║        Python       ║     27,573    ║       915       ║   170 d    ║      4      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/data_HUD">data_HUD</a>                  ║      JavaScript     ║      436      ║        59       ║   174 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/DEVO">DEVO</a>                      ║        Python       ║     30,881    ║        22       ║   152 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║        Python       ║     27,571    ║       914       ║   169 d    ║      4      ║
+║ <a href="https://github.com/chasenunez/data_HUD">data_HUD</a>                  ║      JavaScript     ║      430      ║        59       ║   175 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/DORA_DATA_AVAILABILITY">DORA_DATA_AVAILABILITY</a>    ║        Python       ║      810      ║        13       ║    5 d     ║      1      ║
+║ <a href="https://github.com/chasenunez/DORA_DATA_AVAILABILITY">DORA_DATA_AVAILABILITY</a>    ║        Python       ║      827      ║        13       ║    6 d     ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>             ║        Python       ║     5,686     ║        53       ║   229 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/DEVO_enricher">DEVO_enricher</a>             ║        Python       ║     5,689     ║        53       ║   230 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/entrails">entrails</a>                  ║        Python       ║     12,627    ║        29       ║   187 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/entrails">entrails</a>                  ║        Python       ║     12,627    ║        29       ║   188 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/BINGO">BINGO</a>                     ║      JavaScript     ║     5,471     ║        37       ║    47 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/BINGO">BINGO</a>                     ║      JavaScript     ║     5,471     ║        37       ║    48 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/sunburst_nav">sunburst_nav</a>              ║         CSS         ║       42      ║        43       ║   908 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/sunburst_nav">sunburst_nav</a>              ║         CSS         ║       42      ║        43       ║   909 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/pro_logue">pro_logue</a>                 ║         Rust        ║       65      ║        17       ║   132 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/pro_logue">pro_logue</a>                 ║         Rust        ║       65      ║        17       ║   133 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>            ║        Python       ║      146      ║       126       ║  1,898 d   ║      1      ║
+║ <a href="https://github.com/chasenunez/DEVO_validator">DEVO_validator</a>            ║        Python       ║      146      ║       126       ║  1,899 d   ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/ekko">ekko</a>                      ║        Python       ║       7       ║        3        ║    29 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/ekko">ekko</a>                      ║        Python       ║       7       ║        3        ║    30 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/SCI_MET">SCI_MET</a>                   ║      JavaScript     ║      137      ║        4        ║    40 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/SCI_MET">SCI_MET</a>                   ║      JavaScript     ║      137      ║        4        ║    41 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>    ║        Python       ║      254      ║        45       ║   130 d    ║      2      ║
+║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>    ║        Python       ║      254      ║        45       ║   131 d    ║      2      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/MMObingo">MMObingo</a>                  ║      JavaScript     ║     1,743     ║       107       ║   637 d    ║      2      ║
+║ <a href="https://github.com/chasenunez/MMObingo">MMObingo</a>                  ║      JavaScript     ║     1,743     ║       107       ║   638 d    ║      2      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/Lib4RI/lib4ri_notif_mail">lib4ri_notif_mail</a>         ║         PHP         ║       69      ║        92       ║  2,982 d   ║      2      ║
+║ <a href="https://github.com/Lib4RI/lib4ri_notif_mail">lib4ri_notif_mail</a>         ║         PHP         ║       69      ║        92       ║  2,983 d   ║      2      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/quantum_circuit">quantum_circuit</a>           ║   Jupyter Notebook  ║       38      ║        6        ║    70 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/quantum_circuit">quantum_circuit</a>           ║   Jupyter Notebook  ║       38      ║        6        ║    71 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/orbital_trajectories">orbital_trajectories</a>      ║   Jupyter Notebook  ║    777,135    ║        22       ║  2,517 d   ║      3      ║
+║ <a href="https://github.com/chasenunez/orbital_trajectories">orbital_trajectories</a>      ║   Jupyter Notebook  ║    777,135    ║        22       ║  2,518 d   ║      3      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/Lib4RI/pub_db_lib">pub_db_lib</a>                ║         PHP         ║      228      ║        43       ║  2,633 d   ║      2      ║
+║ <a href="https://github.com/Lib4RI/pub_db_lib">pub_db_lib</a>                ║         PHP         ║      228      ║        43       ║  2,634 d   ║      2      ║
 ╚═══════════════════════════╩═════════════════════╩═══════════════╩═════════════════╩════════════╩═════════════╝
 
-                                ⠉⠛⠿⢿⣿ Updated Tuesday 2026-04-28 12:38 UTC ⣿⡿⠿⠛⠉                                
+                               ⠉⠛⠿⢿⣿ Updated Wednesday 2026-04-29 03:41 UTC ⣿⡿⠿⠛⠉                               
 </pre>
