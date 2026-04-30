@@ -6,11 +6,11 @@
 ╔═══════════════════════════╦═════════════════════╦═══════════════╦═════════════════╦════════════╦═════════════╗
 ║         Repository        ║    Main Language    ║  Total Bytes  ║  Total Commits  ║  Lifespan  ║  Team Size  ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║        Python       ║     27,577    ║       922       ║   170 d    ║      4      ║
+║ <a href="https://github.com/chasenunez/pro_logue">pro_logue</a>                 ║         Rust        ║     6,043     ║        22       ║   133 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/pro_logue">pro_logue</a>                 ║         Rust        ║     2,960     ║        20       ║   133 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/DEVO">DEVO</a>                      ║        Python       ║     30,887    ║        25       ║   152 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/DEVO">DEVO</a>                      ║        Python       ║     30,885    ║        24       ║   152 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║        Python       ║     27,559    ║       923       ║   170 d    ║      4      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/solar_nav">solar_nav</a>                 ║        Python       ║       51      ║        20       ║   197 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
@@ -49,5 +49,5 @@
 ║ <a href="https://github.com/Lib4RI/pub_db_lib">pub_db_lib</a>                ║         PHP         ║      228      ║        43       ║  2,563 d   ║      2      ║
 ╚═══════════════════════════╩═════════════════════╩═══════════════╩═════════════════╩════════════╩═════════════╝
 
-                               ⠉⠛⠿⢿⣿ Updated Wednesday 2026-04-29 11:01 UTC ⣿⡿⠿⠛⠉                               
+                               ⠉⠛⠿⢿⣿ Updated Thursday 2026-04-30 03:42 UTC ⣿⡿⠿⠛⠉                                
 </pre>
