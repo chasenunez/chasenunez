@@ -6,15 +6,17 @@
 ╔═══════════════════════════╦═════════════════════╦═══════════════╦═════════════════╦════════════╦═════════════╗
 ║         Repository        ║    Main Language    ║  Total Bytes  ║  Total Commits  ║  Lifespan  ║  Team Size  ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║        Python       ║     27,599    ║       958       ║   205 d    ║      4      ║
+║ <a href="https://github.com/chasenunez/neural_web">neural_web</a>                ║        Python       ║      120      ║        11       ║    <1 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/Lib4RI/lib4ridora">lib4ridora</a>                ║         PHP         ║      923      ║       676       ║  3,117 d   ║      16     ║
+║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>    ║        Python       ║      266      ║        72       ║   167 d    ║      2      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>    ║        Python       ║      260      ║        71       ║   164 d    ║      2      ║
+║ <a href="https://github.com/Lib4RI/lib4ridora">lib4ridora</a>                ║         PHP         ║      927      ║       676       ║  3,117 d   ║      16     ║
+╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
+║ <a href="https://github.com/chasenunez/BINGO">BINGO</a>                     ║      JavaScript     ║     5,465     ║        53       ║    84 d    ║      2      ║
+╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║        Python       ║     27,601    ║       959       ║   206 d    ║      4      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/SDSC_RAG">SDSC_RAG</a>                  ║        Python       ║     1,792     ║        32       ║    7 d     ║      1      ║
-╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/BINGO">BINGO</a>                     ║      JavaScript     ║     5,464     ║        52       ║    78 d    ║      2      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/pro_logue">pro_logue</a>                 ║         Rust        ║     6,051     ║        24       ║   147 d    ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
@@ -51,5 +53,5 @@
 ║ <a href="https://github.com/chasenunez/ekko">ekko</a>                      ║        Python       ║       7       ║        3        ║    <1 d    ║      1      ║
 ╚═══════════════════════════╩═════════════════════╩═══════════════╩═════════════════╩════════════╩═════════════╝
 
-                               ⠉⠛⠿⢿⣿ Updated Thursday 2026-06-04 04:43 UTC ⣿⡿⠿⠛⠉                                
+                                ⠉⠛⠿⢿⣿ Updated Friday 2026-06-05 04:18 UTC ⣿⡿⠿⠛⠉                                 
 </pre>
