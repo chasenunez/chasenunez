@@ -6,11 +6,11 @@
 ╔═══════════════════════════╦═════════════════════╦═══════════════╦═════════════════╦════════════╦═════════════╗
 ║         Repository        ║    Main Language    ║  Total Bytes  ║  Total Commits  ║  Lifespan  ║  Team Size  ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║        Python       ║     27,604    ║       962       ║   209 d    ║      4      ║
+║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>    ║        Python       ║      289      ║        73       ║   171 d    ║      2      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/neural_web">neural_web</a>                ║        Python       ║      128      ║        12       ║    1 d     ║      1      ║
+║ <a href="https://github.com/chasenunez/neural_web">neural_web</a>                ║        Python       ║      130      ║        13       ║    4 d     ║      1      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>    ║        Python       ║      266      ║        72       ║   167 d    ║      2      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║        Python       ║     27,605    ║       963       ║   210 d    ║      4      ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
 ║ <a href="https://github.com/Lib4RI/lib4ridora">lib4ridora</a>                ║         PHP         ║      927      ║       676       ║  3,117 d   ║      16     ║
 ╠═══════════════════════════╬═════════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
@@ -53,5 +53,5 @@
 ║ <a href="https://github.com/chasenunez/ekko">ekko</a>                      ║        Python       ║       7       ║        3        ║    <1 d    ║      1      ║
 ╚═══════════════════════════╩═════════════════════╩═══════════════╩═════════════════╩════════════╩═════════════╝
 
-                                ⠉⠛⠿⢿⣿ Updated Monday 2026-06-08 04:42 UTC ⣿⡿⠿⠛⠉                                 
+                                ⠉⠛⠿⢿⣿ Updated Tuesday 2026-06-09 04:03 UTC ⣿⡿⠿⠛⠉                                
 </pre>
