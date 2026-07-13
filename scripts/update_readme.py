@@ -58,7 +58,7 @@ except ImportError:  # pragma: no cover - fallback tested via wcswidth()
 
 # Config variables
 USERNAME = "chasenunez"
-ACTIVE_WINDOW_DAYS = 90         
+ACTIVE_WINDOW_DAYS = 60         
 LINE_LENGTH = 112                 # target width of the rendered dashboard, not really sure why it is this width, but it is what fits before the scrollbars pop up
 README_OUT = "README.md"
 
