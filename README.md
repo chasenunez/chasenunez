@@ -6,9 +6,9 @@
 ╔═══════════════════════════╦══════════════════╦════════════════╦══════════════════╦═════════════╦═════════════╗
 ║         Repository        ║  Main Language   ║  Total Bytes   ║  Total Commits   ║   Lifespan  ║  Team Size  ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║      Python      ║     27,604     ║       999        ║    245 d    ║      4      ║
+║ <a href="https://github.com/chasenunez/RDM_CLASSIC">RDM_CLASSIC</a>               ║    TypeScript    ║     92,111     ║        48        ║     18 d    ║      1      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/RDM_CLASSIC">RDM_CLASSIC</a>               ║    TypeScript    ║     84,941     ║        40        ║     15 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║      Python      ║     27,605     ║      1,000       ║    245 d    ║      4      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/BINGO">BINGO</a>                     ║    JavaScript    ║     5,482      ║        55        ║    113 d    ║      2      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
@@ -33,5 +33,5 @@
 ║ <a href="https://github.com/Lib4RI/lib4ridora">lib4ridora</a>                ║       PHP        ║      927       ║       676        ║   3,117 d   ║      16     ║
 ╚═══════════════════════════╩══════════════════╩════════════════╩══════════════════╩═════════════╩═════════════╝
 
-                                ⠉⠛⠿⢿⣿ Updated Monday 2026-07-13 05:12 UTC ⣿⡿⠿⠛⠉                                 
+                                ⠉⠛⠿⢿⣿ Updated Tuesday 2026-07-14 02:53 UTC ⣿⡿⠿⠛⠉                                
 </pre>
