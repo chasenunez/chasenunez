@@ -6,9 +6,9 @@
 ╔═══════════════════════════╦══════════════════╦════════════════╦══════════════════╦═════════════╦═════════════╗
 ║         Repository        ║  Main Language   ║  Total Bytes   ║  Total Commits   ║   Lifespan  ║  Team Size  ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
-║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>    ║      Python      ║      410       ║        81        ║    214 d    ║      2      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║      Python      ║     27,624     ║      1,011       ║    254 d    ║      4      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║      Python      ║     27,624     ║      1,010       ║    253 d    ║      4      ║
+║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>    ║      Python      ║      410       ║        81        ║    214 d    ║      2      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/RDM_CLASSIC">RDM_CLASSIC</a>               ║    TypeScript    ║     96,883     ║        50        ║     20 d    ║      1      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
@@ -33,5 +33,5 @@
 ║ <a href="https://github.com/Lib4RI/lib4ridora">lib4ridora</a>                ║       PHP        ║      927       ║       676        ║   3,117 d   ║      16     ║
 ╚═══════════════════════════╩══════════════════╩════════════════╩══════════════════╩═════════════╩═════════════╝
 
-                               ⠉⠛⠿⢿⣿ Updated Wednesday 2026-07-22 03:17 UTC ⣿⡿⠿⠛⠉                               
+                               ⠉⠛⠿⢿⣿ Updated Thursday 2026-07-23 03:24 UTC ⣿⡿⠿⠛⠉                                
 </pre>
