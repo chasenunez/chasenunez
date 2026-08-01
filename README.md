@@ -6,9 +6,9 @@
 ╔═══════════════════════════╦══════════════════╦════════════════╦══════════════════╦═════════════╦═════════════╗
 ║         Repository        ║  Main Language   ║  Total Bytes   ║  Total Commits   ║   Lifespan  ║  Team Size  ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║      Python      ║     27,632     ║      1,019       ║    262 d    ║      4      ║
+║ <a href="https://github.com/chasenunez/RDM_CLASSIC">RDM_CLASSIC</a>               ║    TypeScript    ║     96,946     ║        55        ║     36 d    ║      1      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/RDM_CLASSIC">RDM_CLASSIC</a>               ║    TypeScript    ║     97,098     ║        51        ║     33 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║      Python      ║     27,633     ║      1,020       ║    263 d    ║      4      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
 ║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>    ║      Python      ║      410       ║        81        ║    214 d    ║      2      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
@@ -33,5 +33,5 @@
 ║ <a href="https://github.com/Lib4RI/lib4ridora">lib4ridora</a>                ║       PHP        ║      927       ║       676        ║   3,117 d   ║      16     ║
 ╚═══════════════════════════╩══════════════════╩════════════════╩══════════════════╩═════════════╩═════════════╝
 
-                                ⠉⠛⠿⢿⣿ Updated Friday 2026-07-31 03:29 UTC ⣿⡿⠿⠛⠉                                 
+                               ⠉⠛⠿⢿⣿ Updated Saturday 2026-08-01 03:29 UTC ⣿⡿⠿⠛⠉                                
 </pre>
