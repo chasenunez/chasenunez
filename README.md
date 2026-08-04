@@ -6,9 +6,9 @@
 ╔═══════════════════════════╦══════════════════╦════════════════╦══════════════════╦═════════════╦═════════════╗
 ║         Repository        ║  Main Language   ║  Total Bytes   ║  Total Commits   ║   Lifespan  ║  Team Size  ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║      Python      ║     27,635     ║      1,022       ║    265 d    ║      4      ║
+║ <a href="https://github.com/chasenunez/RDM_CLASSIC">RDM_CLASSIC</a>               ║    TypeScript    ║     96,954     ║        57        ║     39 d    ║      1      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/RDM_CLASSIC">RDM_CLASSIC</a>               ║    TypeScript    ║     96,946     ║        55        ║     36 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                ║      Python      ║     27,636     ║      1,023       ║    266 d    ║      4      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
 ║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>    ║      Python      ║      410       ║        81        ║    214 d    ║      2      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
@@ -29,9 +29,7 @@
 ║ <a href="https://github.com/chasenunez/SDSC_RAG">SDSC_RAG</a>                  ║      Python      ║     3,801      ║        35        ║     26 d    ║      1      ║
 ╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/neural_web">neural_web</a>                ║      Python      ║      130       ║        13        ║     4 d     ║      1      ║
-╠═══════════════════════════╬══════════════════╬════════════════╬══════════════════╬═════════════╬═════════════╣
-║ <a href="https://github.com/Lib4RI/lib4ridora">lib4ridora</a>                ║       PHP        ║      927       ║       676        ║   3,117 d   ║      16     ║
 ╚═══════════════════════════╩══════════════════╩════════════════╩══════════════════╩═════════════╩═════════════╝
 
-                                ⠉⠛⠿⢿⣿ Updated Monday 2026-08-03 03:30 UTC ⣿⡿⠿⠛⠉                                 
+                                ⠉⠛⠿⢿⣿ Updated Tuesday 2026-08-04 03:13 UTC ⣿⡿⠿⠛⠉                                
 </pre>
