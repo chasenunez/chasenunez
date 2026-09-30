@@ -6,9 +6,9 @@
 ╔══════════════════════════════╦══════════════════╦═══════════════╦═════════════════╦════════════╦═════════════╗
 ║          Repository          ║  Main Language   ║  Total Bytes  ║  Total Commits  ║  Lifespan  ║  Team Size  ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/RESEARCH_CODING_LLM_GUIDE">RESEARCH_CODING_LLM_GUIDE</a>    ║        —         ║       9       ║        3        ║    <1 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                   ║      Python      ║     27,608    ║      1,080      ║   323 d    ║      4      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                   ║      Python      ║     27,606    ║      1,079      ║   322 d    ║      4      ║
+║ <a href="https://github.com/chasenunez/RESEARCH_CODING_LLM_GUIDE">RESEARCH_CODING_LLM_GUIDE</a>    ║        —         ║       9       ║        3        ║    <1 d    ║      1      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
 ║ <a href="https://github.com/Lib4RI/lib4ri_pub_db">lib4ri_pub_db</a>                ║       PHP        ║      219      ║       228       ║  1,128 d   ║      1      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
@@ -25,5 +25,5 @@
 ║ <a href="https://github.com/chasenunez/CONWAY">CONWAY</a>                       ║       Rust       ║     6,078     ║        11       ║    81 d    ║      1      ║
 ╚══════════════════════════════╩══════════════════╩═══════════════╩═════════════════╩════════════╩═════════════╝
 
-                                ⠉⠛⠿⢿⣿ Updated Tuesday 2026-09-29 05:13 UTC ⣿⡿⠿⠛⠉                                
+                               ⠉⠛⠿⢿⣿ Updated Wednesday 2026-09-30 05:00 UTC ⣿⡿⠿⠛⠉                               
 </pre>
