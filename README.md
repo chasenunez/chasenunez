@@ -6,9 +6,9 @@
 ╔══════════════════════════════╦══════════════════╦═══════════════╦═════════════════╦════════════╦═════════════╗
 ║          Repository          ║  Main Language   ║  Total Bytes  ║  Total Commits  ║  Lifespan  ║  Team Size  ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>       ║      Python      ║      513      ║        88       ║   286 d    ║      2      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                   ║      Python      ║     27,610    ║      1,083      ║   326 d    ║      4      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                   ║      Python      ║     27,610    ║      1,082      ║   325 d    ║      4      ║
+║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>       ║      Python      ║      513      ║        88       ║   286 d    ║      2      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/RESEARCH_CODING_LLM_GUIDE">RESEARCH_CODING_LLM_GUIDE</a>    ║        —         ║       9       ║        3        ║    <1 d    ║      1      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
@@ -27,5 +27,5 @@
 ║ <a href="https://github.com/chasenunez/CONWAY">CONWAY</a>                       ║       Rust       ║     6,078     ║        11       ║    81 d    ║      1      ║
 ╚══════════════════════════════╩══════════════════╩═══════════════╩═════════════════╩════════════╩═════════════╝
 
-                                ⠉⠛⠿⢿⣿ Updated Friday 2026-10-02 05:02 UTC ⣿⡿⠿⠛⠉                                 
+                               ⠉⠛⠿⢿⣿ Updated Saturday 2026-10-03 04:46 UTC ⣿⡿⠿⠛⠉                                
 </pre>
