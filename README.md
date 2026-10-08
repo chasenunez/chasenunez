@@ -6,11 +6,11 @@
 ╔══════════════════════════════╦══════════════════╦═══════════════╦═════════════════╦════════════╦═════════════╗
 ║          Repository          ║  Main Language   ║  Total Bytes  ║  Total Commits  ║  Lifespan  ║  Team Size  ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                   ║      Python      ║     27,613    ║      1,087      ║   330 d    ║      4      ║
+║ <a href="https://github.com/chasenunez/RESEARCH_CODING_LLM_GUIDE">RESEARCH_CODING_LLM_GUIDE</a>    ║        —         ║       19      ║        4        ║    9 d     ║      1      ║
+╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                   ║      Python      ║     27,615    ║      1,088      ║   331 d    ║      4      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
 ║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>       ║      Python      ║      513      ║        88       ║   286 d    ║      2      ║
-╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/RESEARCH_CODING_LLM_GUIDE">RESEARCH_CODING_LLM_GUIDE</a>    ║        —         ║       9       ║        3        ║    <1 d    ║      1      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
 ║ <a href="https://github.com/Lib4RI/lib4ri_pub_db">lib4ri_pub_db</a>                ║       PHP        ║      219      ║       228       ║  1,128 d   ║      1      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
@@ -27,5 +27,5 @@
 ║ <a href="https://github.com/chasenunez/CONWAY">CONWAY</a>                       ║       Rust       ║     6,078     ║        11       ║    81 d    ║      1      ║
 ╚══════════════════════════════╩══════════════════╩═══════════════╩═════════════════╩════════════╩═════════════╝
 
-                               ⠉⠛⠿⢿⣿ Updated Wednesday 2026-10-07 05:21 UTC ⣿⡿⠿⠛⠉                               
+                               ⠉⠛⠿⢿⣿ Updated Thursday 2026-10-08 05:30 UTC ⣿⡿⠿⠛⠉                                
 </pre>
