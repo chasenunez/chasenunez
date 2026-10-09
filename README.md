@@ -6,9 +6,9 @@
 ╔══════════════════════════════╦══════════════════╦═══════════════╦═════════════════╦════════════╦═════════════╗
 ║          Repository          ║  Main Language   ║  Total Bytes  ║  Total Commits  ║  Lifespan  ║  Team Size  ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/RESEARCH_CODING_LLM_GUIDE">RESEARCH_CODING_LLM_GUIDE</a>    ║        —         ║       19      ║        4        ║    9 d     ║      1      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                   ║      Python      ║     27,615    ║      1,089      ║   332 d    ║      4      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                   ║      Python      ║     27,615    ║      1,088      ║   331 d    ║      4      ║
+║ <a href="https://github.com/chasenunez/RESEARCH_CODING_LLM_GUIDE">RESEARCH_CODING_LLM_GUIDE</a>    ║        —         ║       19      ║        4        ║    9 d     ║      1      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
 ║ <a href="https://github.com/Lib4RI/islandora_advanced_oai">islandora_advanced_oai</a>       ║      Python      ║      513      ║        88       ║   286 d    ║      2      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
@@ -27,5 +27,5 @@
 ║ <a href="https://github.com/chasenunez/CONWAY">CONWAY</a>                       ║       Rust       ║     6,078     ║        11       ║    81 d    ║      1      ║
 ╚══════════════════════════════╩══════════════════╩═══════════════╩═════════════════╩════════════╩═════════════╝
 
-                               ⠉⠛⠿⢿⣿ Updated Thursday 2026-10-08 05:30 UTC ⣿⡿⠿⠛⠉                                
+                                ⠉⠛⠿⢿⣿ Updated Friday 2026-10-09 05:34 UTC ⣿⡿⠿⠛⠉                                 
 </pre>
