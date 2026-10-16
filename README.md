@@ -6,9 +6,9 @@
 ╔══════════════════════════════╦══════════════════╦═══════════════╦═════════════════╦════════════╦═════════════╗
 ║          Repository          ║  Main Language   ║  Total Bytes  ║  Total Commits  ║  Lifespan  ║  Team Size  ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/RDM_CLASSIC">RDM_CLASSIC</a>                  ║    TypeScript    ║     97,392    ║        71       ║   111 d    ║      1      ║
+║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                   ║      Python      ║     27,622    ║      1,096      ║   339 d    ║      4      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
-║ <a href="https://github.com/chasenunez/chasenunez">chasenunez</a>                   ║      Python      ║     27,620    ║      1,095      ║   338 d    ║      4      ║
+║ <a href="https://github.com/chasenunez/RDM_CLASSIC">RDM_CLASSIC</a>                  ║    TypeScript    ║     97,392    ║        71       ║   111 d    ║      1      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
 ║ <a href="https://github.com/chasenunez/RESEARCH_CODING_LLM_GUIDE">RESEARCH_CODING_LLM_GUIDE</a>    ║        —         ║       19      ║        4        ║    9 d     ║      1      ║
 ╠══════════════════════════════╬══════════════════╬═══════════════╬═════════════════╬════════════╬═════════════╣
@@ -27,5 +27,5 @@
 ║ <a href="https://github.com/chasenunez/CONWAY">CONWAY</a>                       ║       Rust       ║     6,078     ║        11       ║    81 d    ║      1      ║
 ╚══════════════════════════════╩══════════════════╩═══════════════╩═════════════════╩════════════╩═════════════╝
 
-                               ⠉⠛⠿⢿⣿ Updated Thursday 2026-10-15 04:04 UTC ⣿⡿⠿⠛⠉                                
+                                ⠉⠛⠿⢿⣿ Updated Friday 2026-10-16 04:00 UTC ⣿⡿⠿⠛⠉                                 
 </pre>
